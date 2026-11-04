@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "vcac"
+version = "0.0.1"
+description = "Vibe Coding for Animation Coding — model writes the program; the program makes the media."
+requires-python = ">=3.10"
+dependencies = [
+    "pyyaml>=6",
+    "pillow>=10",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "ruff>=0.6"]
+
+[project.scripts]
+vcac = "vcac.firstloop:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+# NOTE: the first closed loop runs with no install at all:
+#   $env:PYTHONPATH="src"; python -m vcac.firstloop specs/examples/orbiting-cubes.yaml
+# This file exists so `pip install -e .` and the `vcac` entry point become
+# available once the package grows past the loop. Deps are only what loop #1 uses.

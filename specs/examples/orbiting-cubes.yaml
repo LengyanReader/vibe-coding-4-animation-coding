@@ -1,0 +1,36 @@
+# specs/examples/orbiting-cubes.yaml
+# First closed loop (README §11 milestone #1): 6s, silent, Pillow frame-by-frame
+# render + FFmpeg encode. medium=video, no audio on purpose — the loop proves the
+# spec -> render -> encode -> validate -> manifest path end-to-end before tools grow.
+id: orbiting-cubes
+title: Orbiting Cubes
+medium: video
+
+format:
+  width: 960
+  height: 540
+  fps: 30
+  duration: 6s
+  container: mp4
+
+style:
+  palette: ["#0B1020", "#4FD1C5", "#F6AD55", "#7AA2F7"]   # index 0 = background
+  mood: minimal, geometric, cold
+
+timeline:
+  - { at: 0s, action: fade-in,   duration: 1s }
+  - { at: 1s, action: cubes-orbit, ease: ease-in-out }
+  - { at: 5s, action: fade-out,  duration: 1s }
+
+render:
+  preferred: [pillow-frames, ffmpeg]   # loop #1 renders frames with Pillow, muxes with ffmpeg
+  cubes: 6
+  seed: 42
+
+# Three acceptance rules (milestone #1). Determinism is a standing gate checked in
+# code regardless of prose (README §12.3). Fade ends on the dark background colour
+# (#0B1020, not pure black), so no long pure-black run is produced by the fades.
+acceptance:
+  - duration between 5.8s and 6.2s
+  - resolution exactly 960x540
+  - no black frame longer than 0.5s

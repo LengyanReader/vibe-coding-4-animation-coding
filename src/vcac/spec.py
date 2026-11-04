@@ -1,0 +1,159 @@
+"""Spec layer — the contract between human intent and the generator.
+
+Loads a YAML creative spec, validates the *required* fields for the first
+closed loop, and exposes parsed helpers. This is the seed of ``src/vcac/spec.py``
+described in README §4/§6.1. The full JSON Schema + pydantic model land when a
+second medium needs the same contract — for now a focused, honest validation is
+enough to make the loop runnable and mis-specs fail loud (M0.3).
+
+Intent vs hard constraints (README §6.1):
+  * hard  -> format.{width,height,fps,duration}, render.seed, acceptance
+  * intent -> style.{palette,mood}
+Ambiguities are recorded as explicit ``assumptions`` rather than silently guessed.
+"""
+from __future__ import annotations
+
+import re
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Any
+
+import yaml
+
+
+class SpecError(ValueError):
+    """Raised when a spec is missing or contradicts a required field."""
+
+
+def parse_duration(value: Any) -> float:
+    """Parse '6s' / 6 / '6.0' / 6.0 into seconds (float)."""
+    if isinstance(value, (int, float)):
+        return float(value)
+    s = str(value).strip().lower()
+    m = re.fullmatch(r"([0-9]+(?:\.[0-9]+)?)\s*(s|sec|secs|seconds)?", s)
+    if not m:
+        raise SpecError(f"cannot parse duration: {value!r}")
+    return float(m.group(1))
+
+
+def parse_hex(color: str) -> tuple[int, int, int]:
+    """'#0B1020' -> (11, 16, 32)."""
+    s = color.strip().lstrip("#")
+    if len(s) not in (3, 6) or not re.fullmatch(r"[0-9a-fA-F]+", s):
+        raise SpecError(f"bad hex color: {color!r}")
+    if len(s) == 3:
+        s = "".join(c * 2 for c in s)
+    return tuple(int(s[i : i + 2], 16) for i in (0, 2, 4))  # type: ignore[return-value]
+
+
+@dataclass
+class Spec:
+    raw: dict
+    id: str
+    title: str
+    medium: str
+    width: int
+    height: int
+    fps: int
+    duration: float
+    palette: list[tuple[int, int, int]]
+    seed: int
+    timeline: list[dict] = field(default_factory=list)
+    acceptance: list[str] = field(default_factory=list)
+    assumptions: list[str] = field(default_factory=list)
+
+    @property
+    def n_frames(self) -> int:
+        return round(self.duration * self.fps)
+
+    @property
+    def background(self) -> tuple[int, int, int]:
+        return self.palette[0]
+
+    def seconds_at(self, at: str) -> float:
+        return parse_duration(at)
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "title": self.title,
+            "medium": self.medium,
+            "format": {
+                "width": self.width,
+                "height": self.height,
+                "fps": self.fps,
+                "duration": self.duration,
+            },
+            "palette": ["#%02X%02X%02X" % c for c in self.palette],
+            "seed": self.seed,
+            "timeline": self.timeline,
+            "acceptance": self.acceptance,
+            "assumptions": self.assumptions,
+        }
+
+
+def _require(d: dict, path: str) -> Any:
+    cur: Any = d
+    for key in path.split("."):
+        if not isinstance(cur, dict) or key not in cur:
+            raise SpecError(f"spec missing required field: {path!r}")
+        cur = cur[key]
+    return cur
+
+
+def load(path: str | Path) -> Spec:
+    raw = yaml.safe_load(Path(path).read_text(encoding="utf-8"))
+    if not isinstance(raw, dict):
+        raise SpecError(f"spec root must be a mapping: {path}")
+
+    assumptions: list[str] = []
+
+    medium = _require(raw, "medium")
+    if medium != "video":
+        raise SpecError(f"first closed loop supports medium=video only, got {medium!r}")
+
+    fmt = _require(raw, "format")
+    width = int(_require(fmt, "width"))
+    height = int(_require(fmt, "height"))
+    fps = int(_require(fmt, "fps"))
+    duration = parse_duration(_require(fmt, "duration"))
+
+    # yuv420p needs even dimensions; record the constraint as an assumption if adjusted.
+    if width % 2 or height % 2:
+        assumptions.append(
+            f"width/height forced even for yuv420p: {width}x{height} -> "
+            f"{width - width % 2}x{height - height % 2}"
+        )
+        width -= width % 2
+        height -= height % 2
+
+    style = raw.get("style", {})
+    palette_hex = style.get("palette")
+    if not palette_hex or len(palette_hex) < 2:
+        raise SpecError("style.palette needs >= 2 colors (background + at least one accent)")
+    palette = [parse_hex(c) for c in palette_hex]
+
+    render = raw.get("render", {})
+    seed = int(render.get("seed", 42))
+    if "seed" not in render:
+        assumptions.append("render.seed defaulted to 42")
+
+    acceptance = raw.get("acceptance") or []
+    if not acceptance:
+        raise SpecError("spec must declare acceptance rules (verify-before-done, M0.3)")
+
+    return Spec(
+        raw=raw,
+        id=str(_require(raw, "id")),
+        title=str(raw.get("title", _require(raw, "id"))),
+        medium=medium,
+        width=width,
+        height=height,
+        fps=fps,
+        duration=duration,
+        palette=palette,
+        seed=seed,
+        timeline=raw.get("timeline", []),
+        acceptance=list(acceptance),
+        assumptions=assumptions,
+    )
