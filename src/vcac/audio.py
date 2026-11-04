@@ -22,7 +22,7 @@ def note_to_freq(name: str) -> float:
     i = 1
     while i < len(name) and name[i] in "#b":
         i += 1
-    letter, accidental, octave = name[:1] + name[1:i], name[i:], int(name[i:])
+    letter, _accidental, octave = name[:1] + name[1:i], name[i:], int(name[i:])
     if letter not in _SEMITONE:
         raise ValueError(f"bad note: {name!r}")
     midi = 69 + (octave - 4) * 12 + _SEMITONE[letter]
@@ -103,9 +103,6 @@ def chord_events(tempo: float, key_root: str, bars: int, sr: int) -> list:
             events.append({"at": start + s * beat / 2, "dur": beat / 2,
                            "notes": [n], "timbre": "arp", "gain": 0.35})
     return events
-
-
-_NAME_CACHE: dict[float, str] = {}
 
 
 def _name_from_freq(freq: float) -> str:
