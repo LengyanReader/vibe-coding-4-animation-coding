@@ -6,7 +6,9 @@
 > 诚实约定：`✔primary` = 本轮到达官方一手页面/仓库；`○secondary` = 经第三方面包屑证实，采纳前须回源核对；
 > `本机` 列由 `scripts/doctor.py` 于 2026-11-04 实测，规划器只能选 AVAILABLE 的能力（README §6.2）。
 
-**Surveyed:** 2026-11-04 · 下一轮复测触发条件见 §8 代谢。
+**Surveyed:** 2026-11-04 · 下一轮复测触发条件见 §11 代谢。
+> 修法/风格能否被代码复现**不记在本文件**，见平行文件 `docs/styles.md`（画法与风格模拟盘点）。
+> 本文件只回答「有哪些工具能跑 · 许可 · headless · 不适合什么」。
 
 ---
 
@@ -77,7 +79,76 @@
 | **Lottie (rlottie/skia)** | 格式生态稳定 | ❌ | MIT(Apache) | JSON→帧确定性 | UI 动效资产 | 长片 | 项目知识 |
 | **OpenSequencer / Rendiv 等新兴** | 2026 年出现多个"AI 原生剪辑"开源项目（search 发现，未审计） | ❌ | 各异 | 未核验 | 观察名单 | 现阶段引入 | ○secondary，标 unverified |
 
-## 5. 游戏与互动 · Games & Interactive
+> §4 是**装配与代码驱动**的动画线；**手工作画/手绘质感**那一族（OpenToonz、Krita、Rough.js…）
+> 与**影视级 3D**、**日式 2D/2.5D** 分别见下面新增的 §5 / §6 / §7。
+
+## 5. 手绘质感与 2D 动画 · Hand-drawn Look & 2D Animation
+
+> 传统 2D 动画工业的主力工具几乎都**不是 headless**（画师交互为轴心）。本节按「**可否被脚本驱动**」排序，
+> 而不是按名气：能写脚本的才进得了本项目的管线。
+
+| 工具 | 版本/状态（2026-11-04） | 本机 | 许可 | Headless/可脚本性 | 用途定位 | 不适合 | 来源 |
+|---|---|---|---|---|---|---|---|
+| **Krita** | 线在 **5.3.2** 与 **6.0.2**（6.x 为新一代引擎）双支并行；⚠️ 精确当前版本号未回源核验 | ❌ | GPL-3 | **PyQt/Python 脚本接口 + `krita -render` 命令行渲染**；笔触（brush stroke）数据可由脚本生成 → 是「代码作画」最现实的落点 | 程序化笔触/图层→成图、绘画质感 | 逐帧动画的时序精度（时间轴非确定性） | ✔primary(krita.org 下载页与公告；版本号计数标 directional) |
+| **OpenToonz** | **1.8**（2024-01 起为当前主线；Ghibli/Toonz 血统，Est. 由 Wayback 捐赠） | ❌ | BSD-3(类) | 场景为 XML（`.toonzscx`）**可程序化生成/改写**；headless 渲染弱（需 GUI 会话） | 正牌 2D 赛璐璐工作流（扫描→线条清理→上色→摄影） | 无人值守批量（AMI/scripting 有但脆） | ✔primary(opentoonz.github.io) |
+| **Pencil2D** | **0.7.2** | ❌ | Apache-2.0 | 自有格式，脚本化几乎无；GUI-only | 极简逐帧手绘原型 | 管线自动化（不可驱动） | ✔primary(pencil2d.org) |
+| **Synfig Studio** | **1.5.5**（"Alegreya"系 1.5 线） | ❌ | GPL-3 | `.synfig`/`.sfp` XML 可生成；**`synfig` CLI 可直接渲染序列**（`-c` 命令行） | 矢量逐帧/补间动画 | 手绘质感（矢量平滑风） | ✔primary(synfig.org 下载 + wiki CLI 页) |
+| **Rough.js / rough-notation** | 版本与维护状态**未回源核验**（标 ⚠unverified）；算法本质已被广泛复述 | ❌(Node ✅) | MIT | JS 库，node 可 headless 出 SVG；**同一 seed 确定** | 「手绘抖动线」这一视觉语法的标准实现 | 严肃排版（线宽不可精控） | ○secondary(roughjs.com)，采纳前回源 |
+| **Excalidraw CLI（官方）** | 官方已发布 **`@excalidraw/cli`**，README 自我定位含 **"for humans and agents"** | ❌(Node ✅) | MIT（库）/ 组件另有口径 | `.excalidraw` JSON → PNG/SVG，**纯 CLI、天然 headless** | agent 写 JSON → 手绘风图示成片 | 当图表库用（它画的是线框，不是数据） | ✔primary(npm @excalidraw/cli + excalidraw.com 文档) |
+| **matplotlib `xkcd()`** | 随 matplotlib（本机未装） | ❌ | PSF/BSD | `Agg` 后端 + rcParams + seed → **完全确定性**，零 JS 依赖 | 手绘风图表/示意图（Python 侧首选，替代 Rough.js） | 非图表类自由构图 | ✔primary(matplotlib 3.11.2 docs: stylesheet/xkcd) |
+| **Tangram / Sketching 类滤镜** | 学术算法（Cumming 素描建模等） | — | — | 论文代码多、工程化弱 | 线稿/明暗生成的算法参考 | 直接投产 | ○secondary，仅索引 |
+| **OpenCV `sketch` / XDoG** | **cv2 5.0.0 已装**；XDoG = Winnemöller 2012；`skimage.filters.difference_of_gaussians` 需 scikit-image | ✅(cv2) / ❌(skimage) | Apache-2 / BSD | 纯滤波，**确定性、零新依赖** | 照片→素描/线稿（L0 就能跑） | 从空白生成构图（只转换不创作） | ✔primary(实测 + 论文) |
+| **Spine** | **4.2**（骨骼 2D 动画工业事实标准） | ❌ | 商业（按席位） | 导出/编辑器非 headless；运行时库（C++/ts）开源可用 | 角色骨骼动画资产 | 本项目预算与自动化（商业 GUI 为主） | ○secondary(esotericsoftware.com)，采纳前核价 |
+| **Live2D Cubic** | **5.3.05 beta 1** 线 | ❌ | 商业（免费档有营收上限） | `.cmo3` 私有；运行时 SDK 可用 | 立绘呼吸/伪 3D（VTuber 姿势） | 程序化生成（编辑依赖 GUI） | ✔primary(live2d.com 下载/公告，营收上限条款要回源) |
+| **Rive** | 官方当前自我定位已是 **"agent-native 2D and 3D engine"** | ❌(Node ✅) | MIT(运行时)/编辑器服务条款 | `.riv` 状态机 + 运行时；**官方明确欢迎 agent 驱动**；导出可 CLI | 交互式/状态机动画、UI 动效 | 长片线性动画 | ✔primary(rive.app 文档/首页口径) |
+| **python-lottie / lottie 生态** | 活跃（CuebiX/python-lottie 面向 Blender 导出） | ❌ | MIT/Apache-2 | **JSON→帧完全确定**（rlottie/skia 光栅） | 程序化生成 Lottie 资产（矢量动效） | 长片、位图笔触 | ○secondary(pypi python-lottie)，回源核对维护度 |
+| **Cascadeur** | **2026.2**（AI 辅助关键帧姿态物理自动补全） | ❌ | 商业（免费档非商用条款） | GUI 为轴；导出 FBX 可下游 | 角色动作可信度（物理修正） | 无人值守管线 | ✔primary(cascadeur.com 下载页) |
+| **EbSynth** | **2** | ❌ | 商业（免费可试用，条款需回源） | 有 CLI 用法（社区记录，非官方文档主路径）⚠️ | 单帧风格化→传播到序列（**转描/风格化**） | 全新创作（必须有美术关键帧输入） | ○secondary，标 directional |
+| **Dragonframe** | **DF2026**（定格动画工业标准） | ❌ | 商业（硬件绑定） | 有远程控制 API（面向自家设备） | 定格/实物逐帧 | 本项目（硬件+商业授权） | ✔primary(dragonframe Depo 口径) |
+| **Adobe Animate** | **已宣布停用**：2026-03-01 停止支持（EOL） | ❌ | 商业订阅 | — | ❌ 不再作为选项登记 | 任何新管线（上游已终止） | ✔primary(Adobe 官方支持页 EOL 通告) |
+| **Toon Boom Harmony / TVPaint** | 工业 2D 双巨头；**本轮未取得可信当前版本号** | ❌ | 商业 | 有脚本层（Harmony Python/TSF）但许可重 | 参考认知（知道存在） | 本项目引入（成本+许可） | ⚠unverified，勿引用具体版本 |
+
+**这一族的诚实判断**：2D 动画的瓶颈**不是缺工具**，而是「逐帧作画」本质上是**人的时序判断**（timing/spacing、表演、作画监督）。代码能稳定接管的是三件事：**(a) 手绘视觉语法**（Rough/xkcd/Excalidraw CLI/XDoG）、**(b) 矢量与骨骼资产的程序化生成**（Synfig XML、Lottie JSON、SVG）、**(c) 装配与摄影**（FFmpeg、合成层）。真正的原画/动画师环节，本项目**不承诺替代**。
+
+## 6. 影视级 3D 动画工业栈 · Feature-3D Pipeline
+
+> 结论：**开源工业底座已齐备**（USD + MoonRay + Cycles + Blender），迪士尼/梦工厂级短片的**技术闸门不存在**，
+> 天花板是**美术工时**（模型、绑定、灯光、表演以人年计）。故本节只登记「能跑、许可干净」的部件，不承诺长片质感。
+
+| 部件 | 版本/状态（2026-11-04） | 本机 | 许可 | 可脚本/确定性 | 用途定位 | 不适合 | 来源 |
+|---|---|---|---|---|---|---|---|
+| **Blender（3D 侧）** | **5.2 LTS**（2026-07-14，支持至 2028-07）——见 §2 | ❌ | GPL-2 | `blender -b -P` + Cycles 固定 seed（**同版本同硬件**才位级复现）+ Geometry Nodes 全程序化 | 唯一的「建模→绑定→灯光→渲染→合成」一站式 | 影视级大规模 farm 调度（需配 USD） | ✔primary(blender.org/releases/5-2) |
+| **Universal Scene Description (USD/Pixar)** | AOUSD 标准；OpenPulse/pxr 持续发布（精确版本号未回源，标 ⚠) | ❌ | Apache-2.0 | **纯文本/二进制场景合成**，Python API 强、天然可 diff/可组合 | 场景分层合成与跨软件交换（本项目的 DAG 思路即同构） | 小项目（体系偏重） | ✔primary(pixar.github.io/usd + aousd.org) |
+| **MoonRay（DreamWorks/Weta 系）** | **Apache-2.0 开源**，**2026-05 进入 ASWF 托管** | ❌ | Apache-2.0 | 有 batch 渲染能力；需自行接场景 | 影视级 CPU 光线追踪（真·工业级血缘） | 短期投产（集成工时） | ✔primary(aswf.org 公告 / LF 新闻) |
+| **Houdini** | **22**（2026-07-16 发布线） | ❌ | 商业；**Apprentice 免费非商用（含水印/分辨率限制）**、**Indie 受限营收上限** | `hython`/`hscript` headless 成熟，**程序化 FX 的天花板** | 烟/火/破坏/流体/群集 | 商用交付（许可层级要先算清） | ✔primary(sidefx.com 产品与许可页) |
+| **RenderMan** | **26** 系列；**Non-Commercial 免费** | ❌ | NCR（非商用）/ 商业订阅 | `renderman` CLI + Python；RIS 场景确定性好 | 学习工业渲染语义 | 商用（NCR 条款） | ✔primary(renderman.pixar.com 下载/条款) |
+| **OpenVDB** | 活跃（ASWF） | ❌ | Apache-2.0 | 体素数据（云/烟/雪）程序化 | 大体积特效承载 | 直接当渲染器 | ✔primary(openvdb.org) |
+| **OpenEXR / ILM 血统** | ASWF 托管，3.x 线 | ❌ | BSD-3 | HDR 多通道帧文件；**Weta/ILM 的开放贡献以此为凭** | 帧序列中间格式（比 png 更适合合成） | 当交付物（需转码） | ✔primary(aswf.org/projects/openexr) |
+| **MetaHuman** | ⚠️ **Web Creator 应用 2026-11-05 起停用**（即本文档登记日的**次日**）；改由 UE 内/新流程承接 | ❌ | **UE EULA 约束**（须在 UE 生态内使用为典型限制） | 生成偏 GUI/云 | 高保真人脸（若接受 UE 路线） | 独立管线/非 UE 交付（许可不符） | ✔primary(unrealengine.com 元人类支持页 sunset 通告) |
+| **SMPL-X / 人体参数模型** | 活跃（MPI/MAX 系） | ❌ | **非商业研究许可**（商用须另行授权） | Python 工具链完善，参数化体型/姿态 | 程序化人体姿态/动作研究 | **任何商用产出** | ✔primary(mpi-inf.mpg.de / smplx 项目许可页) |
+| **Mixamo** | 仍免费提供自动绑定 + 动作库 | ⚠️ 需账号/网络 | Adobe 条款（上传素材权利条款要读） | **官方自动姿态/绑定服务**（无公开批量 API） | 快速拿到能动的角色 | 需完全离线/可复现的资产（不可控） | ○secondary(mixamo.com)，采纳前核条款 |
+| **VRoid Studio / VRM** | 活跃（VRM 规范由 OpenVRM Consortium 维护） | ❌ | 软件免费；**VRM 元数据内含再分发许可位** | GUI 生成为主，VRM/glTF 解析可脚本 | 动漫风人型角色（许可结构清晰） | 影视级写实质感 | ✔primary(vrm.org / openvrm GitHub) |
+| **CC0 基础资产** | **Blender Studio 开放影片**（含全套生产文件，CC-BY 系）+ **17 个 CC0 人体基础网格**；另有 Poly Haven / ambientCG（CC0 HDRi/PBR） | ❌(需下载) | CC0 / CC-BY（逐件核验） | 资产可入库、可哈希、可审计 | 直接拿到「已生产验证」的场景/角色/材质 | 未逐件核对授权就用 | ✔primary(blender.org/studio/open-movies + polyhaven.com) |
+
+**采纳纪律**：本表**没有任何一行是本机可用的**（全 ❌）。按 `docs/roadmap-development.md` §1 原则 6，外部 DCC 只能作为**同一契约下的替代渲染器**接入（`spec → render → measure → validate → manifest` 不改），且需你逐项批准安装。
+
+## 7. 日式 2D / 2.5D（赛璐璐与「三渲二」）· Anime Look
+
+| 路线 | 技术要点 | 工具（本机） | 确定性 | 许可/风险 | 来源 |
+|---|---|---|---|---|---|
+| **真·2D 赛璐璐** | 原画→动画(中割)→上色→**撮影**(合成/摄影) | OpenToonz 1.8 / Krita / Clip STUDIO EX（版本未核 ⚠） | 低（作画是人工时序判断） | 工具许可 OK；**参考素材（动画截图）不可直接复用** | ✔primary 各官网；撮影流程为业界通识 |
+| **2.5D（3D 渲二）** | 低模 + toon shader + 描边 + 分层合成；「角色 3D / 背景手绘」混拍 | **Blender**：Grease Pencil + Freestyle + EEVEE/Cycles toon；社区着色器（如 CyclesTooner / bpy-renderer 系；**`shader-to-ruby` 本轮未命中仓库，勿引用**） | 中高（渲染确定；描边参数可钉） | GPL 工具；导入素材逐件核验 | ✔primary(blender.org Grease Pencil/Freestyle 手册) + ○secondary |
+| **背景美术（背景画）** | 数字绘景 = 画法问题，不是动画问题 | 走 `docs/styles.md` §1.2 山水链 / §3 Curtis 水彩 / XDoG 线稿 + 平涂上色 | **高**（纯代码分层可确定） | 干净 | ✔primary styles.md 已核实 |
+| **立绘/伪 3D** | Live2D 形变、VRM 动漫人型 | Live2D 5.3.05 beta1 / VRoid | 低（GUI 编辑） | Live2D 营收上限条款；VRM 元数据许可位 | ✔primary 官网条款页 |
+| **状态机/交互动效** | Rive "agent-native 2D and 3D engine" | Rive 运行时(MIT) + Node ✅ | 中（.riv 为二进制资产，可哈希） | 编辑器服务条款 | ✔primary(rive.app) |
+| **转描/风格化传播** | 关键帧风格化 → EbSynth 传到序列 | EbSynth 2 | 低（需美术关键帧 + 非官方 CLI 文档） | 商业免费试用，条款未回源 | ○secondary，标 ⚠unverified |
+| **AI 生成动画** | 文生视频/图生视频（本机有 `ai-video-generation` skill） | ❌ **不入渲染主路径** | 破坏（不可复现） | 版权/判例风险 | 见 `docs/styles.md` §8 四条理由 + 本文件 §9-C |
+
+**诚实判断**：日式 2D 里，代码能可靠接管的是**摄影合成层、背景美术、镜头调度、描边与分层**；
+「作画」本身（timing/spacing + 表演）仍是人。**「三渲二」是本项目最现实的高质感路线**——因为它把
+不可自动化的作画判断，替换成了可脚本化的渲染+合成规则。
+
+## 8. 游戏与互动 · Games & Interactive
 
 | 工具 | 版本/状态（2026-11-04） | 本机 | 许可 | Headless/确定性 | 用途定位 | 不适合 | 来源 |
 |---|---|---|---|---|---|---|---|
@@ -96,7 +167,7 @@
 | **pygbag** | pygame-ce→WebAssembly 通道，活跃随 CE | ❌ | BSD | 构建后可 Playwright 冒烟 | pygame 网页构建 | 大项目性能 | 项目知识，未本轮核验 |
 | **Godot Export skill（skillsdirectory）** | 社区 Agent Skill 已存在（2026-09） | — | — | — | 发现路径：玩法导出可复用 | 未审计直接用 | ○secondary |
 
-## 6. 开发模式与工程编排 · Development Modes
+## 9. 开发模式与工程编排 · Development Modes
 
 **A. 「Vibe Coding 做媒体」的模式层**（与 README 核心原则对应，均已在生态中有成熟做法）：
 
@@ -120,7 +191,7 @@
 
 **C. 明确排除**（对齐 README §13 非目标）：RunComfy 类 `ai-video-generation` / `ai-music` / `ai-image-generation` skills 虽在本机技能列表中，但其路线是**多模态模型直接生成媒体**——与本仓库"代码做媒体"的根本路线相反，登记为「知道存在，本项目不使用」；扩散模型、云端文生图 API 同理。
 
-## 7. 采纳队列建议 · Onboarding Queue（供后续任务确认，非本次执行）
+## 10. 采纳队列建议 · Onboarding Queue（供后续任务确认，非本次执行）
 
 按 README 里程碑倒推的最小集（安装动作均属可逆本地操作，仍待你发话再装）：
 
@@ -134,9 +205,10 @@
 | 6 | （音频排版按需）LilyPond 2.26 winget/choco | 出版级乐谱时才装 |
 | 7 | （观察）Revideo vs Motion Canvas 二选一后再装 | 服务端渲染需求出现时 |
 
-## 8. 代谢 · Metabolism
+## 11. 代谢 · Metabolism
 
-- **复测触发**：每轮实质任务前跑 `scripts/doctor.py`（本机面）；每季度或里程碑切换时复采 §1–§5 版本列（网络面），旧数据不删除、就地标注 `superseded-by: <date>`。
-- **不一致登记**：Tiled 版本号双源不一致、"FFmpeg 9.0" 传闻、Bevy 疑似 ≥0.19、Phaser 4 许可条款——四项列入下一轮回源清单。
+- **复测触发**：每轮实质任务前跑 `scripts/doctor.py`（本机面）；每季度或里程碑切换时复采 §1–§8 版本列（网络面），旧数据不删除、就地标注 `superseded-by: <date>`。
+- **不一致登记**：Tiled 版本号双源不一致、"FFmpeg 9.0" 传闻、Bevy 疑似 ≥0.19、Phaser 4 许可条款、Krita 5.3.2/6.0.2 双线当前版本计数、USD 精确版本号——六项列入下一轮回源清单。
+- **本轮新增未核（§5–§7）**：`roughjs` 版本与维护状态、Toon Boom/TVPaint/Clip Studio 版本号、EbSynth 许可条款、Mixamo 上传素材权利、Harmony 脚本层可用性。⚠️ 已在本文件纠正的记忆错误（`shader-to-ruby` 未命中、Zoo Tools 非 Weta 开源）记于 `docs/styles.md` §10。
 - **回流工厂**：本表的列格式即 `<HF>/reference/tool-router.md` §4 "开新表模板" 的一次实例化；通用化模式（"代码驱动媒体生态盘点表"）可按 `capability-flow.md` 提案回流 `<HF>/updates/`（只提案，不直改 data|core）。
 - **SSOT**：本文件为本仓库工具事实的唯一来源；README §3 是能力池愿景，版本实况只认本文件。

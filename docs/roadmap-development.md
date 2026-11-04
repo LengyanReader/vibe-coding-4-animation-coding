@@ -130,7 +130,35 @@ checks** → **the concrete sample to build next**.
 - **Next sample:** *30s pygame-ce microgame* — same scripted-input harness pointed at
   a pygame headless loop; assert identical final-state hash vs the pure sim.
 
-### 2.5 Cross-media / product line (highest leverage)
+### 2.5 Style / painterly route (opened by `docs/styles.md`)
+
+A **sixth medium class**, not a new tool: "what style can be formalised into code".
+`docs/styles.md` is the map; the render path stays the proven image route.
+
+- **Now:** nothing built — the survey is the asset. The gap is honest and closed on paper:
+  hand-drawn/2D-animation families, painterly styles, feature-3D and anime stacks are now
+  registered in `docs/tools.md` §5–§7 with licence + headless columns.
+- **Highest-leverage first tier (zero install, all deterministic):**
+  - *Ink-wash landscape chain* — styles.md §1.2 nine-step chain (paper base → fBm+domain-warp
+    terrain → contour "勾" → texture-primitive "皴" → wash → accumulated ink → negative-space
+    mist → seal + colophon → acceptance). 画理 becomes constraints, not a filter.
+  - *Woodcut / ukiyo-e as layered DAG* — one block = one channel = one mask; the multi-block
+    full-colour print is literally our `alpha_composite` chain (styles.md §2).
+  - *XDoG / OpenCV sketch / halftone* — already installed (cv2 5.0.0, SciPy); pure filtering.
+  - *Riso* — spot-ink separation + per-layer offset (misregistration) + multiply overprint.
+- **Next tier:** Curtis 1997 watercolor reimplementation; `vsketch`/`vpype` pen-plotter
+  line art (SVG is a reusable vector asset downstream); OFL Chinese calligraphy fonts for
+  colophon/seal (manifest needs a `fonts` field — see styles.md §6).
+- **Deferred, gated:** Blender as an *alternative renderer* for 2.5D (toon shader + Freestyle
+  + Grease Pencil + composited painted backgrounds). Feature-3D tooling is not the bottleneck —
+  art labour is (see §6).
+- **New acceptance checks:** five-band value histogram (墨分五色), negative-space ratio
+  (留白, region-weighted — not a global entropy floor), palette ΔE against a fixed ink/mineral
+  set, seal-red presence and count, licence check on every font and reference image.
+- **Next sample:** `ink-landscape` — spec → nine-step renderer → PNG, gated on
+  resolution + value-band + whitespace-ratio + palette-ΔE + determinism. *(no install)*
+
+### 2.6 Cross-media / product line (highest leverage)
 
 The film mux was the first proof of **node composition**. Generalise it:
 
@@ -169,11 +197,16 @@ abstraction is extracted from ≥2 concrete cases rather than guessed.
 
 1. **Pipeline skeleton** — registry + DAG + content-hash cache. Turns samples into
    cached, composable builds. *(no install)*
-2. **Data-viz image loop** — matplotlib chart → poster with ΔE/contrast gates. *(+1 install)*
-3. **Notation audio loop** — music21 → LilyPond (score png/pdf) + FluidSynth (wav). *(installs)*
-4. **30s pygame-ce microgame** — headless playtest reusing the game harness. *(+1 install)*
-5. **Multi-shot explainer film** — timeline DAG: title + chart + gameplay + VO + captions.
-   *(composes 1–4)*
+2. **`ink-landscape` style loop** — the nine-step 山水 chain from `docs/styles.md` §1.2,
+   plus XDoG/sketch and Riso separations. Proves style can be a *spec*, not a filter. *(no install)*
+3. **Data-viz image loop** — matplotlib chart → poster with ΔE/contrast gates; add
+   `matplotlib.xkcd()` for hand-drawn charts (the Python-side answer to Rough.js). *(+1 install)*
+4. **Notation audio loop** — music21 → LilyPond (score png/pdf) + FluidSynth (wav). *(installs)*
+5. **30s pygame-ce microgame** — headless playtest reusing the game harness. *(+1 install)*
+6. **Multi-shot explainer film** — timeline DAG: title + chart + gameplay + VO + captions.
+   *(composes 1–5)*
+7. **(later, needs approval) 2.5D anime shot** — Blender toon render + painted background from
+   loop 2 → first frame from the feature-3D/anime column, as an *alternative renderer*. *(heavy install)*
 
 Every loop is gated by `tests/e2e` + a new golden content hash before it is called done.
 
@@ -192,7 +225,12 @@ All entries are pip/winget and reversible; none is taken without a go-ahead.
 | manim | math animation | `pip install manim` (+cairo) | medium |
 | pygame-ce | real game runtime | `pip install pygame-ce` | light |
 | SciPy | filters/FFT (audio, physics) | **already installed** | — |
+| scikit-image | XDoG (`difference_of_gaussians`) + NPR filters | `pip install scikit-image` | light |
+| vsketch / vpype | pen-plotter line art, SVG pipeline | `pip install vsketch vpype` | light |
+| OFL Chinese fonts | colophon, seal text, CJK posters (志莽行书/思源) | download + register in `assets/` | light (licence clean) |
+| Met Open Access pulls | 492k CC0 artworks via REST API — composition/value statistics | network fetch, hash + licence per file | light |
 | godot / renpy / blender | engines / 3D | external installers | heavy |
+| Houdini 22 Apprentice/Indie | procedural FX (smoke/fire/destruction) | external installer | heavy + **licence limits (watermark / revenue cap)** |
 
 ---
 
@@ -209,3 +247,17 @@ All entries are pip/winget and reversible; none is taken without a go-ahead.
   is the headless harness (scripted input → state assertions → determinism → render).
 - Everything in §2–§5 is a **proposal**. No install or irreversible action has been
   taken; each loop in §4 starts only on your go-ahead.
+- **Style/animation ceilings are unequal, and the honest ranking is** (docs/styles.md §0,
+  docs/tools.md §5–§7): painterly styles (ink, woodcut, riso, pixel, sketch) **high** — the
+  technique is already a layered, enumerable program; Japanese 2D/2.5D **medium-high** — the
+  render/composite half scriptifies, the *drawing* half (timing, spacing, performance) stays
+  human; feature-3D at Disney/DreamWorks level **medium** — the open industrial stack (USD,
+  MoonRay Apache-2.0, Cycles, Houdini) is not the bottleneck, **art labour measured in
+  person-years is**; we commit to procedural shots and short sequences, not feature polish.
+- Generative "style transfer" models stay **out of the render path** for four documented
+  reasons (docs/styles.md §8): non-determinism, unauditability, licence/case-law risk, and
+  conflict with the provenance contract. They may serve offline reference only, and any AI
+  material in a deliverable must be declared in the manifest.
+- Two recollection errors were caught and corrected during this survey ("Weta open-sourced
+  Zoo Tools" — unsupported; `shader-to-ruby` — repo not located). Recorded in
+  docs/styles.md §10 rather than propagated into the adoption queue.
