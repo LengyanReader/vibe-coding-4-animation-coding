@@ -1,0 +1,20 @@
+# Pipeline skeleton sample — three nodes, one clock, one manifest (roadmap §2.7).
+#
+# The executor (src/vcac/pipeline.py) topologically orders these nodes, checks
+# each one's cache key (spec dict + upstream payload content hashes + package
+# code hash + tool versions) and skips any node whose key still matches the
+# one recorded next to its output. A cached node re-reports the acceptance
+# verdict recorded when it last ran; its artifacts are re-hashed first.
+#
+# `spec:` paths resolve against this bundle file's directory (or absolute).
+# `inputs:` maps a consumer's declared input slots to upstream node ids; the
+# executor rewrites them to the upstream node's provided artifact (e.g.
+# video -> video/final.mp4) and keeps the resolved spec as evidence of what
+# actually ran (README output layout: the spec the run really used).
+id: media-bundle
+title: Orbiting cubes, scored — a cached three-node DAG
+
+dag:
+  - {id: video, spec: orbiting-cubes.yaml}
+  - {id: audio, spec: synth-pad.yaml}
+  - {id: film,  spec: film-mux.yaml, inputs: {video: video, audio: audio}}

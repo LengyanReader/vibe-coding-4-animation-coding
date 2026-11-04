@@ -17,7 +17,7 @@ dependencies = [
 dev = ["pytest>=8", "ruff>=0.6"]
 
 [project.scripts]
-vcac = "vcac.firstloop:main"
+vcac = "vcac.pipeline:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
@@ -27,7 +27,8 @@ pythonpath = ["src"]
 testpaths = ["tests"]
 addopts = "-q"
 
-# NOTE: the first closed loop runs with no install at all:
-#   $env:PYTHONPATH="src"; python -m vcac.firstloop specs/examples/orbiting-cubes.yaml
+# NOTE: everything runs with no install at all:
+#   $env:PYTHONPATH="src"; python -m vcac.pipeline run specs/examples/media-bundle.yaml
 # This file exists so `pip install -e .` and the `vcac` entry point become
-# available once the package grows past the loop. Deps are only what loop #1 uses.
+# available once the package grows past the loop. Deps are only what the
+# zero-install routes use (`vcac run` / `vcac doctor` are argparse-only).

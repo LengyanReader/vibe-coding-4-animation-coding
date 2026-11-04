@@ -28,6 +28,21 @@ exact image/audio metrics), `audio.py` (deterministic additive synth), `ffmpeg.p
 engine), `provenance.py` (content-hash + manifest). These are the levers every
 direction below pulls on.
 
+**Loop #1 of §4 is built (2026-11-04): the pipeline skeleton.** `registry.py`
+holds the probes `scripts/doctor.py` prints (now a thin CLI over it; output
+byte-identical), plus `require()` — a node asks the registry before it runs,
+and a missing capability is a loud `CapabilityError`, never a silent pass.
+`pipeline.py` is a DAG executor with content-hash caching over the routes as
+they are, proven by the three-node bundle `specs/examples/media-bundle.yaml`
+(video + audio → film) in `tests/e2e/test_pipeline_bundle.py`: the executor's
+node hashes equal the single-route goldens, a second pass is fully cached, a
+tampered artifact is re-executed, and mutating one spec re-runs exactly the
+affected sub-graph (54 tests green under Python 3.13.5). Honest scope: node
+granularity = one whole route `run()`; the cache key mixes the spec dict,
+upstream *payload* content hashes, the **whole-package** code hash and tool
+versions — so any code edit invalidates every node (coarse but honest); the
+remaining §3 items (spec schema, codegen, CLI beyond `run`/`doctor`) stay open.
+
 ---
 
 ## 1. Design principles carried forward
@@ -230,8 +245,10 @@ abstraction is extracted from ≥2 concrete cases rather than guessed.
 
 ## 4. Near-term loop queue (recommended order)
 
-1. **Pipeline skeleton** — registry + DAG + content-hash cache. Turns samples into
-   cached, composable builds. *(no install)*
+1. ~~**Pipeline skeleton** — registry + DAG + content-hash cache.~~ **Done
+   2026-11-04** — `src/vcac/registry.py` + `src/vcac/pipeline.py`, gated by
+   `tests/e2e/test_pipeline_bundle.py` (see §0). Turns samples into cached,
+   composable builds. *(no install)*
 2. **Document route** — `pandoc + MiKTeX` → spec → PDF report/handout. **Cheapest new medium
    on this machine** (both already installed and measured). *(no install)*
 3. **Browser-layout route** — HTML/CSS/SVG → `playwright` `page.screenshot()` / `page.pdf()`.
