@@ -12,7 +12,8 @@
 Five routes run end-to-end with **zero installs** (Pillow + NumPy + FFmpeg only),
 each following the same invariant pipeline
 `spec → render → measure → validate → manifest`, each with a determinism gate,
-and each locked by a golden content hash in `tests/e2e/test_routes.py` (17 tests green):
+and each locked by a golden content hash in `tests/e2e/test_routes.py` (the
+suite has since grown to 91 tests across routes + pipeline + simulation tiers):
 
 | Route | Entry point | Medium | Gates | Golden content hash (prefix) |
 |-------|-------------|--------|-------|------------------------------|
@@ -179,7 +180,10 @@ An exhaustiveness audit (`docs/coverage-audit.md`) found the biggest omission wa
 exotic art tools — it was media classes that **this machine already runs**: `pandoc 3.8.2`
 and `MiKTeX` are installed and measured, and FFmpeg ships `libass`. Nothing had been routed.
 
-- **Now:** zero routes built; all three tools verified AVAILABLE by `doctor.py`. A **second**
+- **Now:** routes 3 (browser-layout), 6 (Swiss poster), 7 (variable-font) and the
+  sound→picture spectrum route from this section are **built and golden-locked**
+  (see §0 loop-#1 note and docs/audit-2026-11-05.md); the **document route** below is
+  still open. A **second**
   zero-install medium was found on the follow-up machine audit: the **browser** (`playwright 1.58.0`
   + Chromium `145.0.7632.6`, proven by a real screenshot) — HTML/CSS/SVG/Canvas as rasterizer and
   layout engine, which also removes the "needs Chromium" objection for Marp/Slidev/Mermaid. Caveat:
@@ -251,11 +255,8 @@ abstraction is extracted from ≥2 concrete cases rather than guessed.
    composable builds. *(no install)*
 2. **Document route** — `pandoc + MiKTeX` → spec → PDF report/handout. **Cheapest new medium
    on this machine** (both already installed and measured). *(no install)*
-3. **Browser-layout route** — HTML/CSS/SVG → `playwright` `page.screenshot()` / `page.pdf()`.
-   **Proven working this session** (Chromium `145.0.7632.6`, PNG produced). This is the medium that
-   unlocks decks, posters, infographics, kinetic type *and* the execution base for Marp/Mermaid/Slidev.
-   Must pin the browser build in the manifest and use headless_shell / `--disable-gpu` for cross-hardware
-   reproducibility. *(no install — but only on the 3.13.5 interpreter; see §6)*
+3. ~~**Browser-layout route**~~ — **done** (`src/vcac/layout_sample.py` + `browser.py`,
+   golden + 4 mutants, PNG+PDF from one spec).
 4. **Caption route** — timings → ASS → `ffmpeg` burn-in on the loop1 video. *(no install)*
 5. **`ink-landscape` style loop** — the nine-step 山水 chain from `docs/styles.md` §1.2,
    plus XDoG/sketch and Riso separations. Proves style can be a *spec*, not a filter. *(no install)*
@@ -263,8 +264,8 @@ abstraction is extracted from ≥2 concrete cases rather than guessed.
    `spec.yaml` → poster via loop 3 (Swiss grid first: `styles.md` §10, `swiss-grid-generator` MIT as the
    reference implementation of the grid maths). Acceptance = alignment ratio, baseline divisibility,
    palette size, type-scale ratio — **hard rules, no taste judgement**. *(no install)*
-7. **Variable-font type-animation loop** — per-frame `wght` interpolation on the already-installed
-   `NotoSansSC-VF` (axes measured: `wght 100–900`) with `fonttools 4.63.0`, muxed through ffmpeg. *(no install)*
+7. ~~**Variable-font type-animation loop**~~ — **done** (`src/vcac/type_sample.py`,
+   ink-monotonic gate reads the pixels; fonts + licences in the manifest).
 8. **Style-animation loop** — cellular automata / reaction–diffusion as a **frame sequence**
    (styles.md §11): the image route wrapped in a loop = a new animation medium for free. *(no install)*
 9. **Timing-as-style loop** — easing curves + on-ones/on-twos quantisation applied to the

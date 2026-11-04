@@ -17,8 +17,9 @@ on and compare the JSON before believing any "already installed" claim in
 `docs/tools.md`. The interpreter identity is part of every manifest
 (`provenance.tool_versions` records `sys.version`).
 
-Last full run verified: 2026-11-04, both interpreters (all tests pass under
-either; see docs/tools.md §0 / §0.2 for the human-readable table).
+Last full run verified: 2026-11-05 — suite 91 tests on 3.13.5 (12 browser/
+variable-font tests skip on hy_py312); see docs/tools.md §0 / §0.2 and
+docs/audit-2026-11-05.md.
 """
 import sys
 from pathlib import Path

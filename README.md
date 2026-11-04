@@ -3,8 +3,8 @@
 > 用 Vibe Coding 写“生成媒体与游戏的代码”，而不是让多模态模型直接产出媒体。
 > Write code that makes media and games — instead of asking a multimodal model to make them.
 
-**状态 / Status:** 规划与脚手架阶段。当前仓库只有本 README，下文描述的是目标设计与接口。
-**Status:** Planning and scaffolding stage. The repository currently contains only this README; the interfaces below describe the target design.
+**状态 / Status:** 实现阶段。已跑通 8 条确定性媒体路线（video/image/audio/film/game/layout/type/spectrum，各有 golden 内容哈希与突变验证过的验收门）+ 管线骨架（capability registry、带内容哈希缓存的 DAG 执行器、`vcac run/doctor` CLI）+ 模拟故障注入测试层。工程台账见 `docs/audit-2026-11-05.md`；下文尚未实现的部分（planner/codegen/sandbox/playtest、完整 CLI 子命令、tests 全层矩阵）仍按目标设计描述。
+**Status:** Implementation stage. Eight deterministic media routes (video/image/audio/film/game/layout/type/spectrum, each with a golden content hash and mutant-verified acceptance gates) run end-to-end, plus a pipeline skeleton (capability registry, content-hash-cached DAG executor, `vcac run/doctor` CLI) and a fault-injection simulation tier. The engineering ledger is `docs/audit-2026-11-05.md`; parts below that are not built yet (planner/codegen/sandbox/playtest, the full CLI surface, the full test-layer matrix) still describe the target design.
 
 ---
 
@@ -53,7 +53,7 @@ The trade-off is that we need an engineered loop of **planning, sandboxing, vali
 - **Outputs:** interesting still images, audio, video, animations, short films, and **playable games** (2D/3D, web games, interactive fiction).
 - **Method:** no multimodal generation models. An LLM writes executable code or invocation scripts for **professional tools** (music21, LilyPond, FluidSynth, Blender, Manim, FFmpeg, Pygame, Godot, Phaser, Ren'Py, etc.). The tools render or run the final media; the model never synthesizes pixels or waveforms directly.
 - **Pipeline:** `brief → spec.yaml → plan.json (DAG) → generated code → static checks → sandboxed build/render → playtest (games) → validation → repair loop → assembly/packaging → manifest.json`.
-- **Structure:** a Python package `src/vcac/` with `planner`, `codegen`, `sandbox`, `pipeline`, `playtest`, `validate`, and a renderer registry split into `image/`, `audio/`, `video/`, and `game/`; plus `prompts/`, `specs/`, `tests/`, and `docs/`.
+- **Structure (actual today):** a flat Python package `src/vcac/` — route modules (`firstloop`, `image_sample`, `audio_sample`, `film_sample`, `game_sample`, `layout_sample`, `type_sample`, `spectrum_sample`), shared primitives (`spec`, `validate`, `provenance`, `media`, `audio`, `ffmpeg`, `browser`), and the pipeline skeleton (`registry`, `pipeline`, `cli`); plus `specs/`, `tests/` (unit/e2e/simulation), and `docs/`. The `planner`/`codegen`/`sandbox`/`playtest` split and the `renderers/` tree remain the target design (§4).
 - **Reproducibility:** fixed seeds, pinned tool versions, content-hash caching, and a provenance manifest so any run can be rebuilt.
 - **Environment:** `conda activate hy_py312` (Python 3.12.13, NumPy, Pillow, OpenCV, SciPy, FFmpeg verified); other renderers and engines are optional, installed on demand.
 - **Non-goals:** training media models, wrapping cloud text-to-image/video/music APIs, or building a general-purpose game engine from scratch.
@@ -394,7 +394,7 @@ python -V
 > ⚠ **环境事实纠正（2026-11-04 穷尽性审计第二轮实测）**：本机其实有**两个 Python**，能力集不同——
 > 上表的 `hy_py312`（3.12.13，**已跑的 5 条路线与全部 golden manifest 均产自它**）**不含** matplotlib / fonttools / playwright；
 > 而 PATH 默认的 `C:\Python313`（**3.13.5**）里有：matplotlib 3.11.0、fonttools 4.63.0、playwright 1.58.0（+已下载 Chromium 145.0.7632.6）、pypdf 6.19.0、scikit-image **无**。
-> 两个解释器都能跑通全部 17 项测试。因此：“某工具已装”必须说明**在哪个解释器**；`python scripts/doctor.py` 已改为输出 `sys.executable`+`sys.prefix`，**逐解释器跑一次再引用结论**。
+> 测试现状：91 项（3.13.5，playwright+fontTools 在位）；hy_py312 下其中 12 项浏览器/可变字体测试 skip（importorskip 门控）。因此：“某工具已装”必须说明**在哪个解释器**；`python scripts/doctor.py` 已改为输出 `sys.executable`+`sys.prefix`，**逐解释器跑一次再引用结论**。
 > 选定交付环境（装进 hy_py312，或正式切换到 3.13.5）属人工决策，未得同意不自定。
 
 **按需安装 / Optional extras**（规划中，按渲染器启用）
@@ -446,10 +446,11 @@ python scripts/doctor.py     # 打印能力注册表与缺失依赖建议
 
 ---
 
-## 8. 快速开始（目标接口）/ Quickstart (Planned Interface)
+## 8. 快速开始 / Quickstart
 
-> 以下 CLI 为规划中的目标接口，尚未实现。
-> The CLI below is the planned target interface and is not implemented yet.
+> **已实现：** `vcac run <spec-or-bundle.yaml> [--out DIR] [--no-cache]` 与 `vcac doctor`（argparse，见 `src/vcac/pipeline.py`）。
+> **已实现 / Implemented.** 其余子命令（spec/plan/render/inspect/remake/play/build）仍是目标接口。
+> **Still target-only / Not implemented yet:** the remaining subcommands below.
 
 ```powershell
 conda activate hy_py312

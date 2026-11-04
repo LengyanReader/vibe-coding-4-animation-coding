@@ -15,6 +15,10 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest>=8", "ruff>=0.6"]
+# optional per-route capabilities: routes degrade loudly without them
+# (registry.require), and their tests skip via importorskip
+browser = ["playwright>=1.58"]        # layout route (Chromium rasterizer)
+type = ["fonttools>=4.63"]            # variable-font route
 
 [project.scripts]
 vcac = "vcac.pipeline:main"
