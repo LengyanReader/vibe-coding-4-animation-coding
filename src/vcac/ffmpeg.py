@@ -162,3 +162,58 @@ def mux(video: Path, audio: Path, out: Path, shortest: bool = True) -> Path:
     if r.returncode != 0:
         raise FFmpegError(f"ffmpeg mux failed ({r.returncode}):\n{r.stderr}")
     return Path(out)
+
+
+# --- sound -> picture, and picture-vs-picture comparison ----------------------
+def spectrogram_png(wav: Path, out_png: Path, width: int = 512, height: int = 768,
+                    mode: str = "combined", scale: str = "lin") -> Path:
+    """Render one still spectrogram with FFmpeg's own ``showspectrumpic``.
+
+    ``scale=lin`` is not a stylistic choice: the route converts image rows back to
+    Hz with ``hz = (height-1-row)/(height-1) * sr/2``, which is only true for a
+    linear frequency axis. A log axis would make that formula quietly wrong.
+    """
+    cmd = ["ffmpeg", "-y", "-loglevel", "error", "-i", str(wav), "-lavfi",
+           f"showspectrumpic=s={width}x{height}:mode={mode}:scale={scale}:legend=0",
+           str(out_png)]
+    r = _run(cmd)
+    if r.returncode != 0:
+        raise FFmpegError(f"showspectrumpic failed ({r.returncode}):\n{r.stderr}")
+    return Path(out_png)
+
+
+def encode_webp(src: Path, out: Path, quality: int) -> Path:
+    cmd = ["ffmpeg", "-y", "-loglevel", "error", "-i", str(src),
+           "-quality", str(int(quality)), str(out)]
+    r = _run(cmd)
+    if r.returncode != 0:
+        raise FFmpegError(f"webp encode failed ({r.returncode}):\n{r.stderr}")
+    return Path(out)
+
+
+def _metric(argv_metric: str, a: Path, b: Path) -> tuple[float | None, str]:
+    """Run a full-reference image/video comparison and pull the 'All'/'average'
+    number out of ffmpeg's stderr. Returns (value, raw line) -- the line is kept so
+    a report can show the measurement instead of asking the reader to trust it."""
+    cmd = ["ffmpeg", "-loglevel", "info", "-i", str(a), "-i", str(b),
+           "-lavfi", argv_metric, "-f", "null", "-"]
+    r = _run(cmd)
+    if r.returncode != 0:
+        return None, r.stderr or ""
+    key = "All:" if argv_metric == "ssim" else "average:"
+    for line in reversed((r.stderr or "").splitlines()):
+        if key in line:
+            tail = line.split(key, 1)[1]
+            try:
+                return float(tail.split()[0].rstrip("))")), line.strip()
+            except (ValueError, IndexError):
+                break
+    return None, (r.stderr or "").strip()
+
+
+def ssim_all(a: Path, b: Path) -> tuple[float | None, str]:
+    return _metric("ssim", a, b)
+
+
+def psnr_avg(a: Path, b: Path) -> tuple[float | None, str]:
+    return _metric("psnr", a, b)

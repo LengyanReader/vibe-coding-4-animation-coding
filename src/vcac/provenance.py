@@ -101,13 +101,18 @@ def derive_run_id(spec_dict: dict, frame_hash: str, tools: dict) -> str:
 
 def build_record(*, spec_path, spec_dict, content_hash, artifact_hashes,
                  ffmpeg_version, acceptance, artifacts, notes=None,
-                 pipeline="vcac-sample/0.1") -> dict:
+                 pipeline="vcac-sample/0.1", extra=None) -> dict:
     """Route-agnostic provenance record: any media (image/audio/video/game) pins
     a run by hash(spec + code + tools + content). ``artifact_hashes`` maps output
     filename -> sha256; ``content_hash`` is the deterministic ground-truth digest
-    of the rendered payload (frames, samples, or final game state)."""
+    of the rendered payload (frames, samples, or final game state).
+
+    ``extra`` merges route-specific provenance into the record — e.g. ``fonts``
+    (file, sha256, licence, axes) for the type route or ``rasterizer`` (browser
+    build + flags) for the layout route. Required by styles.md §17: a font is a
+    licensed third-party input, so it belongs in the record next to the code."""
     tools = tool_versions(ffmpeg_version)
-    return {
+    record = {
         "run_id": derive_run_id(spec_dict, content_hash, tools),
         "created_utc": datetime.now(timezone.utc).isoformat(),
         "pipeline": pipeline,
@@ -122,3 +127,6 @@ def build_record(*, spec_path, spec_dict, content_hash, artifact_hashes,
         "artifacts": artifacts,
         "notes": notes or [],
     }
+    if extra:
+        record.update(extra)
+    return record

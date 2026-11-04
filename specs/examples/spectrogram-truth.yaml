@@ -1,0 +1,33 @@
+# Sound -> picture route sample — a spectrogram audited by reading the sound back.
+#
+# A picture of a sound is a translation, and translations lie quietly. So the gate
+# here is not "an image was produced" but "the image, measured in pixels, agrees
+# with the samples, measured by FFT, about the frequency that was played".
+id: spectrogram-truth
+title: Five-partial tone, read back out of its own spectrogram
+medium: spectrum
+
+sample_rate: 48000
+duration: 0.5
+fundamental_hz: 440.0
+harmonics_to_play: 5      # 1/k amplitudes; the quietest sits 14 dB down, still visible
+level: 0.4                # peak amplitude, so the -6 dBFS gate has real headroom
+seed: 11
+
+# Height 768 puts the row grid at 31.29 Hz; the centroid estimator beats that by a
+# factor of ten, which is what lets the pitch gate be 10 Hz instead of 30.
+size: {width: 512, height: 768}
+
+# Delivery surface and the control that proves the metric can fail.
+delivery_quality: 80
+control_quality: 3
+
+acceptance:
+  - sample rate exactly 48000
+  - duration between 0.4 and 0.6
+  - peak below -6 dbfs
+  - not silent
+  - resolution exactly 512x768
+  - measured pitch within 10 Hz of 440
+  - at least 5 harmonics visible
+  - psnr >= 45

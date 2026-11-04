@@ -52,3 +52,71 @@ def test_game_rules():
     r = validate.run_acceptance(
         ["player moved", "score at least 1", "hp decreased", "session terminated"], m)
     assert r["passed"], r["checks"]
+
+
+# --- the small-case routes' rules: green once, and demonstrably red on demand ---
+
+LAYOUT_RULES = [
+    "left edges within 1 px of the column grid",
+    "tops within 0.5 px of the baseline grid",
+    "distinct palette colors at most 3",
+    "at least 90% of pixels are exact palette colors",
+    "no text overflows the canvas",
+    "every declared font family resolves (no silent fallback)",
+]
+
+
+def test_layout_rules_green():
+    m = {"left_edge_max_offset_px": 0.0, "baseline_max_offset_px": 0.3,
+         "palette_distinct_colors": 3, "palette_exact_pct": 98.1,
+         "overflow_elements": 0, "fonts_unresolved": []}
+    r = validate.run_acceptance(LAYOUT_RULES, m)
+    assert r["passed"] and r["skipped_n"] == 0, r["checks"]
+
+
+def test_layout_rules_all_can_fail():
+    """Every layout gate needs a red case. A rule that has only ever been seen green
+    has not been shown to measure anything."""
+    m = {"left_edge_max_offset_px": 7.0, "baseline_max_offset_px": 9.0,
+         "palette_distinct_colors": 4, "palette_exact_pct": 12.0,
+         "overflow_elements": 2, "fonts_unresolved": ["Noto Sans"]}
+    r = validate.run_acceptance(LAYOUT_RULES, m)
+    assert not r["passed"] and r["failed_n"] == 6, r["checks"]
+
+
+def test_type_axis_rules():
+    ok = validate.run_acceptance(
+        ["weight axis spans 100 to 900",
+         "ink increases monotonically with the weight axis"],
+        {"axis_from": 100.0, "axis_to": 900.0, "ink_monotonic": True})
+    assert ok["passed"], ok["checks"]
+    bad = validate.run_acceptance(
+        ["weight axis spans 100 to 900",
+         "ink increases monotonically with the weight axis"],
+        {"axis_from": 400.0, "axis_to": 400.0, "ink_monotonic": False})
+    assert bad["failed_n"] == 2, bad["checks"]
+
+
+def test_spectrogram_and_perceptual_rules():
+    ok = validate.run_acceptance(
+        ["measured pitch within 10 Hz of 440", "at least 5 harmonics visible",
+         "psnr >= 45", "ssim >= 0.99", "degraded control < 0.9", "vmaf >= 93"],
+        {"pitch_hz": 438.1, "harmonics": 5, "psnr": 48.3, "ssim": 0.9977,
+         "ssim_degraded": 0.77, "vmaf": 99.7})
+    assert ok["passed"] and ok["skipped_n"] == 0, ok["checks"]
+    # the real SSIM numbers from the flat-artwork audit: pass, but the control does
+    # not separate, so the route refuses to gate on it
+    weak = validate.run_acceptance(
+        ["measured pitch within 10 Hz of 440", "at least 5 harmonics visible",
+         "psnr >= 45", "degraded control < 0.9"],
+        {"pitch_hz": 500.2, "harmonics": 2, "psnr": 39.5, "ssim_degraded": 0.987})
+    assert weak["failed_n"] == 4, weak["checks"]
+
+
+def test_pitch_rule_does_not_collide_with_colour_rules():
+    """Several patterns share the shape "... word ... number", so pin that a pitch
+    sentence is read as a pitch rule and not as a colour or delta-E claim."""
+    r = validate.run_acceptance(["measured pitch within 10 Hz of 440"],
+                                {"pitch_hz": 441.0})
+    assert r["checks"][0]["status"] == "pass"
+    assert r["checks"][0]["expected"] == "440.0\u00b110.0"

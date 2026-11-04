@@ -1,0 +1,50 @@
+# Layout route sample — a Swiss-grid poster rendered by Chromium, gated by DOM geometry.
+#
+# This spec is the 4-tuple docs/styles.md §10 says a design movement really is:
+# palette + grid + type-pair + motif. Nothing here is a mood word; every field is
+# either a coordinate the renderer must hit or a colour the pixels must contain.
+id: swiss-poster
+title: Der Grid — six-column field, one accent
+medium: layout
+
+canvas: {width: 720, height: 960}
+
+# Column field after Müller-Brockmann: 6 columns, 24pt gutters, 60pt margins, and a
+# 24pt baseline grid that every block top must land on. 720 - 2*60 - 5*24 = 480,
+# which divides by 6 exactly — layout_sample refuses a grid that does not.
+grid: {columns: 6, gutter: 24, margin: 60, baseline: 24}
+
+# Three colours, no more. The gate counts them twice: once in the declared CSS and
+# once in the bitmap, so "minimal palette" cannot be a claim about the source only.
+palette: {paper: "#F1EDE3", ink: "#141414", accent: "#D6001C"}
+
+type:
+  scale_ratio: 1.585      # 10^(1/5): a geometric step, so sizes stay commensurable
+  base_px: 16
+  # Grotesque display + a neutral CJK sans for the second language — a type *pair*,
+  # not one font. Both are checked for real resolution at render time.
+  display: {family: "Bahnschrift", fallback: "sans-serif", weight: 700}
+  text: {family: "Noto Sans SC", fallback: "sans-serif", weight: 400}
+
+# col/row/span are grid coordinates, step is an exponent of scale_ratio.
+# "rule" blocks are the motif: flat geometry sitting on the same grid as the type.
+blocks:
+  - {id: title,   col: 0, row: 2,  span: 6, step: 4, kind: display, text: "DER GRID"}
+  - {id: sub,     col: 0, row: 8,  span: 6, step: 2, kind: display, text: "Rastersystem 1958"}
+  - {id: bar,     col: 0, row: 12, span: 6, kind: rule, color: accent, height: 12}
+  - {id: body-a,  col: 0, row: 16, span: 3, step: 0, kind: text, text: "Schrift und Raster"}
+  - {id: body-b,  col: 0, row: 18, span: 3, step: 0, kind: text, text: "bilden eine Einheit"}
+  - {id: cols,    col: 3, row: 16, span: 3, step: 1, kind: display, text: "6 SPALTEN"}
+  - {id: cjk,     col: 0, row: 24, span: 6, step: 2, kind: text, text: "瑞士平面设计 网格系统"}
+  - {id: mark,    col: 0, row: 30, span: 1, kind: rule, color: accent, height: 24}
+  - {id: numeral, col: 4, row: 30, span: 2, step: 5, kind: display, text: "06"}
+  - {id: foot,    col: 0, row: 34, span: 3, step: 0, kind: text, text: "vcac / layout route"}
+
+acceptance:
+  - resolution exactly 720x960
+  - left edges within 1 px of the column grid
+  - tops within 0.5 px of the baseline grid
+  - distinct palette colors at most 3
+  - at least 90% of pixels are exact palette colors
+  - no text overflows the canvas
+  - every declared font family resolves (no silent fallback)

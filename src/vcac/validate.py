@@ -50,6 +50,35 @@ _PATTERNS = [
      "lufs_target", ("lufs_i",)),
     (re.compile(r"not silent", re.I), "not_silent", ("rms_dbfs",)),
     (re.compile(rf"clipping[^0-9]*<\s*({_NUM})\s*%", re.I), "clipping_max_pct", ("clipping_pct",)),
+    # --- layout / grid route (styles.md §10: a movement is a verifiable 4-tuple) ---
+    (re.compile(rf"left edges? within ({_NUM})\s*px of the column grid", re.I),
+     "grid_left_max", ("left_edge_max_offset_px",)),
+    (re.compile(rf"tops? within ({_NUM})\s*px of the baseline grid", re.I),
+     "grid_baseline_max", ("baseline_max_offset_px",)),
+    (re.compile(rf"(?:distinct|usable) palette colou?rs? at most (\d+)", re.I),
+     "palette_max", ("palette_distinct_colors",)),
+    (re.compile(r"no text overflows the canvas", re.I),
+     "no_overflow", ("overflow_elements",)),
+    (re.compile(rf"at least ({_NUM})\s*% of pixels are exact palette colors", re.I),
+     "palette_exact_pct_min", ("palette_exact_pct",)),
+    (re.compile(r"every declared font family resolves \(no silent fallback\)", re.I),
+     "font_resolved", ("fonts_unresolved",)),
+    # --- variable-font route: the axis must be *visible in the pixels* ---
+    (re.compile(r"ink increases monotonically with the weight axis", re.I),
+     "ink_monotonic", ("ink_monotonic",)),
+    (re.compile(rf"weight axis spans ({_NUM}) to ({_NUM})", re.I),
+     "axis_range", ("axis_from", "axis_to")),
+    # --- spectrogram route: read the sound back OUT of the picture ---
+    (re.compile(rf"measured pitch within ({_NUM})\s*Hz of ({_NUM})", re.I),
+     "pitch_within", ("pitch_hz",)),
+    (re.compile(rf"at least (\d+) harmoni[cz]s? (?:are )?visible", re.I),
+     "harmonics_min", ("harmonics",)),
+    # --- perceptual quality gates (libvmaf / ssim / psnr via ffmpeg) ---
+    (re.compile(rf"(?:vmaf)[^0-9]*>=\s*({_NUM})", re.I), "vmaf_min", ("vmaf",)),
+    (re.compile(rf"(?:ssim)[^0-9]*>=\s*({_NUM})", re.I), "ssim_min", ("ssim",)),
+    (re.compile(rf"(?:degraded control|negative control)[^0-9]*<\s*({_NUM})", re.I),
+     "ssim_control_max", ("ssim_degraded",)),
+    (re.compile(rf"(?:psnr)[^0-9]*>=\s*({_NUM})", re.I), "psnr_min", ("psnr",)),
     (re.compile(rf"dc[^0-9]*<\s*({_NUM})", re.I), "dc_max", ("dc_offset",)),
     (re.compile(r"has video stream", re.I), "has_video", ("has_video",)),
     (re.compile(r"has audio stream", re.I), "has_audio", ("has_audio",)),
@@ -91,6 +120,50 @@ def _evaluate(kind, m, measured):
     if kind == "delta_e_max":
         x = float(m.group(1)); v = measured["palette_delta_e"]
         return v < x, f"<{x}", round(v, 3)
+    if kind == "grid_left_max":
+        x = float(m.group(1)); v = measured["left_edge_max_offset_px"]
+        return v <= x, f"<={x}", round(v, 3)
+    if kind == "grid_baseline_max":
+        x = float(m.group(1)); v = measured["baseline_max_offset_px"]
+        return v <= x, f"<={x}", round(v, 3)
+    if kind == "palette_max":
+        n = int(m.group(1)); v = measured["palette_distinct_colors"]
+        return v <= n, f"<={n}", v
+    if kind == "no_overflow":
+        v = int(measured["overflow_elements"])
+        return v == 0, "0 elements outside canvas", v
+    if kind == "palette_exact_pct_min":
+        x = float(m.group(1)); v = measured["palette_exact_pct"]
+        return v >= x, f">={x}", round(v, 3)
+    if kind == "font_resolved":
+        v = list(measured["fonts_unresolved"])
+        return not v, "all resolve", ("all resolve" if not v else f"fell back: {v}")
+    if kind == "pitch_within":
+        tol, target = float(m.group(1)), float(m.group(2))
+        v = float(measured["pitch_hz"])
+        return abs(v - target) <= tol, f"{target}\u00b1{tol}", round(v, 2)
+    if kind == "harmonics_min":
+        n = int(m.group(1)); v = int(measured["harmonics"])
+        return v >= n, f">={n}", v
+    if kind == "ink_monotonic":
+        v = bool(measured["ink_monotonic"])
+        return v, "strictly increasing", "increasing" if v else "not monotonic"
+    if kind == "axis_range":
+        lo, hi = float(m.group(1)), float(m.group(2))
+        return (float(measured["axis_from"]) == lo and float(measured["axis_to"]) == hi,
+                f"{lo}..{hi}", f'{measured["axis_from"]}..{measured["axis_to"]}')
+    if kind == "vmaf_min":
+        x = float(m.group(1)); v = measured["vmaf"]
+        return v >= x, f">={x}", round(v, 2)
+    if kind == "ssim_min":
+        x = float(m.group(1)); v = measured["ssim"]
+        return v >= x, f">={x}", round(v, 4)
+    if kind == "ssim_control_max":
+        x = float(m.group(1)); v = measured["ssim_degraded"]
+        return v < x, f"<{x}", round(v, 4)
+    if kind == "psnr_min":
+        x = float(m.group(1)); v = measured["psnr"]
+        return v >= x, f">={x}", round(v, 2)
     if kind == "sample_rate_exact":
         n = int(m.group(1)); v = measured["sample_rate"]
         return v == n, n, v

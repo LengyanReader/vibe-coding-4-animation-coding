@@ -1,0 +1,40 @@
+# Type route sample — a variable-font weight axis, verified from the bitmap.
+#
+# The claim under test is not "the file has an fvar table" (trivially true) but
+# "the axis produced the motion you can see". Text, position and size are held
+# fixed, so a rising ink count has exactly one possible cause.
+id: variable-weight
+title: Weight ramp — Noto Sans SC, wght 100 to 900
+medium: type
+
+# The face is searched in order and the route fails loudly if none exists: an
+# absent font must never degrade into a default font (docs/coverage-audit.md §0).
+font:
+  family: "Noto Sans SC"
+  axis: wght
+  paths:
+    - "C:/Windows/Fonts/NotoSansSC-VF.ttf"
+    - "C:/Users/data/AppData/Local/Microsoft/Windows/Fonts/NotoSansSC-VF.ttf"
+  licence: "OFL-1.1"
+  licence_note: >-
+    SIL Open Font License 1.1 — redistributable and modifiable, so a frame derived
+    from it can ship; the source file itself is not copied into outputs/.
+
+# Mixed script on purpose: CJK strokes are the clearest proof that the outline
+# deltas actually applied, because a Latin-only ramp can hide behind hinting.
+text: "重量 WEIGHT"
+size_px: 72
+pad: 24
+
+width: 640
+height: 176
+frames: 16
+fps: 16
+
+palette: {paper: "#F1EDE3", ink: "#141414"}
+
+acceptance:
+  - weight axis spans 100 to 900
+  - ink increases monotonically with the weight axis
+  - resolution exactly 640x176
+  - duration between 0.9 and 1.1
