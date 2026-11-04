@@ -30,7 +30,7 @@ from pathlib import Path
 import numpy as np
 from PIL import Image
 
-from . import ffmpeg, media, provenance, spec as spec_mod, validate
+from . import cli, ffmpeg, media, provenance, spec as spec_mod, validate
 
 
 def synth(spec_dict: dict) -> np.ndarray:
@@ -38,7 +38,7 @@ def synth(spec_dict: dict) -> np.ndarray:
     amplitude, shaped by a raised-cosine attack/release so the tone has a steady
     middle for the row profile to be averaged over."""
     sr = int(spec_dict["sample_rate"])
-    dur = float(spec_dict["duration"])
+    dur = spec_mod.parse_duration(spec_dict["duration"])
     f0 = float(spec_dict["fundamental_hz"])
     n_harm = int(spec_dict.get("harmonics_to_play", 5))
     seed = int(spec_dict.get("seed", 42))
@@ -131,7 +131,8 @@ def run(spec_path: Path, out_dir: Path) -> dict:
     wav = media.write_wav(out_dir / "tone.wav", samples, sr)
 
     png = ffmpeg.spectrogram_png(wav, out_dir / "spectrum.png", w_px, h_px)
-    gray = np.asarray(Image.open(png).convert("L"), dtype=np.float64)
+    spec_img = Image.open(png)
+    gray = np.asarray(spec_img.convert("L"), dtype=np.float64)
 
     got = read_pitch(gray, sr)
     pitch_hz = got["pitch_hz"]
@@ -157,7 +158,8 @@ def run(spec_path: Path, out_dir: Path) -> dict:
     rerender.unlink()
 
     measured = {
-        "width": w_px, "height": h_px,
+        # the rendered PNG's dimensions, not the spec's size request
+        "width": spec_img.size[0], "height": spec_img.size[1],
         "sample_rate": sr,
         "duration": media.duration_s(samples, sr),
         "peak_dbfs": media.peak_dbfs(samples),
@@ -198,8 +200,7 @@ def run(spec_path: Path, out_dir: Path) -> dict:
                       else (ssim_ok - ssim_bad) >= 0.02},
         "gate_used": "psnr",
     }
-    (out_dir / "report.json").write_text(
-        json.dumps(report, indent=2, ensure_ascii=False), encoding="utf-8")
+    cli.write_report(out_dir, report)
 
     # The payload of this route is a *pair*: what was played and what the picture
     # says was played. Both halves go into one digest, so the reproducibility claim
@@ -229,35 +230,26 @@ def run(spec_path: Path, out_dir: Path) -> dict:
 
 
 def main(argv=None) -> int:
-    ap = argparse.ArgumentParser(description="vcac sound->picture route sample")
-    ap.add_argument("spec", type=Path)
-    ap.add_argument("--out", type=Path, default=None)
-    a = ap.parse_args(argv)
+    a = cli.parse_args("vcac sound->picture route sample", argv)
     spec_dict = spec_mod.load_raw(a.spec)
-    out_dir = a.out or (Path("outputs") / spec_dict["id"])
-    r = run(a.spec, out_dir)
+    r = run(a.spec, a.out or (Path("outputs") / spec_dict["id"]))
     rep, m = r["report"], r["report"]["measured"]
     cc, ma = rep["cross_check"], rep["metric_audit"]
 
     def num(v, nd=5):
         return "n/a" if v is None else f"{v:.{nd}f}"
 
-    print(f"[vcac:spectrum] {spec_dict['id']} -> {r['out_dir']}")
-    print(f"[vcac:spectrum] picture says {num(cc['pitch_from_pixels_hz'], 2)}Hz, fft says "
-          f"{num(cc['pitch_from_fft_hz'], 2)}Hz (declared {cc['spec_declared_hz']}Hz, "
-          f"delta {num(cc['agreement_delta_hz'], 3)}Hz, row grid {cc['row_resolution_hz']}Hz)")
-    print(f"[vcac:spectrum] harmonics visible {m['harmonics']}  "
-          f"ssim {num(ma['delivery']['ssim'])}/{num(ma['control']['ssim'])} "
-          f"margin={ma['margins']['ssim']} (stable gate={ma['criterion']['ssim_gate_stable']})  "
-          f"psnr {num(ma['delivery']['psnr'], 1)}/{num(ma['control']['psnr'], 1)} dB "
-          f"margin={ma['margins']['psnr_db']}dB")
-    for c in rep["checks"]:
-        extra = (f"  (exp {c.get('expected')}, act {c.get('actual')})"
-                 if c["status"] in ("pass", "fail") else f"  ({c.get('reason','')})")
-        print(f"  [{c['status'].upper():7}] {c['id']}{extra}")
-    print(f"[vcac:spectrum] run_id={r['manifest']['run_id']}")
-    print(f"[vcac:spectrum] ACCEPTANCE {'PASSED' if rep['passed'] else 'FAILED'}")
-    return 0 if rep["passed"] else 1
+    return cli.finish("spectrum", r, summaries=[
+        f"{spec_dict['id']} -> {r['out_dir']}",
+        f"picture says {num(cc['pitch_from_pixels_hz'], 2)}Hz, fft says "
+        f"{num(cc['pitch_from_fft_hz'], 2)}Hz (declared {cc['spec_declared_hz']}Hz, "
+        f"delta {num(cc['agreement_delta_hz'], 3)}Hz, row grid {cc['row_resolution_hz']}Hz)",
+        f"harmonics visible {m['harmonics']}  "
+        f"ssim {num(ma['delivery']['ssim'])}/{num(ma['control']['ssim'])} "
+        f"margin={ma['margins']['ssim']} "
+        f"(stable gate={ma['criterion']['ssim_gate_stable']})  "
+        f"psnr {num(ma['delivery']['psnr'], 1)}/{num(ma['control']['psnr'], 1)} dB "
+        f"margin={ma['margins']['psnr_db']}dB"])
 
 
 if __name__ == "__main__":

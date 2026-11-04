@@ -152,8 +152,9 @@ def probe_playwright_browsers():
     return ", ".join(builds), True
 
 
+_USER_FONTS = Path(os.environ.get("LOCALAPPDATA", ""))
 FONT_DIRS = (r"C:\Windows\Fonts",
-             r"C:\Users\data\AppData\Local\Microsoft\Windows\Fonts")
+             str(_USER_FONTS / "Microsoft" / "Windows" / "Fonts"))
 
 
 def probe_variable_fonts():
@@ -249,7 +250,9 @@ def require(key: str, registry: dict | None = None) -> dict:
             f"(not in PY_MODULES/BINARIES/KNOWN_PATHS)")
     if not entry.get("available"):
         reason = entry.get("reason", "not available in this interpreter")
-        raise CapabilityError(f"capability '{key}' unavailable: {reason}")
+        raise CapabilityError(
+            f"capability '{key}' unavailable: {reason} "
+            f"(via {entry.get('via')}; install notes: docs/tools.md)")
     return entry
 
 

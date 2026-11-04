@@ -22,7 +22,7 @@ from pathlib import Path
 
 import numpy as np
 
-from . import audio, ffmpeg, media, provenance, spec as spec_mod, validate
+from . import audio, cli, ffmpeg, media, provenance, spec as spec_mod, validate
 
 
 def _content_hash(a: np.ndarray) -> str:
@@ -49,7 +49,8 @@ def run(spec_path: Path, out_dir: Path) -> dict:
     master_wav = out_dir / "master.wav"
     measured_ln = ffmpeg.loudnorm_to_target(
         raw_wav, master_wav, i=float(spec_dict.get("target_lufs", -16.0)),
-        tp=float(spec_dict.get("target_tp", -1.5)), lra=float(spec_dict.get("lra", 11.0)))
+        tp=float(spec_dict.get("target_tp", -1.5)), lra=float(spec_dict.get("lra", 11.0)),
+        sample_rate=sr)
 
     samples, sr_out = media.read_wav(master_wav)
     lufs_out = ffmpeg.measure_lufs(master_wav)
@@ -71,8 +72,7 @@ def run(spec_path: Path, out_dir: Path) -> dict:
     report["measured"] = measured
     report["loudnorm"] = {"input_measured": measured_ln, "master_lufs": lufs_out}
     report["audio"] = ffmpeg.audio_summary(master_wav)
-    (out_dir / "report.json").write_text(
-        json.dumps(report, indent=2, ensure_ascii=False), encoding="utf-8")
+    cli.write_report(out_dir, report)
 
     manifest = provenance.build_record(
         spec_path=str(spec_path), spec_dict=spec_dict,
@@ -87,25 +87,16 @@ def run(spec_path: Path, out_dir: Path) -> dict:
 
 
 def main(argv=None) -> int:
-    ap = argparse.ArgumentParser(description="vcac audio route sample")
-    ap.add_argument("spec", type=Path)
-    ap.add_argument("--out", type=Path, default=None)
-    a = ap.parse_args(argv)
+    a = cli.parse_args("vcac audio route sample", argv)
     spec_dict = spec_mod.load_raw(a.spec)
-    out_dir = a.out or (Path("outputs") / spec_dict["id"])
-    r = run(a.spec, out_dir)
-    rep, m = r["report"], r["report"]["measured"]
-    print(f"[vcac:audio] {spec_dict['id']} -> {r['out_dir']}")
-    print(f"[vcac:audio] {m['duration']:.2f}s @{m['sample_rate']}Hz "
-          f"ch={m['channels']} LUFS={m['lufs_i']:.1f} peak={m['peak_dbfs']:.1f}dBFS "
-          f"RMS={m['rms_dbfs']:.1f} clip={m['clipping_pct']:.3f}% DC={m['dc_offset']:.5f}")
-    for c in rep["checks"]:
-        extra = (f"  (exp {c.get('expected')}, act {c.get('actual')})"
-                 if c["status"] in ("pass", "fail") else f"  ({c.get('reason','')})")
-        print(f"  [{c['status'].upper():7}] {c['id']}{extra}")
-    print(f"[vcac:audio] run_id={r['manifest']['run_id']}")
-    print(f"[vcac:audio] ACCEPTANCE {'PASSED' if rep['passed'] else 'FAILED'}")
-    return 0 if rep["passed"] else 1
+    r = run(a.spec, a.out or (Path("outputs") / spec_dict["id"]))
+    m = r["report"]["measured"]
+    return cli.finish("audio", r, summaries=[
+        f"{spec_dict['id']} -> {r['out_dir']}",
+        f"{m['duration']:.2f}s @{m['sample_rate']}Hz ch={m['channels']} "
+        f"LUFS={m['lufs_i']:.1f} peak={m['peak_dbfs']:.1f}dBFS "
+        f"RMS={m['rms_dbfs']:.1f} clip={m['clipping_pct']:.3f}% "
+        f"DC={m['dc_offset']:.5f}"])
 
 
 if __name__ == "__main__":

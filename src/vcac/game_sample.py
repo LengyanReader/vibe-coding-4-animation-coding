@@ -23,7 +23,7 @@ from pathlib import Path
 
 from PIL import Image, ImageDraw
 
-from . import ffmpeg, provenance, spec as spec_mod, validate
+from . import cli, ffmpeg, provenance, spec as spec_mod, validate
 
 
 def _action_at(tick: int, inp: dict) -> str:
@@ -41,8 +41,12 @@ def simulate(spec_dict: dict) -> tuple[list[dict], dict]:
     """Deterministic fixed-timestep sim. Returns (trace, final_state)."""
     w, h = int(spec_dict["width"]), int(spec_dict["height"])
     fps = int(spec_dict["fps"])
-    duration = float(spec_mod.parse_duration(spec_dict["duration"]))
+    duration = spec_mod.parse_duration(spec_dict["duration"])
     n = round(duration * fps)
+    if n <= 0:
+        raise spec_mod.SpecError(
+            f"game route needs a positive session (duration {spec_dict['duration']!r} "
+            f"* fps {fps} = {n} ticks; a zero-length session has no trace to assert on)")
     dt = 1.0 / fps
     g = spec_dict.get("game", {})
     speed = float(g.get("player_speed", 420.0))
@@ -129,6 +133,14 @@ def _render_frame(spec_dict, step) -> Image.Image:
 
 def run(spec_path: Path, out_dir: Path) -> dict:
     spec_dict = spec_mod.load_raw(spec_path)
+    pal_len = len(spec_dict.get("palette") or [])
+    if pal_len < 4:
+        # _render_frame indexes pal[1..3] (orb / hazard / player); failing after
+        # the sim + 3 replays would waste the whole run on a spec typo
+        raise spec_mod.SpecError(
+            f"game route needs >= 4 palette colors (paper/orb/hazard/player), got {pal_len}")
+
+    spec_dict = spec_mod.load_raw(spec_path)
     out_dir.mkdir(parents=True, exist_ok=True)
 
     trace, final = simulate(spec_dict)
@@ -146,9 +158,12 @@ def run(spec_path: Path, out_dir: Path) -> dict:
     mp4 = out_dir / "playtest.mp4"
     ffmpeg.encode_images(frames_dir, fps, mp4)
 
+    # resolution comes from the encoded playtest (ffprobe), not the spec's
+    # claim — the gate must be able to catch artifact drift
+    probe = ffmpeg.video_summary(mp4)
     measured = {
-        "duration": len(trace) / fps, "width": int(spec_dict["width"]),
-        "height": int(spec_dict["height"]),
+        "duration": len(trace) / fps, "width": probe["width"],
+        "height": probe["height"],
         "moved": final["moved"], "score": final["score"], "hp": final["hp"],
         "start_hp": final["start_hp"], "terminated": final["terminated"],
         "deterministic": deterministic,
@@ -156,8 +171,7 @@ def run(spec_path: Path, out_dir: Path) -> dict:
     report = validate.run_acceptance(spec_dict["acceptance"], measured)
     report["measured"] = measured
     report["game"] = final
-    (out_dir / "report.json").write_text(
-        json.dumps(report, indent=2, ensure_ascii=False), encoding="utf-8")
+    cli.write_report(out_dir, report)
     (out_dir / "trace.json").write_text(
         json.dumps(trace, ensure_ascii=False), encoding="utf-8")
 
@@ -172,24 +186,14 @@ def run(spec_path: Path, out_dir: Path) -> dict:
 
 
 def main(argv=None) -> int:
-    ap = argparse.ArgumentParser(description="vcac game route sample")
-    ap.add_argument("spec", type=Path)
-    ap.add_argument("--out", type=Path, default=None)
-    a = ap.parse_args(argv)
+    a = cli.parse_args("vcac game route sample", argv)
     spec_dict = spec_mod.load_raw(a.spec)
-    out_dir = a.out or (Path("outputs") / spec_dict["id"])
-    r = run(a.spec, out_dir)
-    rep, g = r["report"], r["report"]["game"]
-    print(f"[vcac:game] {spec_dict['id']} -> {r['out_dir']}")
-    print(f"[vcac:game] ticks={g['ticks']} score={g['score']} hp={g['hp']}/{g['start_hp']} "
-          f"moved={g['moved']} terminated={g['terminated']}")
-    for c in rep["checks"]:
-        extra = (f"  (exp {c.get('expected')}, act {c.get('actual')})"
-                 if c["status"] in ("pass", "fail") else f"  ({c.get('reason','')})")
-        print(f"  [{c['status'].upper():7}] {c['id']}{extra}")
-    print(f"[vcac:game] run_id={r['manifest']['run_id']}")
-    print(f"[vcac:game] ACCEPTANCE {'PASSED' if rep['passed'] else 'FAILED'}")
-    return 0 if rep["passed"] else 1
+    r = run(a.spec, a.out or (Path("outputs") / spec_dict["id"]))
+    g = r["report"]["game"]
+    return cli.finish("game", r, summaries=[
+        f"{spec_dict['id']} -> {r['out_dir']}",
+        f"ticks={g['ticks']} score={g['score']} hp={g['hp']}/{g['start_hp']} "
+        f"moved={g['moved']} terminated={g['terminated']}"])
 
 
 if __name__ == "__main__":

@@ -219,3 +219,102 @@ def test_invalidation_follows_the_affected_subgraph(tmp_path):
     assert not r3["a"].cached and not r3["b"].cached and r3["c"].cached
     assert r3["b"].content_hash != r1["b"].content_hash
     assert r3["c"].content_hash == r2["c"].content_hash
+
+
+# --- failure semantics: evidence, blocking, external inputs (audit A7/A8) ------
+
+def test_bundle_stops_and_leaves_evidence_when_a_node_crashes(tmp_path):
+    a = _write_spec(tmp_path, "a.yaml", 1)
+    boom = _write_spec(tmp_path, "boom.yaml", 2, medium="boomer")
+    b = _write_spec(tmp_path, "b.yaml", 3, medium="beta")
+    bundle = _write_bundle(tmp_path, [
+        {"id": "a", "spec": a.name},
+        {"id": "boom", "spec": boom.name},
+        {"id": "b", "spec": b.name, "inputs": {"x": "boom"}},
+        {"id": "gamma", "spec": _write_spec(tmp_path, "gamma.yaml", 4).name},
+    ])
+
+    def boom_run(spec_path, out_dir):
+        raise RuntimeError("boom!")
+
+    routes = {**FAKE_ROUTES, "boomer": RouteEntry(boom_run, "boom.txt")}
+    out = tmp_path / "o"
+    results, manifest = pipeline.run_bundle(bundle, out, routes=routes)
+
+    assert set(results) == {"a"}                       # the run stopped
+    evidence = out / "boom" / "error.json"
+    assert evidence.is_file()
+    rec = json.loads(evidence.read_text(encoding="utf-8"))
+    assert rec["node"] == "boom" and rec["error"] == "RuntimeError"
+    assert "boom!" in rec["message"]
+    assert manifest["error"]["node"] == "boom"
+    assert manifest["acceptance"]["passed"] is False
+    # not-run list follows the topological plan order (gamma was ready before b)
+    assert manifest["acceptance"]["not_run_nodes"] == ["boom", "gamma", "b"]
+
+
+def test_acceptance_failure_blocks_downstream(tmp_path):
+    afail = _write_spec(tmp_path, "afail.yaml", 1, medium="failing")
+    b = _write_spec(tmp_path, "b.yaml", 2, medium="beta")
+    gamma = _write_spec(tmp_path, "gamma.yaml", 3)
+
+    def failing_run(spec_path, out_dir):
+        r = _fake_route("failing")(spec_path, out_dir)
+        r["report"] = {**r["report"], "passed": False, "failed_n": 1,
+                       "passed_n": 0,
+                       "checks": [{"id": "fake red", "status": "fail"}]}
+        (Path(out_dir) / "report.json").write_text(
+            json.dumps(r["report"], indent=2), encoding="utf-8")
+        return r
+
+    routes = {**FAKE_ROUTES, "failing": RouteEntry(failing_run, "failing.txt")}
+    bundle = _write_bundle(tmp_path, [
+        {"id": "afail", "spec": afail.name},
+        {"id": "b", "spec": b.name, "inputs": {"x": "afail"}},
+        {"id": "gamma", "spec": gamma.name},
+    ])
+    results, manifest = pipeline.run_bundle(bundle, tmp_path / "o", routes=routes)
+
+    assert results["afail"].report["passed"] is False       # verdict preserved
+    assert results["b"].report["blocked_by"] == ["afail"]   # not run, marked
+    assert results["gamma"].report["passed"] is True        # independent: runs
+    assert manifest["acceptance"]["failed_nodes"] == ["afail"]
+    assert manifest["acceptance"]["blocked_nodes"] == ["b"]
+    assert manifest["acceptance"]["passed"] is False
+
+
+def test_cache_key_covers_declared_input_files(tmp_path):
+    """A single-spec node's declared inputs are real dependencies: move the
+    bytes and a stale cache hit must not survive (audit A7)."""
+    upstream = tmp_path / "up.txt"
+    upstream.write_bytes(b"v1")
+    spec = tmp_path / "mux.yaml"
+    spec.write_text(yaml.safe_dump({"id": "mux", "medium": "alpha", "seed": 1,
+                                    "inputs": {"x": str(upstream)}}), encoding="utf-8")
+    out = tmp_path / "o"
+    plan = pipeline.load_plan(spec, routes=FAKE_ROUTES)
+    r1 = pipeline.execute(plan, out, routes=FAKE_ROUTES, tools=FAKE_TOOLS, code=FAKE_CODE)
+    r2 = pipeline.execute(plan, out, routes=FAKE_ROUTES, tools=FAKE_TOOLS, code=FAKE_CODE)
+    assert r2["mux"].cached
+    upstream.write_bytes(b"v2")
+    r3 = pipeline.execute(plan, out, routes=FAKE_ROUTES, tools=FAKE_TOOLS, code=FAKE_CODE)
+    assert not r3["mux"].cached
+    assert r3["mux"].content_hash != r1["mux"].content_hash
+
+
+def test_cache_key_covers_declared_font_files(tmp_path):
+    """The type route's face lives outside the package: swapping the font file
+    must invalidate even though the spec text is unchanged (audit A7)."""
+    face = tmp_path / "f.ttf"
+    face.write_bytes(b"font-v1")
+    spec = tmp_path / "t.yaml"
+    spec.write_text(yaml.safe_dump({"id": "t", "medium": "alpha", "seed": 7,
+                                    "font": {"paths": [str(face)]}}), encoding="utf-8")
+    out = tmp_path / "o"
+    plan = pipeline.load_plan(spec, routes=FAKE_ROUTES)
+    r1 = pipeline.execute(plan, out, routes=FAKE_ROUTES, tools=FAKE_TOOLS, code=FAKE_CODE)
+    r2 = pipeline.execute(plan, out, routes=FAKE_ROUTES, tools=FAKE_TOOLS, code=FAKE_CODE)
+    assert r2["t"].cached
+    face.write_bytes(b"font-v2")                     # a different face, same spec
+    r3 = pipeline.execute(plan, out, routes=FAKE_ROUTES, tools=FAKE_TOOLS, code=FAKE_CODE)
+    assert not r3["t"].cached

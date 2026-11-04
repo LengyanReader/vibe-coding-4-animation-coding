@@ -33,7 +33,7 @@ from pathlib import Path
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
-from . import ffmpeg, provenance, spec as spec_mod, validate
+from . import cli, ffmpeg, provenance, spec as spec_mod, validate
 
 
 class FontCapabilityError(ValueError):
@@ -100,6 +100,10 @@ def weight_at(t: int, n: int, lo: float, hi: float) -> float:
 def render_masks(spec_dict: dict, face, lo: float, hi: float) -> list[dict]:
     """One mask per frame plus the weight and the name the instance claims."""
     n = int(spec_dict["frames"])
+    if n <= 0:
+        raise spec_mod.SpecError(
+            f"type route needs frames >= 1 (got {n}); an empty mask list would "
+            f"crash the canvas fit far from the spec that caused it")
     pad = int(spec_dict["pad"])
     size = int(spec_dict["size_px"])
     text = spec_dict["text"]
@@ -191,8 +195,10 @@ def run(spec_path: Path, out_dir: Path, keep_frames: bool = False) -> dict:
     deterministic = content_hash(frames) == content_hash(
         render_frames(spec_dict, render_masks(spec_dict, face, lo, hi)))
 
+    # resolution comes from the encoded clip (ffprobe), not the spec's claim
+    probe = ffmpeg.video_summary(mp4)
     measured = {
-        "width": int(spec_dict["width"]), "height": int(spec_dict["height"]),
+        "width": probe["width"], "height": probe["height"],
         "axis_from": lo, "axis_to": hi,
         "ink_monotonic": monotonic,
         "deterministic": deterministic,
@@ -207,8 +213,7 @@ def run(spec_path: Path, out_dir: Path, keep_frames: bool = False) -> dict:
                       {k: list(v) for k, v in src_axes.items()},
                       "subset_bytes": subset_bytes,
                       "name_table_says": [list(masks[i]["name"]) for i in (0, half - 1, len(masks) - 1)]}
-    (out_dir / "report.json").write_text(
-        json.dumps(report, indent=2, ensure_ascii=False), encoding="utf-8")
+    cli.write_report(out_dir, report)
 
     chash = content_hash(frames)
     manifest = provenance.build_record(
@@ -238,29 +243,21 @@ def run(spec_path: Path, out_dir: Path, keep_frames: bool = False) -> dict:
 
 
 def main(argv=None) -> int:
-    ap = argparse.ArgumentParser(description="vcac variable-font route sample")
-    ap.add_argument("spec", type=Path)
-    ap.add_argument("--out", type=Path, default=None)
-    ap.add_argument("--keep-frames", action="store_true")
-    a = ap.parse_args(argv)
+    a = cli.parse_args("vcac variable-font route sample", argv, extra=[
+        (("--keep-frames",), dict(action="store_true")),
+    ])
     spec_dict = spec_mod.load_raw(a.spec)
-    out_dir = a.out or (Path("outputs") / spec_dict["id"])
-    r = run(a.spec, out_dir, keep_frames=a.keep_frames)
+    r = run(a.spec, a.out or (Path("outputs") / spec_dict["id"]),
+            keep_frames=a.keep_frames)
     rep, m = r["report"], r["report"]["measured"]
     ink = rep["ink"]
-    print(f"[vcac:type] {spec_dict['id']} -> {r['out_dir']}")
-    print(f"[vcac:type] axis {rep['font']['axis']} {m['axis_from']}-{m['axis_to']} "
-          f"ink {ink['ascending_run'][0]} -> {ink['ascending_run'][-1]} "
-          f"(+{ink['gain_pct']}%) subset={rep['font']['subset_bytes']}B "
-          f"reversible={ink['reversible']}")
-    for c in rep["checks"]:
-        extra = (f"  (exp {c.get('expected')}, act {c.get('actual')})"
-                 if c["status"] in ("pass", "fail") else f"  ({c.get('reason','')})")
-        print(f"  [{c['status'].upper():7}] {c['id']}{extra}")
-    print(f"[vcac:type] name table says: {rep['font']['name_table_says']}")
-    print(f"[vcac:type] run_id={r['manifest']['run_id']}")
-    print(f"[vcac:type] ACCEPTANCE {'PASSED' if rep['passed'] else 'FAILED'}")
-    return 0 if rep["passed"] else 1
+    return cli.finish("type", r, summaries=[
+        f"{spec_dict['id']} -> {r['out_dir']}",
+        f"axis {rep['font']['axis']} {m['axis_from']}-{m['axis_to']} "
+        f"ink {ink['ascending_run'][0]} -> {ink['ascending_run'][-1]} "
+        f"(+{ink['gain_pct']}%) subset={rep['font']['subset_bytes']}B "
+        f"reversible={ink['reversible']}",
+        f"name table says: {rep['font']['name_table_says']}"])
 
 
 if __name__ == "__main__":

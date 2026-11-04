@@ -24,7 +24,7 @@ from pathlib import Path
 import numpy as np
 from PIL import Image
 
-from . import browser, ffmpeg, provenance, spec as spec_mod, validate
+from . import browser, cli, ffmpeg, media, provenance, spec as spec_mod, validate
 
 # Ask the layout engine where it actually put each block, then measure the error
 # against the grid the spec declared. Offsets are absolute px, worst case per axis.
@@ -114,6 +114,10 @@ def build_html(spec_dict: dict, grid: dict) -> str:
         kind = blk.get("kind", "text")
         fcfg = ty["display"] if kind == "display" else ty["text"]
         col, span = int(blk["col"]), int(blk.get("span", 1))
+        if not 0 <= col < grid["cols"] or col + span > grid["cols"]:
+            raise LayoutError(
+                f"block '{blk.get('id', i)}' spans columns {col}..{col + span - 1} "
+                f"but the grid has {grid['cols']} columns (0..{grid['cols'] - 1})")
         x = grid["column_xs"][col]
         w = (grid["col_w"] + grid["gutter"]) * span - grid["gutter"]
         y = grid["origin_y"] + int(blk["row"]) * grid["baseline"]
@@ -193,8 +197,10 @@ def run(spec_path: Path, out_dir: Path) -> dict:
     poster.write_bytes(png)
 
     declared = grid["declared_colors"]
+    # the raster's dimensions (read off the PNG bytes), not the grid's arithmetic
+    png_w, png_h = media.image_size(png)
     measured = {
-        "width": grid["width"], "height": grid["height"],
+        "width": png_w, "height": png_h,
         "left_edge_max_offset_px": geo["worstLeft"],
         "baseline_max_offset_px": geo["worstTop"],
         "palette_distinct_colors": len(declared),
@@ -211,8 +217,7 @@ def run(spec_path: Path, out_dir: Path) -> dict:
     report["geometry"] = {"worstLeft": geo["worstLeft"], "worstTop": geo["worstTop"],
                           "blocks": geo["blocks"]}
     report["fonts"] = fonts
-    (out_dir / "report.json").write_text(
-        json.dumps(report, indent=2, ensure_ascii=False), encoding="utf-8")
+    cli.write_report(out_dir, report)
 
     chash = provenance.sha256_bytes(png)
     manifest = provenance.build_record(
@@ -239,26 +244,19 @@ def run(spec_path: Path, out_dir: Path) -> dict:
 
 
 def main(argv=None) -> int:
-    ap = argparse.ArgumentParser(description="vcac layout route sample (browser rasterizer)")
-    ap.add_argument("spec", type=Path)
-    ap.add_argument("--out", type=Path, default=None)
-    a = ap.parse_args(argv)
+    a = cli.parse_args("vcac layout route sample (browser rasterizer)", argv)
     spec_dict = spec_mod.load_raw(a.spec)
-    out_dir = a.out or (Path("outputs") / spec_dict["id"])
-    r = run(a.spec, out_dir)
+    r = run(a.spec, a.out or (Path("outputs") / spec_dict["id"]))
     rep, m = r["report"], r["report"]["measured"]
-    print(f"[vcac:layout] {spec_dict['id']} -> {r['out_dir']}")
-    print(f"[vcac:layout] {m['width']}x{m['height']} "
-          f"grid_err L={m['left_edge_max_offset_px']:.3f}px T={m['baseline_max_offset_px']:.3f}px "
-          f"palette={m['palette_distinct_colors']}c exact={m['palette_exact_pct']:.2f}% "
-          f"overflow={m['overflow_elements']} chromium={rep['rasterizer']['browser']}")
-    for c in rep["checks"]:
-        extra = (f"  (exp {c.get('expected')}, act {c.get('actual')})"
-                 if c["status"] in ("pass", "fail") else f"  ({c.get('reason','')})")
-        print(f"  [{c['status'].upper():7}] {c['id']}{extra}")
-    print(f"[vcac:layout] run_id={r['manifest']['run_id']}")
-    print(f"[vcac:layout] ACCEPTANCE {'PASSED' if rep['passed'] else 'FAILED'}")
-    return 0 if rep["passed"] else 1
+    return cli.finish("layout", r, summaries=[
+        f"{spec_dict['id']} -> {r['out_dir']}",
+        f"{m['width']}x{m['height']} "
+        f"grid_err L={m['left_edge_max_offset_px']:.3f}px "
+        f"T={m['baseline_max_offset_px']:.3f}px "
+        f"palette={m['palette_distinct_colors']}c "
+        f"exact={m['palette_exact_pct']:.2f}% "
+        f"overflow={m['overflow_elements']} "
+        f"chromium={rep['rasterizer']['browser']}"])
 
 
 if __name__ == "__main__":

@@ -1,11 +1,14 @@
 """Provenance & reproducibility record (README §6.5 / §10).
 
-A run is pinned by ``hash(spec + code + tool_versions + seeds)``. We record:
+A run is pinned by ``hash(spec + content_hash + tool_versions)`` (the run_id);
+the manifest additionally records code_hashes and the seed next to it, so the
+full reproduction material is on the record even though it is not all inside
+the id. Specifically:
   * sha256 of every generator source file (the *editable medium*),
   * sha256 of the spec,
-  * the frame **content hash** — the fingerprint that must be identical across
-    reruns with the same seed (the mp4 container is secondary; its bytes can
-    differ by encoder, so the raw-frame digest is the ground truth),
+  * the **content hash** — the fingerprint that must be identical across
+    reruns with the same seed (container bytes can differ by encoder, so the
+    raw-payload digest is the ground truth),
   * tool + runtime versions, and the resolved seed.
 
 `remake` (README §8) is out of scope for loop #1; this only writes the record.
@@ -56,30 +59,16 @@ def tool_versions(ffmpeg_version: str) -> dict:
         from PIL import __version__ as pillow
     except Exception:
         pillow = "unknown"
+    try:
+        from numpy import __version__ as numpy_ver
+    except Exception:
+        numpy_ver = "unknown"
     return {
         "python": sys.version.split()[0],
         "pillow": pillow,
+        "numpy": numpy_ver,
         "ffmpeg": ffmpeg_version,
         "platform": platform.platform(),
-    }
-
-
-def build_manifest(*, spec_path, spec_dict, run_id, frame_hash, mp4_hash,
-                   ffmpeg_version, acceptance, artifacts, notes=None) -> dict:
-    return {
-        "run_id": run_id,
-        "created_utc": datetime.now(timezone.utc).isoformat(),
-        "pipeline": "vcac-firstloop/0.1",
-        "spec": str(spec_path),
-        "spec_resolved": spec_dict,
-        "code_hashes": code_hashes(),
-        "tools": tool_versions(ffmpeg_version),
-        "seeds": {"global": spec_dict["seed"]},
-        "frame_content_hash": frame_hash,
-        "mp4_hash": mp4_hash,
-        "acceptance": acceptance,
-        "artifacts": artifacts,
-        "notes": notes or [],
     }
 
 

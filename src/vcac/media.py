@@ -8,6 +8,7 @@ registry-gated alternatives, not replacements.
 """
 from __future__ import annotations
 
+import io
 import wave
 from pathlib import Path
 
@@ -16,6 +17,14 @@ from PIL import Image
 
 
 # --- image ------------------------------------------------------------------
+def image_size(data: bytes) -> tuple[int, int]:
+    """(width, height) of an encoded image (PNG bytes) — the *artifact's* truth.
+    Gates that compare the spec against the spec can never fail; reading the
+    pixels can (README §12.3 format/size)."""
+    with Image.open(io.BytesIO(data)) as im:
+        return im.size
+
+
 def arr_to_image(a: np.ndarray) -> Image.Image:
     """uint8 (H,W,3) or (H,W) -> PIL RGB image."""
     if a.ndim == 2:
@@ -84,24 +93,42 @@ def write_wav(path: Path, samples: np.ndarray, sr: int, channels: int = 1) -> Pa
 
 
 def read_wav(path: Path) -> tuple[np.ndarray, int]:
-    """PCM16 WAV -> (float [-1,1] shaped (n,channels), sr)."""
+    """PCM16 WAV -> (float [-1,1] shaped (n,channels), sr).
+
+    A truncated file must refuse, not decode to a short buffer that then
+    "measures" fine (audit C: the wave reader returns whatever is on disk)."""
     with wave.open(str(path), "rb") as w:
         sr = w.getframerate()
         ch = w.getnchannels()
-        data = np.frombuffer(w.readframes(w.getnframes()), dtype="<i2")
+        declared = w.getnframes()
+        data = np.frombuffer(w.readframes(declared), dtype="<i2")
+    present = data.size // ch
+    if present < declared:
+        raise ValueError(
+            f"WAV truncated: header declares {declared} frames, "
+            f"{present} present ({path})")
+    if declared == 0:
+        raise ValueError(f"WAV contains no frames ({path})")
     a = data.astype(np.float64) / 32767.0
     return a.reshape(-1, ch), sr
 
 
 # --- audio measurements (exact, deterministic) ------------------------------
+# Digital silence is -inf dBFS, and json.dumps writes -inf as `-Infinity` —
+# invalid JSON that strict parsers reject. Reports carry a documented sentinel
+# instead (SILENCE_DBFS); `not silent` gates on rms > -60, so the sentinel
+# still measures as silence.
+SILENCE_DBFS = -120.0
+
+
 def peak_dbfs(a: np.ndarray) -> float:
     p = float(np.max(np.abs(a))) if a.size else 0.0
-    return -np.inf if p == 0 else 20 * np.log10(p)
+    return SILENCE_DBFS if p == 0 else 20 * np.log10(p)
 
 
 def rms_dbfs(a: np.ndarray) -> float:
     r = float(np.sqrt(np.mean(a ** 2))) if a.size else 0.0
-    return -np.inf if r == 0 else 20 * np.log10(r)
+    return SILENCE_DBFS if r == 0 else 20 * np.log10(r)
 
 
 def dc_offset(a: np.ndarray) -> float:

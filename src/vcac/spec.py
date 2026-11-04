@@ -101,6 +101,31 @@ def _require(d: dict, path: str) -> Any:
     return cur
 
 
+def _acceptance_list(value, where: str = "acceptance") -> list[str]:
+    """Acceptance must be a *list of strings*. A bare string would list()-ify
+    into characters: every char-rule is then skipped, ``failed`` stays 0 and
+    ``passed`` reports true — the quietest fake-green there is (M0.3)."""
+    if isinstance(value, str) or not isinstance(value, list) \
+            or not all(isinstance(r, str) for r in value):
+        raise SpecError(f"{where} must be a list of rule strings (verify-before-done, M0.3)")
+    return list(value)
+
+
+# Existence-only required keys per medium — schema-lite, *not* the README §3
+# JSON Schema (still open). Catches the typo class that used to crash deep
+# inside a render with a bare KeyError (audit A: late failure) at load time,
+# with the field named. Nested keys stay the route's business.
+REQUIRED_KEYS = {
+    "image": ("width", "height", "palette"),
+    "audio": ("duration",),
+    "film": ("inputs",),
+    "game": ("width", "height", "fps", "duration", "palette"),
+    "layout": ("canvas", "grid", "palette", "type", "blocks"),
+    "type": ("font", "text", "width", "height", "frames", "palette"),
+    "spectrum": ("sample_rate", "duration", "fundamental_hz", "size"),
+}
+
+
 def load_raw(path: str | Path) -> dict:
     """Light loader for the per-route sample specs (image / audio / game).
 
@@ -117,7 +142,11 @@ def load_raw(path: str | Path) -> dict:
         raise SpecError("spec missing required field: 'id'")
     if not raw.get("acceptance"):
         raise SpecError("spec must declare acceptance rules (verify-before-done, M0.3)")
-    raw["acceptance"] = list(raw["acceptance"])
+    medium = raw.get("medium")
+    for key in REQUIRED_KEYS.get(medium, ()):
+        if key not in raw:
+            raise SpecError(f"spec missing required field: '{key}' (medium: {medium})")
+    raw["acceptance"] = _acceptance_list(raw["acceptance"])
     return raw
 
 
@@ -174,6 +203,6 @@ def load(path: str | Path) -> Spec:
         palette=palette,
         seed=seed,
         timeline=raw.get("timeline", []),
-        acceptance=list(acceptance),
+        acceptance=_acceptance_list(acceptance),
         assumptions=assumptions,
     )

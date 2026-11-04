@@ -14,13 +14,12 @@ fails, so this doubles as a smoke test the pipeline's own gates can call.
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 from pathlib import Path
 
 from PIL import Image, ImageStat
 
-from . import ffmpeg, provenance, render, spec as spec_mod, validate
+from . import cli, ffmpeg, provenance, render, spec as spec_mod, validate
 
 
 def run(spec_path: Path, out_dir: Path, seed_override: int | None = None,
@@ -34,26 +33,20 @@ def run(spec_path: Path, out_dir: Path, seed_override: int | None = None,
     frames_dir.mkdir(parents=True, exist_ok=True)
 
     # --- stage: render frames (single pass: save PNG + fold content hash + luma)
-    h = hashlib.sha256()
     luma_by_frame = []
     cubes, _ = render._make_cubes(spec)
-    for t in range(spec.n_frames):
-        img = render.frame_image(spec, cubes, t)
-        raw = img.tobytes()
-        h.update(raw)
-        luma_by_frame.append(ImageStat.Stat(img.convert("L")).mean[0])
-        img.save(frames_dir / f"{t:04d}.png", optimize=True)
-    h.update((spec.n_frames).to_bytes(8, "big"))
-    frame_hash = "sha256:" + h.hexdigest()
+
+    def _saved_frames():
+        for t in range(spec.n_frames):
+            img = render.frame_image(spec, cubes, t)
+            luma_by_frame.append(ImageStat.Stat(img.convert("L")).mean[0])
+            img.save(frames_dir / f"{t:04d}.png", optimize=True)
+            yield img.tobytes()
+
+    frame_hash = provenance.content_hash(_saved_frames())
 
     # --- determinism gate: re-render in-memory and compare content hash
-    h2 = hashlib.sha256()
-    n2 = 0
-    for raw in render.render_frames(spec):
-        h2.update(raw)
-        n2 += 1
-    h2.update(n2.to_bytes(8, "big"))
-    deterministic = ("sha256:" + h2.hexdigest()) == frame_hash
+    deterministic = provenance.content_hash(render.render_frames(spec)) == frame_hash
 
     # --- stage: encode
     mp4 = out_dir / "final.mp4"
@@ -77,20 +70,19 @@ def run(spec_path: Path, out_dir: Path, seed_override: int | None = None,
     # --- evidence: contact sheet (key frames grid)
     _contact_sheet(spec, frames_dir, out_dir / "contact-sheet.jpg")
 
-    (out_dir / "report.json").write_text(
-        json.dumps(report, indent=2, ensure_ascii=False), encoding="utf-8")
+    cli.write_report(out_dir, report)
 
-    # --- archive: manifest
+    # --- archive: manifest (the unified record; identical run_id material —
+    # hash(spec + content + tools) — as the legacy build_manifest path)
     tools = provenance.tool_versions(ffmpeg.version())
     spec_dict = spec.to_dict()
-    run_id = provenance.derive_run_id(spec_dict, frame_hash, tools)
-    manifest = provenance.build_manifest(
-        spec_path=str(spec_path), spec_dict=spec_dict, run_id=run_id,
-        frame_hash=frame_hash, mp4_hash=provenance.sha256_file(mp4),
+    manifest = provenance.build_record(
+        spec_path=str(spec_path), spec_dict=spec_dict, content_hash=frame_hash,
+        artifact_hashes={"final.mp4": provenance.sha256_file(mp4),
+                         "contact-sheet.jpg": provenance.sha256_file(out_dir / "contact-sheet.jpg")},
         ffmpeg_version=tools["ffmpeg"], acceptance=report,
         artifacts=["final.mp4", "contact-sheet.jpg", "report.json", "manifest.json"],
-        notes=spec.assumptions,
-    )
+        notes=spec.assumptions, pipeline="vcac-video/0.1")
     provenance.write_manifest(manifest, out_dir)
 
     if not keep_frames:
@@ -114,33 +106,18 @@ def _contact_sheet(spec, frames_dir: Path, out_path: Path, cols: int = 6):
 
 
 def main(argv=None) -> int:
-    ap = argparse.ArgumentParser(description="vcac first closed loop")
-    ap.add_argument("spec", type=Path)
-    ap.add_argument("--out", type=Path, default=None)
-    ap.add_argument("--seed", type=int, default=None)
-    ap.add_argument("--no-keep-frames", action="store_true")
-    a = ap.parse_args(argv)
-
+    a = cli.parse_args("vcac video route (first closed loop)", argv, extra=[
+        (("--seed",), dict(type=int, default=None)),
+        (("--no-keep-frames",), dict(action="store_true")),
+    ])
     spec = spec_mod.load(a.spec)
-    out_dir = a.out or (Path("outputs") / spec.id)
-    result = run(a.spec, out_dir, seed_override=a.seed,
-                 keep_frames=not a.no_keep_frames)
-
-    rep = result["report"]
-    print(f"[vcac] spec={spec.id} out={result['out_dir']}")
-    print(f"[vcac] duration={rep['video']['duration']:.3f}s "
-          f"{rep['video']['width']}x{rep['video']['height']} "
-          f"{rep['video']['codec_name']}/{rep['video']['pix_fmt']}")
-    for c in rep["checks"]:
-        line = f"  [{c['status'].upper():7}] {c['id']}"
-        if c["status"] in ("pass", "fail"):
-            line += f"  (expected {c['expected']}, actual {c['actual']})"
-        elif "reason" in c:
-            line += f"  ({c['reason']})"
-        print(line)
-    print(f"[vcac] run_id={result['manifest']['run_id']}")
-    print(f"[vcac] ACCEPTANCE {'PASSED' if rep['passed'] else 'FAILED'}")
-    return 0 if rep["passed"] else 1
+    r = run(a.spec, a.out or (Path("outputs") / spec.id),
+            seed_override=a.seed, keep_frames=not a.no_keep_frames)
+    v = r["report"]["video"]
+    return cli.finish("video", r, summaries=[
+        f"spec={spec.id} out={r['out_dir']}",
+        f"{v['duration']:.3f}s {v['width']}x{v['height']} "
+        f"{v['codec_name']}/{v['pix_fmt']}"])
 
 
 if __name__ == "__main__":

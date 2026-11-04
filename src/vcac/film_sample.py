@@ -20,18 +20,34 @@ import argparse
 import json
 from pathlib import Path
 
-from . import ffmpeg, provenance, spec as spec_mod, validate
+from . import cli, ffmpeg, provenance, spec as spec_mod, validate
+
+
+def _resolve_input(spec_path: Path, value: str) -> Path:
+    """Declared inputs resolve against the cwd first (the historical contract,
+    and how film-mux.yaml's repo-root-relative paths are written), then against
+    the spec file's own directory — so the route also works from any cwd when
+    the spec carries its inputs with it."""
+    p = Path(value)
+    if p.is_absolute():
+        return p
+    from_cwd = Path(".") / p
+    if from_cwd.exists():
+        return from_cwd
+    from_spec = Path(spec_path).resolve().parent / p
+    if from_spec.exists():
+        return from_spec
+    return from_cwd  # neither exists — report the cwd-relative miss
 
 
 def run(spec_path: Path, out_dir: Path) -> dict:
     spec_dict = spec_mod.load_raw(spec_path)
-    root = Path(".")
-    video = root / spec_dict["inputs"]["video"]
-    audio = root / spec_dict["inputs"]["audio"]
+    video = _resolve_input(spec_path, spec_dict["inputs"]["video"])
+    audio = _resolve_input(spec_path, spec_dict["inputs"]["audio"])
     if not video.exists() or not audio.exists():
         raise FileNotFoundError(
             f"inputs missing — run the video and audio routes first "
-            f"(need {video} and {audio})")
+            f"(need {video} and {audio}; tried cwd and the spec's directory)")
 
     out_dir.mkdir(parents=True, exist_ok=True)
     film = out_dir / "film.mp4"
@@ -43,8 +59,7 @@ def run(spec_path: Path, out_dir: Path) -> dict:
     report["film"] = {"video_codec": summary["video_codec"],
                       "audio_codec": summary["audio_codec"],
                       "duration": summary["duration"]}
-    (out_dir / "report.json").write_text(
-        json.dumps(report, indent=2, ensure_ascii=False), encoding="utf-8")
+    cli.write_report(out_dir, report)
 
     v_hash = provenance.sha256_file(video)
     a_hash = provenance.sha256_file(audio)
@@ -62,24 +77,14 @@ def run(spec_path: Path, out_dir: Path) -> dict:
 
 
 def main(argv=None) -> int:
-    ap = argparse.ArgumentParser(description="vcac composability (mux) sample")
-    ap.add_argument("spec", type=Path)
-    ap.add_argument("--out", type=Path, default=None)
-    a = ap.parse_args(argv)
+    a = cli.parse_args("vcac composability (mux) sample", argv)
     spec_dict = spec_mod.load_raw(a.spec)
-    out_dir = a.out or (Path("outputs") / spec_dict["id"])
-    r = run(a.spec, out_dir)
-    rep, m = r["report"], r["report"]["measured"]
-    print(f"[vcac:film] {spec_dict['id']} -> {r['out_dir']}")
-    print(f"[vcac:film] {m['duration']:.2f}s video={m['video_codec']} "
-          f"audio={m['audio_codec']} av_delta={m['av_delta_seconds']:.3f}s")
-    for c in rep["checks"]:
-        extra = (f"  (exp {c.get('expected')}, act {c.get('actual')})"
-                 if c["status"] in ("pass", "fail") else f"  ({c.get('reason','')})")
-        print(f"  [{c['status'].upper():7}] {c['id']}{extra}")
-    print(f"[vcac:film] run_id={r['manifest']['run_id']}")
-    print(f"[vcac:film] ACCEPTANCE {'PASSED' if rep['passed'] else 'FAILED'}")
-    return 0 if rep["passed"] else 1
+    r = run(a.spec, a.out or (Path("outputs") / spec_dict["id"]))
+    m = r["report"]["measured"]
+    return cli.finish("film", r, summaries=[
+        f"{spec_dict['id']} -> {r['out_dir']}",
+        f"{m['duration']:.2f}s video={m['video_codec']} audio={m['audio_codec']} "
+        f"av_delta={m['av_delta_seconds']:.3f}s"])
 
 
 if __name__ == "__main__":

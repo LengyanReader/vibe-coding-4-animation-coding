@@ -32,6 +32,7 @@ import argparse
 import hashlib
 import json
 import time
+import traceback
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
@@ -49,6 +50,18 @@ CACHE_KEY_FILE = "_cache_key.json"
 
 class PlanError(ValueError):
     """The plan is malformed: unknown route, unknown input, duplicate id, cycle."""
+
+
+class NodeExecutionError(RuntimeError):
+    """A node's route raised. The executor has already written the node's
+    ``error.json`` evidence and stopped the run; ``node_id`` names the node and
+    ``partial_results`` carries everything that completed before it."""
+
+    def __init__(self, node_id: str, cause: BaseException):
+        super().__init__(f"node '{node_id}' failed: {type(cause).__name__}: {cause}")
+        self.node_id = node_id
+        self.cause = cause
+        self.partial_results: dict[str, "NodeResult"] = {}
 
 
 @dataclass(frozen=True)
@@ -182,16 +195,48 @@ def _canonical(payload) -> bytes:
                       ensure_ascii=False).encode("utf-8")
 
 
+def _declared_input_files(spec_dict: dict) -> dict[str, str]:
+    """sha256 of every *existing* file the spec's own ``inputs:`` mapping names.
+
+    Only meaningful for a single-spec plan (no bundle edges): there the
+    spec-declared artifacts really are consumed, so their bytes must join the
+    cache key — re-render an upstream and a stale mux must not survive. In a
+    bundle these values are replaced before the route runs and the upstream
+    nodes' payload hashes already cover identity."""
+    ext: dict[str, str] = {}
+    for slot, p in (spec_dict.get("inputs") or {}).items():
+        fp = Path(p)
+        if fp.is_file():
+            ext[f"inputs.{slot}"] = provenance.sha256_file(fp)
+    return ext
+
+
+def _font_files(spec_dict: dict) -> dict[str, str]:
+    """sha256 of the font files a spec declares (type route). A font is an
+    external input exactly like an upstream artifact: swapping the face must
+    invalidate, not masquerade as a hit."""
+    ext: dict[str, str] = {}
+    font = spec_dict.get("font")
+    if isinstance(font, dict):
+        for i, p in enumerate(font.get("paths") or []):
+            fp = Path(p)
+            if fp.is_file():
+                ext[f"font.{i}"] = provenance.sha256_file(fp)
+    return ext
+
+
 def _cache_key(node: Node, spec_dict: dict, upstream: dict[str, str],
-               tools: dict, code: dict) -> str:
+               tools: dict, code: dict, external: dict[str, str] | None = None) -> str:
     """Identity of a node run: its spec, its upstreams' *payload* hashes, the
-    package code and the tool versions. The pre-injection spec dict is used so
-    the key does not churn with the output directory's absolute path."""
+    external files the spec itself names, the package code and the tool
+    versions. The pre-injection spec dict is used so the key does not churn
+    with the output directory's absolute path."""
     payload = {
         "pipeline": PIPELINE_VERSION,
         "node": {"id": node.id, "route": node.route,
                  "spec": spec_dict, "inputs": node.inputs},
         "upstream_content": upstream,
+        "external_files": external or {},
         "code": code,
         "tools": tools,
     }
@@ -235,7 +280,14 @@ def _run_node(node: Node, results: dict[str, NodeResult], out_dir: Path,
             raise PlanError(f"node '{node.id}': upstream '{up_id}' not executed yet")
         upstream[slot] = results[up_id].content_hash
 
-    key = _cache_key(node, spec_dict, upstream, tools, code)
+    # external inputs: bundle edges are covered by upstream payload hashes;
+    # a single-spec plan's declared input files and any declared font files
+    # are hashed here so their bytes join the key (audit A7)
+    external = _font_files(spec_dict)
+    if not node.inputs:
+        external.update(_declared_input_files(spec_dict))
+
+    key = _cache_key(node, spec_dict, upstream, tools, code, external)
     key_file = node_dir / CACHE_KEY_FILE
     if use_cache and _cache_valid(key_file, key, node_dir):
         rec = json.loads(key_file.read_text(encoding="utf-8"))
@@ -264,7 +316,20 @@ def _run_node(node: Node, results: dict[str, NodeResult], out_dir: Path,
         run_spec.write_text(yaml.safe_dump(spec_dict, allow_unicode=True,
                                            sort_keys=False), encoding="utf-8")
 
-    r = entry.run(run_spec, node_dir)
+    r = None
+    try:
+        r = entry.run(run_spec, node_dir)
+    except Exception as exc:
+        # leave machine-readable evidence next to the partial output (M0.3:
+        # a crash with no record is indistinguishable from a crash nobody saw)
+        (node_dir / "error.json").write_text(json.dumps(
+            {"node": node.id, "route": node.route,
+             "error": type(exc).__name__, "message": str(exc),
+             "traceback_tail": "\n".join(
+                 traceback.format_exception(exc)[-6:]).strip(),
+             "created_utc": datetime.now(timezone.utc).isoformat()},
+            indent=2, ensure_ascii=False), encoding="utf-8")
+        raise NodeExecutionError(node.id, exc) from exc
     manifest = r["manifest"]
     content_hash = _payload_hash(manifest)
     names = sorted({*(manifest.get("artifacts") or []), entry.provides})
@@ -293,8 +358,25 @@ def execute(plan: list[Node], out_dir: Path, use_cache: bool = True,
     code = code if code is not None else provenance.code_hashes()
     results: dict[str, NodeResult] = {}
     for node in plan:
-        results[node.id] = _run_node(node, results, out_dir, routes,
-                                     use_cache, tools, code)
+        # an upstream that failed acceptance must not feed its content hash
+        # downstream (audit A8: poison propagates silently otherwise)
+        bad_upstream = sorted({u for u in node.inputs.values()
+                               if u not in results or not results[u].report.get("passed")})
+        if bad_upstream:
+            results[node.id] = NodeResult(
+                id=node.id, route=node.route, content_hash="",
+                cached=False, seconds=0.0,
+                report={"passed": False, "blocked_by": bad_upstream,
+                        "checks_total": 0, "passed_n": 0, "failed_n": 0,
+                        "skipped_n": 0, "checks": []},
+                manifest={}, artifacts={})
+            continue
+        try:
+            results[node.id] = _run_node(node, results, out_dir, routes,
+                                         use_cache, tools, code)
+        except NodeExecutionError as exc:
+            exc.partial_results = dict(results)
+            raise
     return results
 
 
@@ -308,10 +390,25 @@ def run_bundle(path: Path, out_dir: Path, use_cache: bool = True,
     path = Path(path)
     plan = load_plan(path, routes)
     tools = provenance.tool_versions(ffmpeg.version())
-    results = execute(plan, out_dir, use_cache=use_cache, routes=routes, tools=tools)
+    code = provenance.code_hashes()
+    exec_error = None
+    try:
+        results = execute(plan, out_dir, use_cache=use_cache, routes=routes,
+                          tools=tools, code=code)
+    except NodeExecutionError as exc:
+        # the run stops, but the bundle manifest is still written — a crash
+        # leaves evidence (error.json in the node dir + this record), never a
+        # silent partial output (audit A8)
+        results = exc.partial_results
+        cause = exc.cause
+        exec_error = {"node": exc.node_id, "error": type(cause).__name__,
+                      "message": str(cause)}
     out_dir = Path(out_dir)
 
-    failed = [nid for nid, r in results.items() if not r.report.get("passed")]
+    failed = [nid for nid, r in results.items()
+              if not r.report.get("passed") and not r.report.get("blocked_by")]
+    blocked = [nid for nid, r in results.items() if r.report.get("blocked_by")]
+    not_run = [n.id for n in plan if n.id not in results]
     node_summary = {}
     for nid, r in results.items():
         node_summary[nid] = {
@@ -333,21 +430,27 @@ def run_bundle(path: Path, out_dir: Path, use_cache: bool = True,
         "nodes": node_summary,
         "tools": tools,
         "acceptance": {
-            "passed": not failed,
+            "passed": not failed and not blocked and exec_error is None,
             "failed_nodes": failed,
+            "blocked_nodes": blocked,
+            "not_run_nodes": not_run,
             "executed_n": sum(1 for r in results.values() if not r.cached),
             "cached_n": sum(1 for r in results.values() if r.cached),
         },
         "notes": [
             "node granularity = one whole route run(); finer DAG nodes are deferred "
             "(docs/roadmap-development.md §3)",
-            "cache key = spec dict + upstream payload content hashes + whole-package "
-            "code hash + tool versions; any code edit invalidates every node (coarse "
-            "but honest)",
+            "cache key = spec dict + upstream payload content hashes + declared "
+            "external file hashes + whole-package code hash + tool versions; any "
+            "code edit invalidates every node (coarse but honest)",
             "a cached node re-reports the acceptance verdict recorded when it last "
             "ran; its artifacts are re-hashed before the hit is trusted",
+            "a node whose upstream failed acceptance is blocked, not run; a node "
+            "that crashes leaves error.json and stops the run",
         ],
     }
+    if exec_error:
+        manifest["error"] = exec_error
     provenance.write_manifest(manifest, out_dir)
     return results, manifest
 
@@ -379,10 +482,19 @@ def main(argv=None) -> int:
     print(f"[vcac:pipeline] {manifest['bundle']} -> {out}")
     for nid, r in results.items():
         rep = r.report
-        checks = (f"checks {rep.get('passed_n', '?')}/{rep.get('checks_total', '?')}"
-                  if "passed_n" in rep else "no acceptance report")
-        print(f"  [{'CACHED' if r.cached else 'RAN':7}] {nid:14s} "
+        status = "CACHED" if r.cached else (
+            "BLOCKED" if rep.get("blocked_by") else "RAN")
+        if rep.get("blocked_by"):
+            checks = f"blocked by {', '.join(rep['blocked_by'])}"
+        else:
+            checks = (f"checks {rep.get('passed_n', '?')}/{rep.get('checks_total', '?')}"
+                      if "passed_n" in rep else "no acceptance report")
+        print(f"  [{status:7}] {nid:14s} "
               f"{r.content_hash[:26]}  {r.seconds:5.1f}s  {checks}")
+    if manifest.get("error"):
+        e = manifest["error"]
+        print(f"  [CRASHED] {e['node']}: {e['error']}: {e['message']} "
+              f"(evidence: {out / e['node'] / 'error.json'})")
     print(f"[vcac:pipeline] run_id={manifest['run_id']}")
     print(f"[vcac:pipeline] ACCEPTANCE {'PASSED' if manifest['acceptance']['passed'] else 'FAILED'}")
     return 0 if manifest["acceptance"]["passed"] else 1

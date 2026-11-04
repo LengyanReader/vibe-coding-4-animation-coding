@@ -37,7 +37,8 @@ GOLDEN = {
 def test_video_route(tmp_path):
     r = firstloop.run(SPEC / "orbiting-cubes.yaml", tmp_path / "v", keep_frames=False)
     assert r["report"]["passed"], r["report"]["checks"]
-    assert r["manifest"]["frame_content_hash"] == GOLDEN["video"]
+    # unified record since B1: same payload digest, same key name as all routes
+    assert r["manifest"]["content_hash"] == GOLDEN["video"]
 
 
 def test_image_route(tmp_path):

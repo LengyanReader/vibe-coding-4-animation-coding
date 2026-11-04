@@ -179,17 +179,3 @@ def render_frames(spec: Spec) -> Iterable[bytes]:
     for t in range(spec.n_frames):
         yield frame_image(spec, cubes, t).tobytes()
 
-
-def render_to_files(spec: Spec, frames_dir) -> list:
-    """Render the PNG sequence into ``frames_dir`` as ``%04d.png``; return paths."""
-    from pathlib import Path
-
-    frames_dir = Path(frames_dir)
-    frames_dir.mkdir(parents=True, exist_ok=True)
-    cubes, _ = _make_cubes(spec)
-    paths = []
-    for t in range(spec.n_frames):
-        p = frames_dir / f"{t:04d}.png"
-        frame_image(spec, cubes, t).save(p, optimize=True)
-        paths.append(p)
-    return paths

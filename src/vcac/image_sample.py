@@ -17,7 +17,7 @@ from pathlib import Path
 
 import numpy as np
 
-from . import ffmpeg, media, provenance, spec as spec_mod, validate
+from . import cli, ffmpeg, media, provenance, spec as spec_mod, validate
 
 
 def _smooth(t: np.ndarray) -> np.ndarray:
@@ -85,15 +85,18 @@ def run(spec_path: Path, out_dir: Path) -> dict:
     deterministic = _content_hash(render_image(spec_dict)) == _content_hash(arr)
 
     measured = {
-        "width": spec_dict["width"], "height": spec_dict["height"],
+        # the artifact's dimensions (read back off the saved PNG), not the
+        # spec's claim — a declared size the pixels don't honour must fail,
+        # and a quoted YAML number must not false-fail on a str/int compare
+        "width": media.image_size(poster.read_bytes())[0],
+        "height": media.image_size(poster.read_bytes())[1],
         "unique_colors": media.unique_colors(img),
         "entropy_bits": media.entropy_bits(img),
         "deterministic": deterministic,
     }
     report = validate.run_acceptance(spec_dict["acceptance"], measured)
     report["measured"] = measured
-    (out_dir / "report.json").write_text(
-        json.dumps(report, indent=2, ensure_ascii=False), encoding="utf-8")
+    cli.write_report(out_dir, report)
 
     chash = _content_hash(arr)
     tools_ff = ffmpeg.version()
@@ -108,24 +111,14 @@ def run(spec_path: Path, out_dir: Path) -> dict:
 
 
 def main(argv=None) -> int:
-    ap = argparse.ArgumentParser(description="vcac image route sample")
-    ap.add_argument("spec", type=Path)
-    ap.add_argument("--out", type=Path, default=None)
-    a = ap.parse_args(argv)
+    a = cli.parse_args("vcac image route sample", argv)
     spec_dict = spec_mod.load_raw(a.spec)
-    out_dir = a.out or (Path("outputs") / spec_dict["id"])
-    r = run(a.spec, out_dir)
-    rep = r["report"]
-    m = rep["measured"]
-    print(f"[vcac:image] {spec_dict['id']} -> {r['out_dir']}")
-    print(f"[vcac:image] {m['width']}x{m['height']} "
-          f"unique_colors={m['unique_colors']} entropy={m['entropy_bits']:.2f}b")
-    for c in rep["checks"]:
-        extra = f"  (exp {c.get('expected')}, act {c.get('actual')})" if c["status"] in ("pass", "fail") else f"  ({c.get('reason','')})"
-        print(f"  [{c['status'].upper():7}] {c['id']}{extra}")
-    print(f"[vcac:image] run_id={r['manifest']['run_id']}")
-    print(f"[vcac:image] ACCEPTANCE {'PASSED' if rep['passed'] else 'FAILED'}")
-    return 0 if rep["passed"] else 1
+    r = run(a.spec, a.out or (Path("outputs") / spec_dict["id"]))
+    m = r["report"]["measured"]
+    return cli.finish("image", r, summaries=[
+        f"{spec_dict['id']} -> {r['out_dir']}",
+        f"{m['width']}x{m['height']} unique_colors={m['unique_colors']} "
+        f"entropy={m['entropy_bits']:.2f}b"])
 
 
 if __name__ == "__main__":

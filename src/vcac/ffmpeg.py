@@ -31,8 +31,9 @@ def version() -> str:
 def encode_images(frames_dir: Path, fps: int, out_mp4: Path,
                   crf: int = 18, pix_fmt: str = "yuv420p") -> Path:
     """PNG sequence (%04d.png) -> H.264 mp4. Deterministic given the frames:
-    we disable the muxer timestamp with -fflags +bitexact so container bytes
-    are reproducible (the frame content hash is the primary fingerprint)."""
+    -fflags +bitexact strips muxer timestamps from the container, but container
+    bytes can still move with the encoder build — the frame content hash stays
+    the primary fingerprint (README §12.2; tests pin only the payload)."""
     pattern = str(Path(frames_dir) / "%04d.png")
     cmd = [
         "ffmpeg", "-y", "-loglevel", "error",
@@ -89,14 +90,18 @@ def audio_summary(path: Path) -> dict:
     }
 
 
-def _loudnorm_ff(in_wav, out_wav, target_i, target_tp, lra, measured=None):
+def _loudnorm_ff(in_wav, out_wav, target_i, target_tp, lra, measured=None,
+                 sample_rate: int = 48000):
     if measured:
         ln = (f"loudnorm=I={target_i}:TP={target_tp}:LRA={lra}"
               f":measured_I={measured['input_i']}:measured_TP={measured['input_tp']}"
               f":measured_LRA={measured['input_lra']}:measured_thresh={measured['input_thresh']}"
               f":offset={measured['target_offset']}:linear=true")
+        # loudnorm's internal graph runs at 192 kHz, so the apply pass needs an
+        # explicit output rate — the *spec's* declared rate, not a module
+        # constant (a 44.1 kHz spec could never pass its own rate rule before).
         cmd = ["ffmpeg", "-y", "-loglevel", "error", "-i", str(in_wav),
-               "-af", ln, "-ar", "48000", str(out_wav)]
+               "-af", ln, "-ar", str(int(sample_rate)), str(out_wav)]
     else:
         # measure pass: loudnorm prints its JSON summary at info level, so we
         # must NOT silence it with -loglevel error here.
@@ -121,11 +126,14 @@ def measure_lufs(wav: Path) -> float:
 
 
 def loudnorm_to_target(in_wav: Path, out_wav: Path, i: float = -16.0,
-                       tp: float = -1.5, lra: float = 11.0) -> dict:
+                       tp: float = -1.5, lra: float = 11.0,
+                       sample_rate: int = 48000) -> dict:
     """Two-pass EBU R128 normalisation. Pass 1 measures (JSON on stderr),
-    pass 2 applies linearly. Returns the measured values for the manifest."""
+    pass 2 applies linearly at ``sample_rate`` (the caller passes the spec's
+    declared rate; loudnorm internally upsamples to 192 kHz, so the apply pass
+    must be told what to come back down to). Returns the measured values."""
     measured = _loudnorm_measure(in_wav)
-    _loudnorm_ff(in_wav, out_wav, i, tp, lra, measured)
+    _loudnorm_ff(in_wav, out_wav, i, tp, lra, measured, sample_rate=sample_rate)
     return measured
 
 

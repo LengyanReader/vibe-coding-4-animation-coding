@@ -38,6 +38,13 @@ _PATTERNS = [
      "resolution_exact", ("width", "height")),
     (re.compile(rf"no black frame longer than ({_NUM})\s*s", re.I),
      "max_black_run", ("max_black_run_seconds",)),
+    # MOST-SPECIFIC-FIRST: "distinct colors at most N" sits lexically inside the
+    # unique-colors pattern's reach; if the generic floor rule matched first, a
+    # ceiling would be evaluated as a floor (wrong rule, green verdict). The
+    # ceiling pattern (palette optional in the wording) therefore sits ABOVE the
+    # generic color-floor pattern.
+    (re.compile(rf"(?:distinct|usable)\s+(?:palette\s+)?colou?rs?\s+at most\s+(\d+)", re.I),
+     "palette_max", ("palette_distinct_colors",)),
     (re.compile(rf"(?:unique colors|distinct colors)[^0-9]*(?:>=|at least|>|more than)?\s*(\d+)", re.I),
      "unique_colors_min", ("unique_colors",)),
     (re.compile(rf"entropy\s*(?:>|above)\s*({_NUM})", re.I), "entropy_min", ("entropy_bits",)),
@@ -55,8 +62,6 @@ _PATTERNS = [
      "grid_left_max", ("left_edge_max_offset_px",)),
     (re.compile(rf"tops? within ({_NUM})\s*px of the baseline grid", re.I),
      "grid_baseline_max", ("baseline_max_offset_px",)),
-    (re.compile(rf"(?:distinct|usable) palette colou?rs? at most (\d+)", re.I),
-     "palette_max", ("palette_distinct_colors",)),
     (re.compile(r"no text overflows the canvas", re.I),
      "no_overflow", ("overflow_elements",)),
     (re.compile(rf"at least ({_NUM})\s*% of pixels are exact palette colors", re.I),
@@ -140,11 +145,17 @@ def _evaluate(kind, m, measured):
         return not v, "all resolve", ("all resolve" if not v else f"fell back: {v}")
     if kind == "pitch_within":
         tol, target = float(m.group(1)), float(m.group(2))
-        v = float(measured["pitch_hz"])
-        return abs(v - target) <= tol, f"{target}\u00b1{tol}", round(v, 2)
+        v = measured["pitch_hz"]
+        if v is None:
+            # "the estimator found nothing" is a legitimate measurement outcome;
+            # the rule fails with evidence instead of raising inside the gate
+            return False, f"{target}\u00b1{tol}", "unmeasurable"
+        return abs(float(v) - target) <= tol, f"{target}\u00b1{tol}", round(float(v), 2)
     if kind == "harmonics_min":
-        n = int(m.group(1)); v = int(measured["harmonics"])
-        return v >= n, f">={n}", v
+        n = int(m.group(1)); v = measured["harmonics"]
+        if v is None:
+            return False, f">={n}", "unmeasurable"
+        return int(v) >= n, f">={n}", int(v)
     if kind == "ink_monotonic":
         v = bool(measured["ink_monotonic"])
         return v, "strictly increasing", "increasing" if v else "not monotonic"

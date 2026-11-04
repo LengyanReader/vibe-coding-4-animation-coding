@@ -1,7 +1,12 @@
 """Unit tests for the acceptance rule engine (the verify-before-done core)."""
 from __future__ import annotations
 
+from pathlib import Path
+
+from vcac import spec as spec_mod
 from vcac import validate
+
+SPEC = Path("specs/examples")
 
 
 def test_max_black_run_seconds():
@@ -120,3 +125,57 @@ def test_pitch_rule_does_not_collide_with_colour_rules():
                                 {"pitch_hz": 441.0})
     assert r["checks"][0]["status"] == "pass"
     assert r["checks"][0]["expected"] == "440.0\u00b110.0"
+
+# --- honesty of the rule engine itself ----------------------------------------
+
+def test_unmeasurable_pitch_fails_instead_of_crashing():
+    """`pitch_hz: None` is a legitimate "the estimator found nothing" — the rule
+    must fail with evidence, not raise TypeError inside the validator."""
+    r = validate.run_acceptance(["measured pitch within 10 Hz of 440"],
+                                {"pitch_hz": None})
+    assert r["checks"][0]["status"] == "fail"
+    assert r["checks"][0]["actual"] == "unmeasurable"
+    r2 = validate.run_acceptance(["at least 5 harmonics visible"], {"harmonics": None})
+    assert r2["checks"][0]["status"] == "fail"
+    assert r2["checks"][0]["actual"] == "unmeasurable"
+
+
+def test_palette_ceiling_is_not_read_as_the_color_floor():
+    """"distinct colors at most 3" sits lexically inside the unique-colors
+    pattern's reach. If the floor rule wins, a 4-colour poster with a rich
+    gradient passes a *ceiling* it must fail — wrong rule, green verdict."""
+    r = validate.run_acceptance(["distinct colors at most 3"],
+                                {"palette_distinct_colors": 4, "unique_colors": 9000})
+    assert r["checks"][0]["status"] == "fail"
+    assert r["checks"][0]["expected"] == "<=3"
+    assert r["checks"][0]["actual"] == 4
+
+
+# --- regression pin: the rule->kind mapping of every shipped spec -------------
+# Re-ordering _PATTERNS or rewording a pattern is a semantic change to every
+# gate; here it shows up as a reviewable diff instead of a silent shift.
+
+KIND_SNAPSHOT = {
+    "dodge-headless.yaml": ["moved", "score_min", "hp_decreased", "terminated"],
+    "film-mux.yaml": ["duration_range", "has_video", "has_audio", "av_sync"],
+    "orbiting-cubes.yaml": ["duration_range", "resolution_exact", "max_black_run"],
+    "poster-noise.yaml": ["resolution_exact", "unique_colors_min", "entropy_min"],
+    "spectrogram-truth.yaml": ["sample_rate_exact", "duration_range", "peak_max_dbfs",
+                               "not_silent", "resolution_exact", "pitch_within",
+                               "harmonics_min", "psnr_min"],
+    "swiss-poster.yaml": ["resolution_exact", "grid_left_max", "grid_baseline_max",
+                          "palette_max", "palette_exact_pct_min", "no_overflow",
+                          "font_resolved"],
+    "synth-pad.yaml": ["duration_range", "sample_rate_exact", "lufs_target",
+                       "peak_max_dbfs", "not_silent", "clipping_max_pct", "dc_max"],
+    "variable-weight.yaml": ["axis_range", "ink_monotonic", "resolution_exact",
+                             "duration_range"],
+}
+
+
+def test_rule_kind_snapshot_over_shipped_specs():
+    for name, kinds in KIND_SNAPSHOT.items():
+        raw = spec_mod.load_raw(SPEC / name)
+        assert len(raw["acceptance"]) == len(kinds), name
+        for rule, kind in zip(raw["acceptance"], kinds):
+            assert validate._match_rule(rule)[0] == kind, (name, rule)

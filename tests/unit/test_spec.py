@@ -41,6 +41,9 @@ def test_load_raw_ok(tmp_path: Path):
     p.write_text(textwrap.dedent("""
         id: x
         medium: image
+        width: 2
+        height: 2
+        palette: ["#000000", "#ffffff"]
         acceptance:
           - resolution exactly 2x2
     """), encoding="utf-8")
@@ -59,3 +62,39 @@ def test_load_rejects_non_video(tmp_path: Path):
     """), encoding="utf-8")
     with pytest.raises(SpecError):
         spec_mod.load(p)
+
+
+def test_load_raw_rejects_a_string_acceptance(tmp_path: Path):
+    """A bare string would list()-ify into characters: every char-rule is then
+    skipped, failed stays 0 and passed reports true — the quietest fake-green
+    there is. Both loaders must refuse it (M0.3)."""
+    p = tmp_path / "s.yaml"
+    p.write_text("id: x\nacceptance: duration between 5.8s and 6.2s\n",
+                 encoding="utf-8")
+    with pytest.raises(SpecError, match="acceptance must be a list of rule strings"):
+        spec_mod.load_raw(p)
+
+
+def test_load_rejects_a_string_acceptance(tmp_path: Path):
+    p = tmp_path / "s.yaml"
+    p.write_text(textwrap.dedent("""
+        id: x
+        medium: video
+        format: {width: 4, height: 4, fps: 30, duration: 1s}
+        style: {palette: ["#000000", "#ffffff"]}
+        acceptance: duration between 0 and 2
+    """), encoding="utf-8")
+    with pytest.raises(SpecError, match="acceptance must be a list of rule strings"):
+        spec_mod.load(p)
+
+
+def test_load_rejects_non_string_rule_items(tmp_path: Path):
+    """`acceptance: [1, 2]` would crash the rule engine on a non-str item;
+    the loader is where it must be named."""
+    p = tmp_path / "s.yaml"
+    p.write_text(textwrap.dedent("""
+        id: x
+        acceptance: [1, 2]
+    """), encoding="utf-8")
+    with pytest.raises(SpecError, match="acceptance must be a list of rule strings"):
+        spec_mod.load_raw(p)
