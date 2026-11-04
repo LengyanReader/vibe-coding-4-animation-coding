@@ -1,0 +1,25 @@
+# Audio route sample spec — deterministic pad + arpeggio, R128-mastered.
+id: synth-pad
+title: Minor-pad loop
+medium: audio
+
+duration: 9.6s        # 4 bars @ 100 BPM (2.4 s/bar)
+sample_rate: 48000
+tempo: 100
+bars: 4
+key_root: A3          # root of the progression (natural-minor triads)
+seed: 42
+
+# EBU R128 mastering targets (two-pass loudnorm).
+target_lufs: -16.0
+target_tp: -1.5
+lra: 11.0
+
+acceptance:
+  - duration between 9.0 and 10.2
+  - sample rate exactly 48000
+  - loudness -16 LUFS
+  - peak below -1 dBFS
+  - not silent
+  - clipping < 0.01%
+  - dc offset < 0.001

@@ -27,71 +27,145 @@ def max_black_run_seconds(luma_by_frame, fps: int, black_below: float = 8.0):
 
 
 # --- rule engine -------------------------------------------------------------
+# Each rule maps prose -> a coded check that declares the measured keys it needs.
+# If a route did not measure those keys the rule is reported `skipped` with a
+# reason, never silently passed (M0.2). `NUM` matches -?d+.d+.
+_NUM = r"-?\d+(?:\.\d+)?"
 _PATTERNS = [
-    (re.compile(r"duration between ([\d.]+)\s*s? and ([\d.]+)\s*s?", re.I), "duration_range"),
-    (re.compile(r"resolution exactly (\d+)\s*x\s*(\d+)", re.I), "resolution_exact"),
-    (re.compile(r"no black frame longer than ([\d.]+)\s*s", re.I), "max_black_run"),
-    (re.compile(r"not silent|audio", re.I), "audio"),  # out of scope: silent film
+    (re.compile(rf"duration between ({_NUM})\s*s? and ({_NUM})\s*s?", re.I),
+     "duration_range", ("duration",)),
+    (re.compile(r"resolution exactly (\d+)\s*x\s*(\d+)", re.I),
+     "resolution_exact", ("width", "height")),
+    (re.compile(rf"no black frame longer than ({_NUM})\s*s", re.I),
+     "max_black_run", ("max_black_run_seconds",)),
+    (re.compile(rf"(?:unique colors|distinct colors)[^0-9]*(?:>=|at least|>|more than)?\s*(\d+)", re.I),
+     "unique_colors_min", ("unique_colors",)),
+    (re.compile(rf"entropy\s*(?:>|above)\s*({_NUM})", re.I), "entropy_min", ("entropy_bits",)),
+    (re.compile(rf"(?:palette|\u0394e|delta ?e)[^0-9<]*<\s*({_NUM})", re.I),
+     "delta_e_max", ("palette_delta_e",)),
+    (re.compile(r"sample rate exactly (\d+)", re.I), "sample_rate_exact", ("sample_rate",)),
+    (re.compile(rf"channels? exactly (\d+)", re.I), "channels_exact", ("channels",)),
+    (re.compile(rf"peak below ({_NUM})\s*dbfs", re.I), "peak_max_dbfs", ("peak_dbfs",)),
+    (re.compile(rf"(?:lufs|loudness)[^0-9-]*({_NUM})\s*lufs?", re.I),
+     "lufs_target", ("lufs_i",)),
+    (re.compile(r"not silent", re.I), "not_silent", ("rms_dbfs",)),
+    (re.compile(rf"clipping[^0-9]*<\s*({_NUM})\s*%", re.I), "clipping_max_pct", ("clipping_pct",)),
+    (re.compile(rf"dc[^0-9]*<\s*({_NUM})", re.I), "dc_max", ("dc_offset",)),
+    (re.compile(r"has video stream", re.I), "has_video", ("has_video",)),
+    (re.compile(r"has audio stream", re.I), "has_audio", ("has_audio",)),
+    (re.compile(rf"a/v sync within ({_NUM})\s*s", re.I), "av_sync", ("av_delta_seconds",)),
+    (re.compile(r"player moved", re.I), "moved", ("moved",)),
+    (re.compile(rf"score at least (\d+)", re.I), "score_min", ("score",)),
+    (re.compile(r"hp decreased", re.I), "hp_decreased", ("hp", "start_hp")),
+    (re.compile(r"session terminated", re.I), "terminated", ("terminated",)),
+    (re.compile(r"audio", re.I), "audio_generic", ()),
 ]
 
 
 def _match_rule(rule: str):
-    for pat, kind in _PATTERNS:
+    for pat, kind, needs in _PATTERNS:
         m = pat.search(rule)
         if m:
-            return kind, m
-    return None, None
+            return kind, m, needs
+    return None, None, ()
+
+
+def _evaluate(kind, m, measured):
+    """Return (ok, expected, actual) for a matched rule."""
+    if kind == "duration_range":
+        lo, hi = float(m.group(1)), float(m.group(2))
+        v = measured["duration"]
+        return lo <= v <= hi, f"{lo}..{hi}", round(v, 3)
+    if kind == "resolution_exact":
+        w, h = int(m.group(1)), int(m.group(2))
+        return measured["width"] == w and measured["height"] == h, f"{w}x{h}", f'{measured["width"]}x{measured["height"]}'
+    if kind == "max_black_run":
+        lim = float(m.group(1)); v = measured["max_black_run_seconds"]
+        return v <= lim, f"<={lim}", round(v, 3)
+    if kind == "unique_colors_min":
+        n = int(m.group(1)); v = measured["unique_colors"]
+        return v >= n, f">={n}", v
+    if kind == "entropy_min":
+        x = float(m.group(1)); v = measured["entropy_bits"]
+        return v > x, f">{x}", round(v, 3)
+    if kind == "delta_e_max":
+        x = float(m.group(1)); v = measured["palette_delta_e"]
+        return v < x, f"<{x}", round(v, 3)
+    if kind == "sample_rate_exact":
+        n = int(m.group(1)); v = measured["sample_rate"]
+        return v == n, n, v
+    if kind == "channels_exact":
+        n = int(m.group(1)); v = measured["channels"]
+        return v == n, n, v
+    if kind == "peak_max_dbfs":
+        x = float(m.group(1)); v = measured["peak_dbfs"]
+        return v <= x, f"<={x}", round(v, 2)
+    if kind == "lufs_target":
+        target = float(m.group(1)); tol = 1.0
+        v = measured["lufs_i"]
+        return abs(v - target) <= tol, f"{target}\u00b1{tol}", round(v, 2)
+    if kind == "not_silent":
+        v = measured["rms_dbfs"]
+        return v > -60.0, "> -60 dBFS", round(v, 2)
+    if kind == "clipping_max_pct":
+        x = float(m.group(1)); v = measured["clipping_pct"]
+        return v < x, f"<{x}", round(v, 4)
+    if kind == "dc_max":
+        x = float(m.group(1)); v = measured["dc_offset"]
+        return abs(v) < x, f"|DC|<{x}", round(v, 5)
+    if kind == "has_video":
+        v = bool(measured["has_video"])
+        return v, "present", "present" if v else "missing"
+    if kind == "has_audio":
+        v = bool(measured["has_audio"])
+        return v, "present", "present" if v else "missing"
+    if kind == "av_sync":
+        lim = float(m.group(1)); v = measured["av_delta_seconds"]
+        return v <= lim, f"<={lim}", round(v, 4)
+    if kind == "moved":
+        v = bool(measured["moved"])
+        return v, "nonzero", "moved" if v else "static"
+    if kind == "score_min":
+        n = int(m.group(1)); v = measured["score"]
+        return v >= n, f">={n}", v
+    if kind == "hp_decreased":
+        return measured["hp"] < measured["start_hp"], f"< {measured['start_hp']}", measured["hp"]
+    if kind == "terminated":
+        v = bool(measured["terminated"])
+        return v, "reached end", "ended" if v else "running"
+    return None, None, None
 
 
 def run_acceptance(acceptance, measured: dict) -> dict:
-    """measured keys: duration, width, height, max_black_run_seconds, deterministic."""
-    checks = []
-    passed = failed = skipped = 0
+    checks, passed = [], 0
+    failed = skipped = 0
     for rule in acceptance:
-        kind, m = _match_rule(rule)
-        if kind == "duration_range":
-            lo, hi = float(m.group(1)), float(m.group(2))
-            ok = lo <= measured["duration"] <= hi
-            val = measured["duration"]
-        elif kind == "resolution_exact":
-            w, h = int(m.group(1)), int(m.group(2))
-            ok = measured["width"] == w and measured["height"] == h
-            val = f'{measured["width"]}x{measured["height"]}'
-            lo, hi = f"{w}x{h}", f"{w}x{h}"
-        elif kind == "max_black_run":
-            limit = float(m.group(1))
-            ok = measured["max_black_run_seconds"] <= limit
-            val = measured["max_black_run_seconds"]
-            lo, hi = 0, limit
-        elif kind == "audio":
-            checks.append({"id": rule, "status": "skipped",
-                           "reason": "silent film — audio rules not enforced in loop #1"})
+        kind, m, needs = _match_rule(rule)
+        if kind is None:
+            checks.append({"id": rule, "status": "skipped", "reason": "no coded check yet"})
             skipped += 1
             continue
-        else:
-            checks.append({"id": rule, "status": "skipped",
-                           "reason": "no coded check for this rule yet"})
+        if kind == "audio_generic":
+            checks.append({"id": rule, "status": "skipped", "reason": "generic audio rule; see specific checks"})
             skipped += 1
             continue
+        missing = [k for k in needs if k not in measured]
+        if missing:
+            checks.append({"id": rule, "status": "skipped",
+                           "reason": f"route did not measure {missing}"})
+            skipped += 1
+            continue
+        ok, expected, actual = _evaluate(kind, m, measured)
         checks.append({"id": rule, "status": "pass" if ok else "fail",
-                       "expected": f"{lo}..{hi}" if kind != "resolution_exact" else f"{w}x{h}",
-                       "actual": val})
-        passed += int(ok)
-        failed += int(not ok)
+                       "expected": expected, "actual": actual})
+        passed += int(ok); failed += int(not ok)
 
-    # determinism is a standing gate regardless of prose rules
-    det_ok = measured.get("deterministic", False)
-    checks.append({"id": "determinism: same seed -> identical frame content hash",
-                   "status": "pass" if det_ok else "fail",
-                   "expected": "equal", "actual": "equal" if det_ok else "differ"})
-    passed += int(det_ok)
-    failed += int(not det_ok)
+    if "deterministic" in measured:
+        det = measured["deterministic"]
+        checks.append({"id": "determinism: same seed -> identical content hash",
+                       "status": "pass" if det else "fail", "expected": "equal",
+                       "actual": "equal" if det else "differ"})
+        passed += int(det); failed += int(not det)
 
-    return {
-        "passed": failed == 0,
-        "checks_total": len(checks),
-        "passed_n": passed,
-        "failed_n": failed,
-        "skipped_n": skipped,
-        "checks": checks,
-    }
+    return {"passed": failed == 0, "checks_total": len(checks), "passed_n": passed,
+            "failed_n": failed, "skipped_n": skipped, "checks": checks}

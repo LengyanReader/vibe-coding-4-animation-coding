@@ -1,0 +1,18 @@
+# Image route sample spec — deterministic value-noise poster.
+id: poster-noise
+title: Fractal value-noise poster
+medium: image
+
+width: 1024
+height: 1024
+seed: 7
+base_freq: 6          # coarsest noise cell count
+octaves: 5            # fBm layers (each doubles frequency, halves amplitude)
+
+# Background->accent gradient anchors; noise value maps piecewise-linearly across them.
+palette: ["#0B1020", "#7AA2F7", "#4FD1C5", "#F6AD55"]
+
+acceptance:
+  - resolution exactly 1024x1024
+  - unique colors > 5000
+  - entropy > 5.0

@@ -1,0 +1,16 @@
+# Composability sample spec — join the video route + audio route into one film.
+id: film-mux
+title: Orbiting cubes, scored
+medium: film
+
+# Independently produced artifacts (run the video and audio routes first).
+inputs:
+  video: outputs/orbiting-cubes/final.mp4
+  audio: outputs/synth-pad/master.wav
+shortest: true        # trim to the shorter stream (video 6s)
+
+acceptance:
+  - duration between 5.5 and 6.5
+  - has video stream
+  - has audio stream
+  - a/v sync within 0.1s

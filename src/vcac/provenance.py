@@ -97,3 +97,28 @@ def derive_run_id(spec_dict: dict, frame_hash: str, tools: dict) -> str:
         sort_keys=True, ensure_ascii=False,
     ).encode("utf-8")
     return "sha256:" + hashlib.sha256(material).hexdigest()[:16]
+
+
+def build_record(*, spec_path, spec_dict, content_hash, artifact_hashes,
+                 ffmpeg_version, acceptance, artifacts, notes=None,
+                 pipeline="vcac-sample/0.1") -> dict:
+    """Route-agnostic provenance record: any media (image/audio/video/game) pins
+    a run by hash(spec + code + tools + content). ``artifact_hashes`` maps output
+    filename -> sha256; ``content_hash`` is the deterministic ground-truth digest
+    of the rendered payload (frames, samples, or final game state)."""
+    tools = tool_versions(ffmpeg_version)
+    return {
+        "run_id": derive_run_id(spec_dict, content_hash, tools),
+        "created_utc": datetime.now(timezone.utc).isoformat(),
+        "pipeline": pipeline,
+        "spec": str(spec_path),
+        "spec_resolved": spec_dict,
+        "code_hashes": code_hashes(),
+        "tools": tools,
+        "seeds": {"global": spec_dict.get("seed")},
+        "content_hash": content_hash,
+        "artifact_hashes": artifact_hashes,
+        "acceptance": acceptance,
+        "artifacts": artifacts,
+        "notes": notes or [],
+    }

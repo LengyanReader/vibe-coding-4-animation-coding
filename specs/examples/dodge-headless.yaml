@@ -1,0 +1,28 @@
+# Game route sample spec — headless deterministic dodge/collect sim + playtest.
+id: dodge-headless
+title: Dodge & collect (headless playtest)
+medium: game
+
+width: 960
+height: 540
+fps: 30
+duration: 12s
+seed: 42
+
+palette: ["#0B1020", "#4FD1C5", "#F6AD55", "#7AA2F7"]  # bg, collect, hazard, player
+
+game:
+  player_speed: 430
+  player_w: 70
+  spawn_rate: 0.30      # per-tick probability a new orb spawns
+  hazard_rate: 0.45     # share of orbs that hurt on contact
+  hp: 6
+
+input:                  # scripted playtest driver (no human, fully reproducible)
+  period: 18            # direction flips every 18 ticks (L/L/R/R sweep)
+
+acceptance:
+  - player moved
+  - score at least 1
+  - hp decreased
+  - session terminated

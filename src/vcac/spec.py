@@ -101,6 +101,26 @@ def _require(d: dict, path: str) -> Any:
     return cur
 
 
+def load_raw(path: str | Path) -> dict:
+    """Light loader for the per-route sample specs (image / audio / game).
+
+    Unlike :func:`load` (which is the video ``Spec`` contract), this only enforces
+    the two invariants every route shares — an ``id`` to name outputs under and a
+    non-empty ``acceptance`` list (verify-before-done, M0.3). Each sample reads
+    its own medium-specific keys from the returned dict, so new media don't force
+    a schema rewrite before a second medium needs the shared ``Spec`` model.
+    """
+    raw = yaml.safe_load(Path(path).read_text(encoding="utf-8"))
+    if not isinstance(raw, dict):
+        raise SpecError(f"spec root must be a mapping: {path}")
+    if not raw.get("id"):
+        raise SpecError("spec missing required field: 'id'")
+    if not raw.get("acceptance"):
+        raise SpecError("spec must declare acceptance rules (verify-before-done, M0.3)")
+    raw["acceptance"] = list(raw["acceptance"])
+    return raw
+
+
 def load(path: str | Path) -> Spec:
     raw = yaml.safe_load(Path(path).read_text(encoding="utf-8"))
     if not isinstance(raw, dict):
