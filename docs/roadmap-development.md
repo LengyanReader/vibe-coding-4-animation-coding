@@ -158,7 +158,42 @@ A **sixth medium class**, not a new tool: "what style can be formalised into cod
 - **Next sample:** `ink-landscape` — spec → nine-step renderer → PNG, gated on
   resolution + value-band + whitespace-ratio + palette-ΔE + determinism. *(no install)*
 
-### 2.6 Cross-media / product line (highest leverage)
+### 2.6 Layout & document media (the zero-install blind spot we just found)
+
+An exhaustiveness audit (`docs/coverage-audit.md`) found the biggest omission was **not**
+exotic art tools — it was media classes that **this machine already runs**: `pandoc 3.8.2`
+and `MiKTeX` are installed and measured, and FFmpeg ships `libass`. Nothing had been routed.
+
+- **Now:** zero routes built; all three tools verified AVAILABLE by `doctor.py`. A **second**
+  zero-install medium was found on the follow-up machine audit: the **browser** (`playwright 1.58.0`
+  + Chromium `145.0.7632.6`, proven by a real screenshot) — HTML/CSS/SVG/Canvas as rasterizer and
+  layout engine, which also removes the "needs Chromium" objection for Marp/Slidev/Mermaid. Caveat:
+  these live only on the 3.13.5 interpreter, not on `hy_py312` where the golden manifests were made.
+- **Route candidates (in cost order):**
+  1. *Document route* — markdown/YAML front-matter → `pandoc --pdf-engine=xelatex` → PDF
+     (report, zine, spec sheet). Verification: page count, paper size, embedded-font list,
+     PDF version, no missing-figure warnings.
+  2. *Caption route* — timings → **ASS** (a real styling language: `\pos`, `\t`, `\clip`, `\k`)
+     → `ffmpeg -vf ass=` burn-in. Verification: coverage %, safe-area, font availability,
+     A/V sync (already implemented).
+  3. *Diagram route* — D2/Vega-Lite/Graphviz → SVG → PNG. Verification: node/edge counts
+     from the source text vs rendered bounding box, ΔE against the palette, no clipped labels.
+  4. *Browser-layout route* — HTML/CSS (or a generated deck) → `page.screenshot()` PNG / `page.pdf()`.
+     Verification: viewport + `deviceScaleFactor` pinned in spec, browser build recorded in manifest,
+     `--disable-gpu`/headless_shell for cross-hardware determinism, grid metrics (column alignment,
+     baseline divisibility) measured off the pixels. Unblocks posters, decks, infographics,
+     kinetic type, and shader-art screenshots (WebGL) in one medium.
+  5. *Variable-font route* — `fonttools varLib`/`setvar` on the local `NotoSansSC-VF` (`wght 100–900`)
+     → per-frame weight axis animation. Verification: instance named-axes match spec, glyph outline
+     hash, licence recorded (OFL-1.1 clean).
+- **New tools (see `docs/tools.md` §8):** pandoc+LaTeX ✅ installed, libass ✅ installed,
+  playwright+Chromium ✅ installed (3.13.5), fonttools ✅ installed (3.13.5), matplotlib ✅ installed
+  (3.11.0); still to add: `vl-convert-python`, D2, Mermaid CLI, QGIS, Ghostscript, Marp.
+- **Why it matters:** these are *symbolic-rule* generators (audit axis A3) — the most
+deterministic, most auditable, easiest-to-verify class we can add, and they make the
+explainer film route complete (poster + chart + captions + PDF handout from one brief).
+
+### 2.7 Cross-media / product line (highest leverage)
 
 The film mux was the first proof of **node composition**. Generalise it:
 
@@ -197,16 +232,37 @@ abstraction is extracted from ≥2 concrete cases rather than guessed.
 
 1. **Pipeline skeleton** — registry + DAG + content-hash cache. Turns samples into
    cached, composable builds. *(no install)*
-2. **`ink-landscape` style loop** — the nine-step 山水 chain from `docs/styles.md` §1.2,
+2. **Document route** — `pandoc + MiKTeX` → spec → PDF report/handout. **Cheapest new medium
+   on this machine** (both already installed and measured). *(no install)*
+3. **Browser-layout route** — HTML/CSS/SVG → `playwright` `page.screenshot()` / `page.pdf()`.
+   **Proven working this session** (Chromium `145.0.7632.6`, PNG produced). This is the medium that
+   unlocks decks, posters, infographics, kinetic type *and* the execution base for Marp/Mermaid/Slidev.
+   Must pin the browser build in the manifest and use headless_shell / `--disable-gpu` for cross-hardware
+   reproducibility. *(no install — but only on the 3.13.5 interpreter; see §6)*
+4. **Caption route** — timings → ASS → `ffmpeg` burn-in on the loop1 video. *(no install)*
+5. **`ink-landscape` style loop** — the nine-step 山水 chain from `docs/styles.md` §1.2,
    plus XDoG/sketch and Riso separations. Proves style can be a *spec*, not a filter. *(no install)*
-3. **Data-viz image loop** — matplotlib chart → poster with ΔE/contrast gates; add
-   `matplotlib.xkcd()` for hand-drawn charts (the Python-side answer to Rough.js). *(+1 install)*
-4. **Notation audio loop** — music21 → LilyPond (score png/pdf) + FluidSynth (wav). *(installs)*
-5. **30s pygame-ce microgame** — headless playtest reusing the game harness. *(+1 install)*
-6. **Multi-shot explainer film** — timeline DAG: title + chart + gameplay + VO + captions.
-   *(composes 1–5)*
-7. **(later, needs approval) 2.5D anime shot** — Blender toon render + painted background from
-   loop 2 → first frame from the feature-3D/anime column, as an *alternative renderer*. *(heavy install)*
+6. **Graphic-design-movement loop** — one movement = a 4-tuple `{palette, grid, type-pair, motif}` in
+   `spec.yaml` → poster via loop 3 (Swiss grid first: `styles.md` §10, `swiss-grid-generator` MIT as the
+   reference implementation of the grid maths). Acceptance = alignment ratio, baseline divisibility,
+   palette size, type-scale ratio — **hard rules, no taste judgement**. *(no install)*
+7. **Variable-font type-animation loop** — per-frame `wght` interpolation on the already-installed
+   `NotoSansSC-VF` (axes measured: `wght 100–900`) with `fonttools 4.63.0`, muxed through ffmpeg. *(no install)*
+8. **Style-animation loop** — cellular automata / reaction–diffusion as a **frame sequence**
+   (styles.md §11): the image route wrapped in a loop = a new animation medium for free. *(no install)*
+9. **Timing-as-style loop** — easing curves + on-ones/on-twos quantisation applied to the
+   existing orbiting-cubes render (styles.md §15). *(no install)*
+10. **Data-viz image loop** — matplotlib/`vl-convert` chart → poster with ΔE/contrast gates.
+    ⚠ Measured correction: `matplotlib 3.11.0` **is already installed** (no install needed), but
+    `plt.xkcd()` **degrades** because Humor Sans / Comic Neue are absent (72 `findfont` warnings, no error) —
+    so the hand-drawn *line* is free, the hand-drawn *glyph* is not. Either add the font or write the
+    jitter ourselves (the honest, code-first answer). *(+1 install only for `vl-convert-python`)*
+11. **Notation audio loop** — music21 → LilyPond (score png/pdf) + FluidSynth (wav). *(installs)*
+12. **30s pygame-ce microgame** — headless playtest reusing the game harness. *(+1 install)*
+13. **Multi-shot explainer film** — timeline DAG: title + chart + gameplay + VO + captions +
+    PDF handout. *(composes 1–10)*
+14. **(later, needs approval) 2.5D anime shot** — Blender toon render + painted background from
+    loop 5 → first frame from the feature-3D/anime column, as an *alternative renderer*. *(heavy install)*
 
 Every loop is gated by `tests/e2e` + a new golden content hash before it is called done.
 
@@ -218,7 +274,12 @@ All entries are pip/winget and reversible; none is taken without a go-ahead.
 
 | Package | Purpose | Install | Weight |
 |---------|---------|---------|--------|
-| matplotlib | data-viz images | `pip install matplotlib` | light |
+| **pandoc + MiKTeX + libass** | **document & caption routes — already installed** | **none** | — |
+| **playwright 1.58.0 + Chromium 145.0.7632.6** | **browser-layout route — installed and proven this session** (browsers already downloaded) | **none** (on the 3.13.5 interpreter) | — |
+| **fonttools 4.63.0 + local VF fonts** | variable-font type animation, subsetting (Noto Sans/Serif SC VF, **OFL-1.1**) | **none** (3.13.5); `pip install fonttools` into hy_py312 | — |
+| matplotlib | data-viz images | **already installed (3.11.0) on 3.13.5**; missing in hy_py312 | — |
+| Humor Sans / Comic Neue (or self-written jitter line) | makes `xkcd()` actually look hand-drawn | font download, **or zero install** if we implement the jitter | light |
+| vl-convert-python | declarative chart specs | `pip install vl-convert-python` | light |
 | music21 | symbolic music / score | `pip install music21` | light |
 | LilyPond | score engraving (pdf/png) | winget/choco | medium |
 | FluidSynth + SoundFont | acoustic rendering | winget + SF2 file | medium |
@@ -227,10 +288,11 @@ All entries are pip/winget and reversible; none is taken without a go-ahead.
 | SciPy | filters/FFT (audio, physics) | **already installed** | — |
 | scikit-image | XDoG (`difference_of_gaussians`) + NPR filters | `pip install scikit-image` | light |
 | vsketch / vpype | pen-plotter line art, SVG pipeline | `pip install vsketch vpype` | light |
-| OFL Chinese fonts | colophon, seal text, CJK posters (志莽行书/思源) | download + register in `assets/` | light (licence clean) |
+| ~~OFL Chinese fonts~~ | ~~colophon, seal text, CJK posters~~ | **no longer needed — Noto Sans/Serif SC (OFL-1.1) already on this machine** | — |
 | Met Open Access pulls | 492k CC0 artworks via REST API — composition/value statistics | network fetch, hash + licence per file | light |
 | godot / renpy / blender | engines / 3D | external installers | heavy |
 | Houdini 22 Apprentice/Indie | procedural FX (smoke/fire/destruction) | external installer | heavy + **licence limits (watermark / revenue cap)** |
+| **decision required: which interpreter ships?** | hy_py312 (3.12.13, produced all golden manifests) vs C:\Python313 (3.13.5, has matplotlib/fonttools/playwright) | none — **yours to decide** | — |
 
 ---
 
@@ -260,4 +322,24 @@ All entries are pip/winget and reversible; none is taken without a go-ahead.
   material in a deliverable must be declared in the manifest.
 - Two recollection errors were caught and corrected during this survey ("Weta open-sourced
   Zoo Tools" — unsupported; `shader-to-ruby` — repo not located). Recorded in
-  docs/styles.md §10 rather than propagated into the adoption queue.
+  docs/styles.md §17 rather than propagated into the adoption queue.
+- **Exhaustiveness is not claimed and cannot be proved.** `docs/coverage-audit.md` states the
+  six taxonomy axes, the per-cell verdict, and — importantly — the **residual gaps that code
+  cannot close**: one-time physical presence (live performance, installation), taste/smell/
+  touch delivery, and hand-crafted physical objects. Those are boundary conditions of the
+  medium, not backlog items; any claim of "all media types covered" should be read against it.
+- The audit also found that **our largest gap was a route we could already run** (pandoc +
+  MiKTeX + libass are installed). Lesson: audit the machine before auditing the internet.
+- **The second-round audit found the same mistake twice, one level deeper.** Probing `pip list`,
+  the font directory and `ms-playwright` turned up a whole medium we had registered as "needs
+  install": the **browser as a deterministic rasterizer/layout engine** (playwright + Chromium,
+  proven by a real screenshot this session), plus **variable fonts already on the machine**.
+  It also exposed a **governance problem no media audit would catch**: two Pythons with different
+  capability sets, while *every golden manifest was produced by the one that lacks these tools*.
+  Any "zero-install" claim in these docs is therefore **interpreter-qualified**, and `doctor.py`
+  now prints `sys.executable`/`sys.prefix` so the claim can always be re-checked. Choosing the
+  shipping interpreter is a human decision (M0: machines observe, humans decide) — see §5 last row.
+- **A tool being installed is not a style being available**: `plt.xkcd()` runs but silently degrades
+  to the default sans-serif because the hand-drawn *font* is absent (measured: 72 `findfont` warnings,
+  zero errors). Silent degradation is worse than an exception for a validation pipeline — acceptance
+  gates should assert on the *artefact*, never on the exit code alone.

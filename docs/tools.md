@@ -6,8 +6,9 @@
 > 诚实约定：`✔primary` = 本轮到达官方一手页面/仓库；`○secondary` = 经第三方面包屑证实，采纳前须回源核对；
 > `本机` 列由 `scripts/doctor.py` 于 2026-11-04 实测，规划器只能选 AVAILABLE 的能力（README §6.2）。
 
-**Surveyed:** 2026-11-04 · 下一轮复测触发条件见 §11 代谢。
+**Surveyed:** 2026-11-04 · 下一轮复测触发条件见 §14 代谢。
 > 修法/风格能否被代码复现**不记在本文件**，见平行文件 `docs/styles.md`（画法与风格模拟盘点）。
+> 「是否穷尽」的判定与分类轴见 `docs/coverage-audit.md`（媒体类型 × 风格谱系审计台账）。
 > 本文件只回答「有哪些工具能跑 · 许可 · headless · 不适合什么」。
 
 ---
@@ -16,9 +17,56 @@
 
 | 状态 | 项 |
 |---|---|
-| ✅ 已装 | Python 3.12.13（conda `hy_py312`，实测存在于 `C:\Users\data\miniconda3\envs\hy_py312`）、NumPy 2.3.5、SciPy 1.18.0、Pillow 12.3.0、OpenCV 5.0.0、pydantic 2.13.4、PyYAML 6.0.2、typer 0.27.0、pytest 9.1.1、FFmpeg/ffprobe（winget：gyan full_build **8.1.1** 在 PATH Links；另有 git 快照 N-125875 于 WinGet Packages）、Node **v24.18.0** / npm（`C:\Program Files\nodejs`）、Pandoc 3.8.2.1、MiKTeX 24.4（latex/xelatex） |
-| ❌ 未装（README 曾列为"可用"之外的一切） | matplotlib、scikit-image、jsonschema、hypothesis、music21、scamp、soundfile、librosa、pydub、mido、moviepy、imageio、manim、pygame/pygame-ce、arcade、pymunk、trimesh、moderngl、Blender、LilyPond、FluidSynth、SoX、Csound、SuperCollider、ImageMagick、Inkscape、Graphviz、OpenSCAD、Godot、Ren'Py、LÖVE、Aseprite、Tiled |
-| ⚠️ 与 README 记载不一致 | ① README §7 表格声称"已确认可用"的仅 6 项属实，但 **ffmpeg 版本口径不同**（官方 stable 为 8.0.x "Huffman"，本机 gyan 构建自称 8.1.1-full，git 快照 N-125875 也并存）；② README 快速开始假设 `pip install -e ".[dev]"`，包尚不存在；③ 大部分"按需安装"项并未安装——这与"能力池≠强制依赖"的设计一致，无碍。 |
+| ✅ 已装 · **解释器 A**：`C:\Python313\python.exe` = Python **3.13.5**（PATH 上的 `python`） | NumPy **2.4.6**、SciPy 1.18.0、Pillow 12.3.0（+`pillow-avif-plugin` 1.5.5 → AVIF）、OpenCV 5.0.0、**matplotlib 3.11.0**、**fonttools 4.63.0**、**playwright 1.58.0**、pypdf 6.19.0、nbconvert 7.17.1、pydantic 2.13.4、PyYAML 6.0.3、jsonschema 4.26.0、typer 0.25.1、rich、pytest 9.1.1 |
+| ✅ 已装 · **解释器 B**：conda `hy_py312` = Python **3.12.13**（README §2 声明的项目环境，也是**全部 6 份 golden manifest 的实际产出环境**） | NumPy 2.3.5、SciPy 1.18.0、Pillow 12.3.0（含 AVIF）、OpenCV 5.0.0、pydantic 2.13.4、PyYAML 6.0.2、typer 0.27.0、pytest 9.1.1 —— **不含** matplotlib / fonttools / playwright / pypdf / nbconvert / jsonschema / scikit-image |
+| ✅ 已装 · 与解释器无关 | FFmpeg/ffprobe **8.1.1**-full_build（gyan，winget Links；编译能力见 §0.1）、Node **v24.18.0** / npm 12.2.0、Pandoc **3.8.2.1**、MiKTeX 24.4（`latex`/`pdflatex` 4.19、`xelatex` 4.11、`lualatex`、`latexmk`）、Chrome **145.0.7632.6**（Playwright 实测启动）+ Edge 156.0.4314.58、**Playwright 浏览器包已下载**（`chromium-1208/1234`、`chromium_headless_shell-*`、自带 `ffmpeg-1011`）、系统字体 353 族（含 **Noto Sans/Serif SC 可变字体 wght 100–900**、KaiTi、STXingkai、Source Sans Pro、Monoton——逐条许可见 §0.2） |
+| ❌ 未装 | scikit-image、music21、scamp、soundfile、librosa、pydub、mido、moviepy、imageio、manim、pygame/arcade/pymunk、trimesh、moderngl、cairosvg/resvg-py、Blender、LilyPond、MuseScore、FluidSynth、SoX、Csound、SuperCollider、**ImageMagick**、Inkscape、Librsvg、Ghostscript、potrace、Graphviz、OpenSCAD、Godot、Ren'Py、LÖVE、Aseprite、Tiled |
+| ⚠️ 与 README / 本文早期版本记载不一致（**本轮实测纠正**） | ① 本机有**两个 Python**，能力集不同：项目声明环境（B）里 matplotlib/fonttools/playwright **都没有** → 本文与 coverage-audit 里凡写"零安装即得"的这几项，**必须先决定用哪个解释器**（`scripts/doctor.py` 已改为打印 `sys.executable`+`sys.prefix`，两个都要跑）；② README 快速开始的 `pip install -e ".[dev]"` **从未执行**（两个解释器 `pip show vcac` 均无此包，17 项测试靠 `pyproject` 的 `pythonpath=["src"]` 通过）；③ README §3 把 ImageMagick / Graphviz / TikZ 列在能力池——池≠已装：**TikZ/LaTeX 确实已装**，ImageMagick / Graphviz 未装；④ **Windows 陷阱**：PATH 上的 `convert` 是 `C:\Windows\System32\convert.EXE`（磁盘工具），不是 ImageMagick，脚本若误调会得到完全无关的行为（doctor.py 已单列 PATH shadows）；⑤ ffmpeg 版本口径（官方 stable 8.0.x "Huffman" vs 本机 gyan 8.1.1-full，另有 git 快照 N-125875）；⑥ golden manifest 记录 `python=3.12.13`，与今天默认 `python`=3.13.5 不同——**帧内容哈希与编码器无关，故仍复现通过**，但这正是 provenance 记解释器的价值所在。 |
+
+---
+
+## 0.1 本机 FFmpeg 已编译能力清单（零安装即得，实测 2026-11-04）
+
+> 发现途径：穷尽性审计时回查 `ffmpeg -version` 的 configuration 行与 `-filters/-demuxers/-encoders`。
+> 意义：下面这些**本来被我归为“需安装”或“缺口”的能力，今天就可用**。先审计本机，再审计互联网。
+
+| 能力族 | 具体项（实测存在） | 零安装解锁的路线 | 属于本文件哪一节 |
+|---|---|---|---|
+| **字幕/动态字排版** | `ass`、`subtitles`（均 `--enable-libass`）、demuxer：`ass/srt/webvtt/microdvd/jacosub/pjs/vplayer/mpsub/aqtitle/subviewer/sup/…` | **动态字体（kinetic typography）**、卡拉OK、多语字幕（ASS 自带 `\t`/`\pos`/`\clip`/`\k`） | §8（已改判为本机可用） |
+| **Tracker 音乐（chiptune/demoscene）** | demuxer `libopenmpt`、`libmodplug`（`.mod/.xm/.it/.s3m` → 音频） | **模块文件→WAV 完全零安装**（上面 §9 登记的“需装 tracker 工具”多数已包含） | §9（修正） |
+| **声→图 / 声→视（视听合成）** | `showwaves(pic)`、`showspectrum(pic)`、`showfreqs`、`avectorscope`、`volumedetect` | **音频可视化封面/乐谱动画/频谱艺术**（把现有 audio 路线直接接成图/视） | 新族：见 styles.md §12 补充 |
+| **质量度量（验收！）** | `libvmaf`（VV→V，算参考/退化两路的感知差异） | **pHash/SSIM 容差的升级项**：验收规则可新增 VMAF 分值（README §12.3） | validate.py 新规则 |
+| **色彩/位深管线** | `zscale`（libzimg：resize/色彩空间/位深）、`libplacebo`（HDR tone-map，GPU） | bt709/bt2100 标记、HDR→SDR、打印/流媒体色彩合规 | §4/§8 |
+| **修复与质感滤镜** | `deband`、`gradfun`、`hqdn3d`、`nlmeans`、`gblur`、`tmix`、`tblend`、`rubberband`（变速/变调） | **胶片噪点/带状噪声模拟、动态模糊、场序质感、时间拉伸**（glitch/胶片族的零件库） | styles.md §12/§13 |
+| **交付格式** | encoder：`gif`、`apng`、`libwebp(_anim)`、`libjxl(_anim)`、`qtrle`、`ffv1`(无损归档)、`dpx/cineform?`未逐项测 | **动图/APNG/JPEG XL 交付 + FFV1 归档母版**（本节原本是空白） | §4/§8 |
+| **冷僻但有用的输入** | demuxer：`tty`（电传打印！）、`cdxl`（Commodore 图形）、`fits`（天文图像）、`iamf`（**Immersive Audio Model and Formats**）、`fsb`（FMOD 采样库） | **ASCII/ANSI 媒体有原生读入路径**；IAMF = 空间音频工业格式已在本机 | §9 / styles.md §12 |
+| **其他** | `chromaprint`（音频指纹）、`libmysofa`（**SOFA HRTF** → 双耳渲染）、`quirc`（二维码）、`libjxl`、`vulkan/opencl/shaderc` | 音频指纹可用于**去重/溯源校验**；SOFA 可用现有 numpy 路线做双耳 | §9 / provenance 扩展 |
+| ⚠ **存在但政策排除** | `flite`（TTS）、`whisper`（本地转写） | 本机就能做，但 README §3 将 TTS/模型生成列为排除项 → **不开**（若要开，先改非目标） | §12-C |
+
+> GPU 相关项（`*_vulkan`、`*_opencl`、`libplacebo`）：**跨硬件不可位级复现**（轴 A3），
+> 若用于验收必须改用 CPU 对应物（`zscale`/`gblur` 均有 CPU 版）。
+
+---
+
+## 0.2 本机第二轮审计（穷尽性审计复读时发现的第一轮漏项，实测 2026-11-04）
+
+> 方法同 §0.1：**先查本机**。本轮把 `pip list` / `Get-Command` / 字体目录 / `ms-playwright` 目录全部扫了一遍，
+> 结果是：下面四项**本机上今天就能用**，但前一轮我把它们登记成了"需安装"或"缺口"。
+> 证据级别：✔primary = 本轮在本机跑出结果（命令与输出一并记在下面），可在任意机器复测。
+
+| 新登记能力 | 实测证据 | 解锁的媒体路线 | 限定条件（诚实说明） |
+|---|---|---|---|
+| **浏览器作为光栅化器/排版器**（HTML·CSS·SVG·Canvas·WebGL → PNG/PDF） | `playwright 1.58.0` 可导入；`ms-playwright` 目录含 `chromium-1208/1234` + `chromium_headless_shell-*`；实跑 `sync_playwright → chromium.launch() → screenshot()` 产出 5084 字节 PNG，`browser.version = **145.0.7632.6**`；另有 Chrome 145 / Edge 156 可 `--headless --screenshot --print-to-pdf` | **第 6 条零安装路线**：网页/版式/动效作为渲染介质（Marp/Slidev/reveal.js 的依赖问题因此消失）；`page.pdf()` = 出版级版面出片；WebGL/Canvas = shader 艺术离线截图 | 仅在**解释器 A**（3.13.5）里已装；浏览器版本必须钉入 manifest（不同 build 字体 hinted 像素会变）；GPU 栅格化不可位级复现 → 用 headless_shell / `--disable-gpu` |
+| **可变字体（Variable Fonts）已装 + fonttools 已装** | `C:\Windows\Fonts\NotoSansSC-VF.ttf` → `TTFont(...)['fvar'].axes == [('wght', 100.0, 900.0)]`；Noto Serif SC 同为 VF；`fontTools 4.63.0` 可导入 | **字重随时间轴变化的文字动画**（逐帧 `wght` 插值）、字重连续的标题、动态字幕（与 §0.1 的 ASS 汇流）——全部零安装 | 同样只在解释器 A；⚠ **CVE-2025-66034**：`.designspace` 可变成任意文件写 → 只处理自产文件 + 沙箱 |
+| **中文/手写体字体已在系统里**（无需下载） | `matplotlib.font_manager` 注册 **353** 族，命中：`Noto Sans SC`/`Noto Serif SC`（**OFL-1.1**）、`Source Sans Pro`（OFL）、`Monoton`、`KaiTi`、`STKaiti`、`STXingkai`（行楷）、`SimHei/SimSun/SimFang/SimYou/SimLi`、`Comic Sans MS`、`Segoe Script`、`Bradley Hand ITC`、`Lucida Handwriting`、`Viner Hand ITC`、`Freestyle Script` | **题款/落款/中文海报/手写感版面**不必先联网下载（之前 S4 登记为"待下载"） | 许可分三档：OFL 可自由嵌入与分发；**Microsoft/华文系（KaiTi、STXingkai、Comic Sans…）是“可用不可转发”——成品像素可用，字体文件本身不可再分发**，逐条 EULA 未经回源核对 → 标 ⚠，商用产出前先核；嵌入位图（渲染成像素）与分发 `.ttf` 是两回事 |
+| **matplotlib 已装（但 xkcd 风需要额外字体）** | `matplotlib 3.11.0`；`with plt.xkcd(): ...` 实跑 **渲染成功但刷 72 次 `findfont: Font family 'xkcd'/'xkcd Script'/'Comic Neue' not found`**，退化为默认 sans-serif | 手绘感图表（§5 中的"图表"行）仍可用，但**手绘字形不会自动出现** | 两条出路：①装 Humor Sans / Comic Neue（需下载，本轮未做）；②**自己实现抖动线**（xkcd 风的本质是抖动折线 + 种子化，那是代码的事而不是字体的事）——后者更符合本项目"代码作画"铁律 |
+
+**另外两项与能力相关的事实**（不是媒体能力，但影响开工前提）：
+
+- `vcac` 包**从未 editable 安装**（两个解释器 `pip show vcac` 均为空），测试靠 `pythonpath=["src"]`；
+  按 README 快速开始执行前，任何"已装"说法都必须区分解释器。
+- 全局 npm 包只有 agent CLI（`claude-code`/`opencode`/`qwen-code`/`dsh`/`@synsci/*`），**没有任何媒体 CLI**；
+  所以 §5 里的 `@excalidraw/cli`、§8 里的 Marp/Slidev 仍属于"需 npm 安装"（但浏览器本体已不用装）。
 
 ---
 
@@ -142,13 +190,78 @@
 | **立绘/伪 3D** | Live2D 形变、VRM 动漫人型 | Live2D 5.3.05 beta1 / VRoid | 低（GUI 编辑） | Live2D 营收上限条款；VRM 元数据许可位 | ✔primary 官网条款页 |
 | **状态机/交互动效** | Rive "agent-native 2D and 3D engine" | Rive 运行时(MIT) + Node ✅ | 中（.riv 为二进制资产，可哈希） | 编辑器服务条款 | ✔primary(rive.app) |
 | **转描/风格化传播** | 关键帧风格化 → EbSynth 传到序列 | EbSynth 2 | 低（需美术关键帧 + 非官方 CLI 文档） | 商业免费试用，条款未回源 | ○secondary，标 ⚠unverified |
-| **AI 生成动画** | 文生视频/图生视频（本机有 `ai-video-generation` skill） | ❌ **不入渲染主路径** | 破坏（不可复现） | 版权/判例风险 | 见 `docs/styles.md` §8 四条理由 + 本文件 §9-C |
+| **AI 生成动画** | 文生视频/图生视频（本机有 `ai-video-generation` skill） | ❌ **不入渲染主路径** | 破坏（不可复现） | 版权/判例风险 | 见 `docs/styles.md` §8 四条理由 + 本文件 §12-C |
 
 **诚实判断**：日式 2D 里，代码能可靠接管的是**摄影合成层、背景美术、镜头调度、描边与分层**；
 「作画」本身（timing/spacing + 表演）仍是人。**「三渲二」是本项目最现实的高质感路线**——因为它把
 不可自动化的作画判断，替换成了可脚本化的渲染+合成规则。
 
-## 8. 游戏与互动 · Games & Interactive
+## 8. 图表·版式·地图与出版 · Diagrams, Layout, Maps & Print
+
+> 这一族是**符号驱动媒体**：输入是文本/JSON，输出是版面。它们比绘画族更适合本项目的契约
+> （文本即源、天然可 diff、可验收），且**其中四条在本机是零安装**（pandoc+MiKTeX、libass+FFmpeg、
+> 浏览器排版器 Playwright/Chromium、可变字体驱动 fonttools——后两条只在**解释器 A**，见 §0.2）。
+
+| 工具 | 版本/状态（2026-11-04） | 本机 | 许可 | Headless/确定性 | 用途定位 | 不适合 | 来源 |
+|---|---|---|---|---|---|---|---|
+| **pandoc** | **3.8.2.1**（实测） | ✅ | GPL-2 | `pandoc in.md -o out.pdf --pdf-engine=xelatex` 完全 headless、确定性高 | **文本→书/报/讲义/PPTX/DOCX/HTML** 的中枢 | 像素级版面掌控（交给 LaTeX 模板） | ✔实测 |
+| **MiKTeX / LaTeX** | 24.4（实测，latex/xelatex 可用） | ✅ | LPPL(包)/MiKTeX 自身 GPL | 编译确定（同包集）；TikZ/PGF 可程序作图 | 出版级排版、学术海报、TikZ 示意图 | 网页风/动态版面 | ✔实测 + README §3 |
+| **libass（经 FFmpeg）** | 本机 ffmpeg 8.1.1-full，configuration 含 `--enable-libass`（**实测已确认**） | ✅ | MIT-ish(LGPL 系) | `subtitles=`/`ass=` 滤镜 burn-in（实测两个滤镜均存在）；**ASS 是完整的样式/特效语言**（定位 `\pos`、时间插值 `\t`、裁剪 `\clip`、旋转 `\fr`、karaoke `\k`） | 字幕、卡拉OK、动态字卡、多语本地化 | 从数据生成图表（不是它的职责） | ✔实测 + primary(trac.ffmpeg.org HowToBurnSubtitles) |
+| **Vega-Lite + vl-convert-python** | Vega-Lite v5 线；**vl-convert-python 0.6.0**（无依赖、不需浏览器） | ❌ | BSD-3 | JSON spec → SVG/PNG，**声明式语法 = 我们的 spec 哲学同构** | 统计图表、信息图、数据新闻 | 自由构图/插画 | ✔primary(github.com/vega/vl-convert + pypi) |
+| **D2（Terrastruct）** | 活跃；**自动布局引擎 TALA 已于 2026-09-07 开源，与 D2 同为 MPL-2.0** | ❌ | MPL-2.0 | **`d2 in.d2 out.svg` 官方 CLI，天生 headless** | 架构/流程/关系图（主题、手绘风、动画 SVG） | 精确坐标摆放（自动布局） | ✔primary(d2lang.com + blog/tala-is-open-source) |
+| **Mermaid CLI / PlantUML** | 均活跃（Mermaid 依赖 Chromium/Playwright；PlantUML 依赖 Java+Graphviz） | ❌(但**依赖已在本机**：Playwright+Chromium 145，见 §0.2) | MIT / GPL-3 | `mmdc` / `java -jar plantuml.jar` 可 CI；**Mermaid 输出随 Chromium 版本飘**（本机版本已钉：145.0.7632.6） | 已有文档生态的图（README / GitHub / Notion） | 需要位级复现的产出 | ○secondary，采前钉版本 |
+| **浏览器本身作为版面引擎**（Playwright / Chrome·Edge headless） | **本机已实测可用**：playwright 1.58.0 + chromium-1208/1234；`browser.version=145.0.7632.6`；截图产出已得到 | ✅(解释器 A) | Apache-2.0(Playwright) / Google 与 Microsoft 各自的浏览器条款 | HTML/CSS/SVG/Canvas → `page.screenshot()` PNG；`page.pdf()` 出版版面；**必用 headless_shell / `--disable-gpu` 以保证跨硬件可重现** | **网页/海报/deck/信息图作为渲染介质**（包括 WebGL shader 艺术离线截图）；也是 Marp/Slidev/Mermaid 的本地执行底座 | 把“浏览器默认样式”当风格基线（升降版会变像素）——必须把版本号写进 manifest | ✔实测（本轮 `outputs/_probe/pw.png`）+ ✔primary(playwright.dev) |
+| **Graphviz** | 活跃（`dot`） | ❌ | EPL/CPL | 布局确定（同版本） | DAG/依赖图、元数据可视化 | 艺术构图 | ✔primary(graphviz.org) |
+| **QGIS / `qgis_process`** | QGIS 3.x LTR 线活跃；**官方文档章节「Using processing from the command line」** | ❌ | GPL-2 | **官方 headless 执行器** + PyQGIS layout 导出 PNG/PDF | 地图/地理信息、专题地图、制图 | 无地理数据时的装饰地图 | ✔primary(docs.qgis.org processing/standalone) |
+| **GeoPandas / cartopy / contextily** | 均活跃 | ❌ | BSD-3 | 纯 Python + matplotlib 后端→确定 | 程序化地图（数据驱动填色/投影） | 出版级制图美化 | ○secondary，采前回源 |
+| **MapLibre GL（静态图）** | 活跃（GL 渲染） | ❌(Node ✅) | BSD-3 | 需无头 GL/快照服务；**位级复现弱**（建议改用 QGIS 或卡片区） | 交互地图、瓦片服务 | 本项目确定性交付（选前者） | ✔primary(maplibre.com) |
+| **fonttools（含 varLib）** | **本机实测 4.63.0**（仅解释器 A；项目声明环境 hy_py312 里没有） | ⚠ 部分已装 | MIT | 纯 Python；**可变字体插值生成 = 时间轴可驱动的参数族字体**（本机 `NotoSansSC-VF` 的 `wght 100–900` 已读出） | 字体子集化、动态字体、字标/标题生成、字形轮廓可读写 | 处理不可信 `.designspace`（**CVE-2025-66034 任意文件写**） | ✔primary(fonttools.readthedocs.io varLib) + ✔实测版本号 + ○(CVE 详情二手) |
+| **Ghostscript** | **10.06.0** 文档线 | ❌ | **AGPL-3 / 商业双授权** | `gs -dPDFX` 等 CLI 成熟；**PDF/X-1a 只允许 Gray/CMYK/Separation** | 印前：转 PDF/X、分色、子集化、压缩 | 当作免费商用库（AGPL/商业双授权要算清） | ✔primary(ghostscript.com + readthedocs VectorDevices) |
+| **press-ready / imposition 工具族** | 社区方案（依赖 Ghostscript） | ❌ | MIT 等 | CLI 可接；页码/出血/标记验收 | 拼版、书籍印张、卡片 | 复杂书脊/自对倒拼版（人工判断） | ○secondary(github vibranthq/press-ready)，标 directional |
+| **Marp CLI / Slidev / reveal.js** | 三者均活跃（2026 对比文已采） | ❌(Node ✅，**且 Chromium 本体已在本机**，只缺 npm 包) | MIT | `marp --pdf/--pptx/--image` 一条 CLI 出片；**依赖 Chromium → 版本必须钉死（本机已钉 145.0.7632.6）** | 文本→讲义/汇报/字幕卡（deck 也是媒体） | 位级像素复现 | ○secondary(pkgpulse 对比文) + ✔primary(marp.app) |
+| **MuseScore 4（乐谱排版补充）** | 4.x 活跃；**官方 handbook 有 Command line usage 章**（`-o out.pdf` / `-o out.mp3`，含分部导出） | ❌ | GPL-3 | CLI 批量转换确定 | 从 MusicXML/MIDI 出出版谱与试听音频 | 替代 LilyPond 的刻版好味（各自美学） | ✔primary(handbook.musescore.org command-line-usage) |
+
+**为何这一族优先级高**：pandoc/MiKTeX/libass **浏览器版面器** 均已实测存在——**不装任何东西就能开第 6、6.5、7、8 条媒体路线**（文档版面、字幕排版、代码→PDF、HTML/CSS→图与 PDF）。注意后两条只在解释器 A（3.13.5），而 golden 产物产自解释器 B（3.12.13）——开工前先选定环境（§0 第①条）。它们都是典型的“符号规则生成机制”（审计轴 A3），确定性最好验收。
+
+## 9. 捕获重建·沉浸式·实时现场 · Capture, Immersive & Live
+
+> 此族触发两条边界：**（a）输入资产即可信根**（摄影测量需要真实照片，不是代码生成）；
+> **（b）轴 A1=实时/一次在场**→ 位级确定性契约不适用，验收要换成“脚本+固定时钟+渲染摘要”。
+
+| 工具 | 版本/状态（2026-11-04） | 本机 | 许可 | Headless/确定性 | 用途定位 | 不适合 | 来源 |
+|---|---|---|---|---|---|---|---|
+| **COLMAP** | 活跃（官方 changelog 更新至 2026-09）；**BSD-3** | ❌ | BSD-3 | **官方 CLI**（`feature_extractor/mapper/bundle_adjuster`）；确定性好（同输入同版本） | 摄影测量/SfM/MVS：照片→相机轨迹+稠密点云 | 无实拍素材时的建模 | ✔primary(colmap.github.io + GitHub) |
+| **OpenMVG / GLOMAP** | OpenMVG 活跃；GLOMAP（2024 ECCV，作者声称开源） | ❌ | MPL-2.0 / 待核 | 多视图几何库，C++/Python | 全局 SfM 对比选项 | 未核许可就商用 | ○secondary(arXiv 2407.20219)，回源 |
+| **Meshroom / AliceVision** | 活跃；**MPL-2.0**；支持本地或 farm 执行 | ❌ | MPL-2.0 | 有 CLI/pipeline（节点图=JSON，可程序化） | 一体化摄影测量、HDR 全景、相机跟踪 | 轻量需求（依赖重、CUDA） | ✔primary(alicevision.org + github alicevision/Meshroom) |
+| **3D Gaussian Splatting（gsplat / SuperSplat）** | gsplat（nerfstudio，CUDA 光栅化器）；**SuperSplat Editor 3.0（2026-09，PlayCanvas）** | ❌ | Apache/BSD/MIT 系（逐库核） | 训练需 GPU；**渲染为确定输入→输出** | 实景可飞行的 3D 场景资产 | 本项目主路径——**README §3 把“神经渲染”列为排除项** | ✔primary(github nerfstudio/gsplat + cgchannel SuperSplat 3.0) |
+| **Hugin + enblend/enfuse** | 活跃；**官方手册「Panorama scripting in a nutshell」就是为非 GUI 环境写的** | ❌ | GPL-2 | `normalize_py/hugin_executor/enblend/enfuse` 脚本链完全 headless | 全景接片、包围曝光融合（**不是生成，是拼合**） | 无素材时 | ✔primary(hugin.sourceforge.io docs) |
+| **360/VR180/立体/WebXR** | 格式标称稳定（MMAL/HEVC 立体、WebXR 基线） | ❌ | 各异 | ffmpeg 可出等距柱状投影视频 | 沉浸式交付（需查看设备验收） | 单人可验的确定性（头显依赖） | ○secondary，未逐项回源 |
+| **GLSL 离线渲染（glsl-to-mp4 等）** | 社区工具存在（多为 Shadertoy 移植） | ❌ | 各异；**Shadertoy 单件作品各有许可** | **GPU 浮点差异 → 跨硬件不可位级复现**（审计轴 A3/A4） | 噪声/光照/生成纹理、shader 艺术 | 强确定性交付（改用 numpy/CPU 实现） | ○secondary(github nabeel-oz/glsl-to-mp4) |
+| **Hydra / TidalCycles / Sonic Pi（live coding）** | Hydra 活跃（JS 视觉合成器）；TidalCycles/Sonic Pi 维护 | ❌(Node ✅) | MIT / GPL-2(待逐项核) | 本质**实时**；headless 录屏可行但时钟不可重现 | 视听表演、现场编码美学 | 可重录的交付物（需改用固定帧序） | ✔primary(hydra.ojack.xyz docs) + ○(ccc 演讲 Headless Hydra 2026) |
+| **Tracker 音乐（libopenmpt / OpenMPT / MilTracker / Renoise）** | **本机 ffmpeg 已含 `libopenmpt` 与 `libmodplug` demuxer（实测）**；OpenMPT 开源；Renoise **商业 €76/年** | ✅(解码部分) | LGPL/GPL 系(待逐项核) / 商业 | **`.mod/.xm/.it` → WAV 零安装**（`ffmpeg -i in.xm out.wav`） | chiptune/demoscene 音乐资产 | GUI 作曲体验（需写模块文件或用现成模组） | ✔实测(`-demuxers` 列表) + primary(renoise.com 首页价) |
+| **pyroomacoustics / shroom（空间音频）** | pyroomacoustics 活跃；**shroom（Ambisonics 房间声学，arXiv 2026-03）** | ❌ | MIT / 待核 | 纯 Python/NumPy → **完全确定**；我们已有 WAV 地基 | 房间脉冲响应、二耳/Ambisonics 渲染 | 真听音验收（必须人耳） | ✔primary(arXiv 2603.27342 + semanticscholar pyroomacoustics) |
+| **数据可听化（MIDITime 等）** | 社区/研究所工具，多个小库存活状态不一 | ❌ | MIT/各异 | 映射规约可写进 spec → 确定 | 把时间序列数据变成声音（与图表路线同构） | 当音乐成品交付（工具链偏研究） | ○secondary(revealnews/MIDITime)，采前回源 |
+
+**诚实判断**：本族的“代码可控部分”是**相机轨迹、拼合、声学几何、映射规则**；“不可控部分”是**实拍素材、GPU/驱动、现场时钟**。引入它们时，manifest 必须额外记录输入素材哈希与设备指纹，否则不得称“可复现”。
+
+## 10. 实物输出 · Physical Output（印前/增材/减材/织物）
+
+> 轴 A4 上的另一整个输出面：**屏幕像素 → 纸/物/线**。它们的验收不是 ΔE 或 LUFS，而是
+> DPI、出血、墨量、最小曲率半径、可打印性、针数——完全可写成 spec。
+
+| 通道 | 工具 | 版本/状态（2026-11-04） | 许可 | Headless | 来源 |
+|---|---|---|---|---|---|
+| 笔绘 | **vsketch / vpype** | 活跃（见 styles.md §5） | MIT | `svg` 导出即可绘；无需硬件 | ✔primary(GitHub) |
+| 印前 | **Ghostscript / press-ready / ICC 工具链** | 见 §8（含 PDF/X-1a 色彩空间限制） | AGPL/商业双授 | CLI | ✔primary(ghostscript docs) |
+| 增材(3D 印) | **PrusaSlicer** | 活跃（含 binary G-code 演进）；**官方口号 Free & Open-source, no account**；AGPL 维权案例公开（BambuStudio 分叉侵权指控） | **AGPL-3** | **`prusa-slicer --load --export-gcode` CLI 成熟** | ✔primary(prusa3d.com/p/prusaslicer + GitHub + 创始人 X 帖) |
+| 激光/雕刻 | **LaserGRBL**（免费开源，Win only）/ **LightBurn**（**$60 GCode 档 / $120 DSP 档**） | 均活跃 | GPL(待逐项核) / 商业 | 图像→GRBL 取决于工具；开源侧可脚本 | ○secondary(lasergrbl.com + craftgineer 对比文 2026-03) |
+| 织物/图案 | **十字绣→提花转换**（Katze-Schwarz/CrossStitchApp、arahne.si 教程）；DMC 色板映射 | 社区工具 | 各异 | **网格=矩阵，与代码同构**（提花卡是程序化的祖先） | ✔primary(GitHub + arahne.si) |
+| 减材(CNC) | **FreeCAD（`freecadcmd` + Path 工作台）/ LinuxCNC** | 活跃（本轮未逐项回源）⚠ | LGPL-2 / GPL | 参数建模 CLI 存在，但 Path 后处理链需自接 | ⚠unverified，下轮回源 |
+
+> **本项目定位**：实物输出停在「**可审计的设计文件**」（SVG 刀线、STL、G-code、针数图、拼版 PDF）；
+> 机床/印房/织机的执行与质检属于人（机器观察、人裁决）。即使无硬件，这些文件也是合法产出物。
+
+## 11. 游戏与互动 · Games & Interactive
 
 | 工具 | 版本/状态（2026-11-04） | 本机 | 许可 | Headless/确定性 | 用途定位 | 不适合 | 来源 |
 |---|---|---|---|---|---|---|---|
@@ -167,7 +280,7 @@
 | **pygbag** | pygame-ce→WebAssembly 通道，活跃随 CE | ❌ | BSD | 构建后可 Playwright 冒烟 | pygame 网页构建 | 大项目性能 | 项目知识，未本轮核验 |
 | **Godot Export skill（skillsdirectory）** | 社区 Agent Skill 已存在（2026-09） | — | — | — | 发现路径：玩法导出可复用 | 未审计直接用 | ○secondary |
 
-## 9. 开发模式与工程编排 · Development Modes
+## 12. 开发模式与工程编排 · Development Modes
 
 **A. 「Vibe Coding 做媒体」的模式层**（与 README 核心原则对应，均已在生态中有成熟做法）：
 
@@ -191,24 +304,31 @@
 
 **C. 明确排除**（对齐 README §13 非目标）：RunComfy 类 `ai-video-generation` / `ai-music` / `ai-image-generation` skills 虽在本机技能列表中，但其路线是**多模态模型直接生成媒体**——与本仓库"代码做媒体"的根本路线相反，登记为「知道存在，本项目不使用」；扩散模型、云端文生图 API 同理。
 
-## 10. 采纳队列建议 · Onboarding Queue（供后续任务确认，非本次执行）
+## 13. 采纳队列建议 · Onboarding Queue（供后续任务确认，非本次执行）
 
 按 README 里程碑倒推的最小集（安装动作均属可逆本地操作，仍待你发话再装）：
 
 | 序 | 动作 | 支撑里程碑 |
 |---|---|---|
-| 1 | `pip install matplotlib jsonschema hypothesis` + `scikit-image`（conda-forge） | P0/P1 + L0 测试 |
+| 1 | `pip install scikit-image hypothesis`（+ jsonschema：解释器 A 已有 4.26.0，**hy_py312 需补装**；matplotlib **已在 A 装好 3.11.0**，不必再装） | P0/P1 + L0 测试 |
 | 2 | `pip install manim moviepy imageio[ffmpeg]` | P3 视频线（复用本机 MiKTeX/FFmpeg） |
 | 3 | `pip install music21 scamp soundfile mido midiutil` + winget 装 **FluidSynth + 一个 GM SoundFont** | P2 音频线 |
 | 4 | `winget install Blender.Blender`（5.2 LTS） | P4 三维 |
 | 5 | `pip install pygame-ce` + `npm i phaser`（Node ✅ 已在） | P5 游戏第一闭环（Neon Dodger） |
 | 6 | （音频排版按需）LilyPond 2.26 winget/choco | 出版级乐谱时才装 |
 | 7 | （观察）Revideo vs Motion Canvas 二选一后再装 | 服务端渲染需求出现时 |
+| 8 | **零安装先走版面线**：pandoc + MiKTeX（✅已装）开文档/PDF 路线；libass burn-in 开字幕排版路线 | P0 版面与字幕（§8） |
+| 9 | `pip install vl-convert-python`（图表语法；**fonttools 已在 A 装好 4.63.0，可变字体路线零安装可开**，但 designspace 只处自产） | 图表/字体工程（§8） |
+| 10 | winget 装 **Ghostscript**（PDF/X 印前）；`npm i @marp-team/marp-cli @excalidraw/excalidraw` | 印张交付、讲义（§8） |
+| 11 | （重、逐项批准）**D2 CLI / QGIS**；**COLMAP**（需实拍素材）；**PrusaSlicer**（需打印机才有意义） | 地图/捕获/实物（§9、§10） |
+| 12 | **零安装**：用已有 playwright+Chromium 145 开 **HTML/CSS→PNG/PDF 版面路线**（也可先 `pip install playwright` 到 hy_py312 以统一环境） | P0 版面/deck/海报（§0.2、§8） |
 
-## 11. 代谢 · Metabolism
+## 14. 代谢 · Metabolism
 
-- **复测触发**：每轮实质任务前跑 `scripts/doctor.py`（本机面）；每季度或里程碑切换时复采 §1–§8 版本列（网络面），旧数据不删除、就地标注 `superseded-by: <date>`。
-- **不一致登记**：Tiled 版本号双源不一致、"FFmpeg 9.0" 传闻、Bevy 疑似 ≥0.19、Phaser 4 许可条款、Krita 5.3.2/6.0.2 双线当前版本计数、USD 精确版本号——六项列入下一轮回源清单。
-- **本轮新增未核（§5–§7）**：`roughjs` 版本与维护状态、Toon Boom/TVPaint/Clip Studio 版本号、EbSynth 许可条款、Mixamo 上传素材权利、Harmony 脚本层可用性。⚠️ 已在本文件纠正的记忆错误（`shader-to-ruby` 未命中、Zoo Tools 非 Weta 开源）记于 `docs/styles.md` §10。
+- **复测触发**：每轮实质任务前跑 `scripts/doctor.py`（本机面）；**且两个解释器都要跑**（本轮发现它们能力集不同，见 §0 第①条）；每季度或里程碑切换时复采 §1–§11 版本列（网络面），旧数据不删除、就地标注 `superseded-by: <date>`。
+- **不一致登记**：Tiled 版本号双源不一致、"FFmpeg 9.0" 传闻、Bevy 疑似 ≥0.19、Phaser 4 许可条款、Krita 5.3.2/6.0.2 双线当前版本计数、USD 精确版本号——六项列入下一轮回源清单。**本轮新增第七项（也是最重要一项）：本机双解释器能力集不一致 + `vcac` 从未 editable 安装 + golden 产物产自 3.12.13 而今天默认 `python` 是 3.13.5。**
+- **本轮新增未核（§5–§7）**：`roughjs` 版本与维护状态、Toon Boom/TVPaint/Clip Studio 版本号、EbSynth 许可条款、Mixamo 上传素材权利、Harmony 脚本层可用性。⚠️ 已在本文件纠正的记忆错误（`shader-to-ruby` 未命中、Zoo Tools 非 Weta 开源）记于 `docs/styles.md` §17。
+- **穷尽性审计新增未核（§8–§10）**：Mermaid/PlantUML 当前版本、QGIS LTR 具体号、GeoPandas/cartopy 版本、OpenMPT/MilTracker/libopenmpt 许可逐项、Hydra/Tidal 许可、FreeCAD Path 可用性、LightBurn/LaserGRBL 条款、MagicaVoxel 许可口径、Dehancer/Postshot 条款、**Microsoft/华文系字体逐条 EULA（本轮新列）**——详见 `docs/coverage-audit.md` §4 第 7 项。**审计结论：未穷尽，且已列出不可补的残余边界（现场在场/多通道感知）。**
+- **本轮已把以下项从“未核/待装”改判为“实测已得”**（记入 §0.2，不再列入未核清单）：fonttools **4.63.0**、matplotlib **3.11.0**、playwright **1.58.0** + Chromium **145.0.7632.6**（已实跑出 PNG）、pypdf 6.19.0、nbconvert 7.17.1、`pillow-avif-plugin` 1.5.5、MiKTeX `pdflatex 4.19`/`lualatex`/`latexmk`、Noto Sans/Serif SC **可变字体 wght 100–900**。
 - **回流工厂**：本表的列格式即 `<HF>/reference/tool-router.md` §4 "开新表模板" 的一次实例化；通用化模式（"代码驱动媒体生态盘点表"）可按 `capability-flow.md` 提案回流 `<HF>/updates/`（只提案，不直改 data|core）。
 - **SSOT**：本文件为本仓库工具事实的唯一来源；README §3 是能力池愿景，版本实况只认本文件。
