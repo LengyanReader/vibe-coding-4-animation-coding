@@ -47,6 +47,10 @@ _PATTERNS = [
      "palette_max", ("palette_distinct_colors",)),
     (re.compile(rf"(?:unique colors|distinct colors)[^0-9]*(?:>=|at least|>|more than)?\s*(\d+)", re.I),
      "unique_colors_min", ("unique_colors",)),
+    # MOST-SPECIFIC-FIRST: "painted-region entropy above N" contains "entropy
+    # above N" — the generic image-entropy floor must not swallow it
+    (re.compile(rf"painted-region entropy above ({_NUM})", re.I),
+     "painted_entropy_min", ("painted_entropy",)),
     (re.compile(rf"entropy\s*(?:>|above)\s*({_NUM})", re.I), "entropy_min", ("entropy_bits",)),
     (re.compile(rf"(?:palette|\u0394e|delta ?e)[^0-9<]*<\s*({_NUM})", re.I),
      "delta_e_max", ("palette_delta_e",)),
@@ -73,6 +77,20 @@ _PATTERNS = [
      "ink_monotonic", ("ink_monotonic",)),
     (re.compile(rf"weight axis spans ({_NUM}) to ({_NUM})", re.I),
      "axis_range", ("axis_from", "axis_to")),
+    # --- anime route: the edit is measured, not asserted ---
+    # A cel clip that claims a shot change has to actually contain a luma
+    # discontinuity; scene_cuts counts them from the rendered frames.
+    (re.compile(rf"at least (\d+) scene cuts?\b", re.I),
+     "scene_cuts_min", ("scene_cuts",)),
+    # --- ink-landscape route: 画理 as constraints (styles.md §1.2) ---
+    (re.compile(rf"five ink value bands each above ({_NUM})\s*%", re.I),
+     "value_bands_min", ("value_bands_min_pct",)),
+    (re.compile(rf"negative space between ({_NUM})\s*% and ({_NUM})\s*%", re.I),
+     "negative_space_range", ("negative_space_pct",)),
+    (re.compile(rf"mist region luminance at least ({_NUM})", re.I),
+     "mist_luma_min", ("mist_luma",)),
+    (re.compile(rf"at least (\d+) seal marks visible", re.I),
+     "seal_count_min", ("seal_count",)),
     # --- spectrogram route: read the sound back OUT of the picture ---
     (re.compile(rf"measured pitch within ({_NUM})\s*Hz of ({_NUM})", re.I),
      "pitch_within", ("pitch_hz",)),
@@ -151,6 +169,25 @@ def _evaluate(kind, m, measured):
             # the rule fails with evidence instead of raising inside the gate
             return False, f"{target}\u00b1{tol}", "unmeasurable"
         return abs(float(v) - target) <= tol, f"{target}\u00b1{tol}", round(float(v), 2)
+    if kind == "value_bands_min":
+        x = float(m.group(1)); v = measured["value_bands_min_pct"]
+        return v >= x, f">={x}%", round(v, 3)
+    if kind == "negative_space_range":
+        lo, hi = float(m.group(1)), float(m.group(2))
+        v = measured["negative_space_pct"]
+        return lo <= v <= hi, f"{lo}..{hi}%", round(v, 2)
+    if kind == "mist_luma_min":
+        x = float(m.group(1)); v = measured["mist_luma"]
+        return v >= x, f">={x}", round(v, 1)
+    if kind == "painted_entropy_min":
+        x = float(m.group(1)); v = measured["painted_entropy"]
+        return v > x, f">{x}", round(v, 3)
+    if kind == "seal_count_min":
+        n = int(m.group(1)); v = int(measured["seal_count"])
+        return v >= n, f">={n}", v
+    if kind == "scene_cuts_min":
+        n = int(m.group(1)); v = int(measured["scene_cuts"])
+        return v >= n, f">={n}", v
     if kind == "harmonics_min":
         n = int(m.group(1)); v = measured["harmonics"]
         if v is None:

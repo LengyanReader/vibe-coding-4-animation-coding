@@ -39,9 +39,9 @@ from pathlib import Path
 
 import yaml
 
-from . import (audio_sample, ffmpeg, film_sample, firstloop, game_sample,
-               image_sample, layout_sample, provenance, registry,
-               spectrum_sample, type_sample)
+from . import (audio_sample, anime_sample, ffmpeg, film_sample, firstloop,
+               game_sample, image_sample, ink_landscape, layout_sample,
+               provenance, registry, spectrum_sample, type_sample)
 
 PIPELINE_VERSION = "vcac-pipeline/0.1"
 
@@ -80,6 +80,7 @@ class RouteEntry:
 #: medium (a spec's ``medium`` field) -> route entry
 ROUTES = {
     "video": RouteEntry(firstloop.run, "final.mp4", ("ffmpeg",)),
+    "anime": RouteEntry(anime_sample.run, "clip.mp4", ("ffmpeg",)),
     "image": RouteEntry(image_sample.run, "poster.png"),
     "audio": RouteEntry(audio_sample.run, "master.wav", ("ffmpeg",)),
     "film": RouteEntry(film_sample.run, "film.mp4", ("ffmpeg",)),
@@ -88,6 +89,7 @@ ROUTES = {
                          ("playwright", "playwright-browsers")),
     "type": RouteEntry(type_sample.run, "type.mp4", ("fonttools",)),
     "spectrum": RouteEntry(spectrum_sample.run, "spectrum.png", ("ffmpeg",)),
+    "ink": RouteEntry(ink_landscape.run, "ink.png", ("scipy", "pillow")),
 }
 
 

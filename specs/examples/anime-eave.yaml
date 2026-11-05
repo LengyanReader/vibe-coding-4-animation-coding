@@ -1,0 +1,46 @@
+# specs/examples/anime-eave.yaml
+# Anime route: a 2D cel-style shot (飞檐少年). Style-level homage only — the boy
+# is a generic silhouette, and what is quoted is a *visual grammar* (two-tone
+# hard shadows, warm rim light against a dusk sky, parallax depth, one hard cut
+# on the beat), not any copyrighted character (docs/styles.md §7).
+#
+# This spec is authored against the same frame contract as the first closed loop
+# (format + style.palette + render.seed + timeline). `medium: anime` selects a
+# different renderer, not a different schema — which is the point of the route:
+# the video contract generalises (docs/roadmap-development.md §4 item 14).
+id: anime-eave
+title: 飞檐少年 / Boy on the Temple Eave
+medium: anime
+
+format:
+  width: 960
+  height: 540
+  fps: 24
+  duration: 12s
+  container: mp4
+
+# Seven stops, read by index by the renderer: 0 sky zenith, 1 horizon, 2 cloud
+# band, 3 mountain silhouette, 4 roof tile, 5 ribbon/ember accent, 6 figure body.
+style:
+  palette: ["#2B1F4E", "#F2794B", "#FBD6A8", "#4A3A6B", "#1E1A2A", "#E8483F", "#141020"]
+  mood: dusk, cel-shaded, wuxia-xianxia background shot
+
+# The cut at 6s is what the gate then *measures* in the rendered frames: shot 1
+# is a wide drift along the ridge, shot 2 a closer dolly-in on the figure.
+timeline:
+  - { at: 0s,   action: fade-in,  duration: 0.75s }
+  - { at: 6s,   action: cut }
+  - { at: 11.25s, action: fade-out, duration: 0.75s }
+
+render:
+  preferred: [pillow-frames, ffmpeg]
+  seed: 7
+
+# Four gates. "at least 1 scene cut" is not a restatement of the timeline — the
+# route counts luma discontinuities between decoded frames, so a clip that loses
+# its cut in a refactor fails here instead of shipping silent.
+acceptance:
+  - duration between 11.8s and 12.2s
+  - resolution exactly 960x540
+  - at least 1 scene cut
+  - no black frame longer than 0.5s

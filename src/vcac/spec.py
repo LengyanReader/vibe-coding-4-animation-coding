@@ -123,7 +123,18 @@ REQUIRED_KEYS = {
     "layout": ("canvas", "grid", "palette", "type", "blocks"),
     "type": ("font", "text", "width", "height", "frames", "palette"),
     "spectrum": ("sample_rate", "duration", "fundamental_hz", "size"),
+    "ink": ("width", "height", "palette", "font"),
+    # anime speaks the frame contract (see VIDEO_CONTRACT_MEDIA below); its cut
+    # is the gate, so a spec without a timeline is not an anime shot
+    "anime": ("format", "style", "timeline"),
 }
+
+#: Media authored against the *frame contract* that :func:`load` parses: a
+#: ``format`` block (width/height/fps/duration), ``style.palette``,
+#: ``render.seed`` and a ``timeline``. ``anime`` is a second renderer over the
+#: same contract -- a new look is not a new schema -- so it is listed here rather
+#: than given a duplicate loader that could drift from the first.
+VIDEO_CONTRACT_MEDIA = ("video", "anime")
 
 
 def load_raw(path: str | Path) -> dict:
@@ -158,8 +169,10 @@ def load(path: str | Path) -> Spec:
     assumptions: list[str] = []
 
     medium = _require(raw, "medium")
-    if medium != "video":
-        raise SpecError(f"first closed loop supports medium=video only, got {medium!r}")
+    if medium not in VIDEO_CONTRACT_MEDIA:
+        raise SpecError(
+            f"spec.load parses the frame contract {VIDEO_CONTRACT_MEDIA}, "
+            f"got medium={medium!r}")
 
     fmt = _require(raw, "format")
     width = int(_require(fmt, "width"))

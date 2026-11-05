@@ -1,0 +1,59 @@
+# ink-landscape route sample — 中国水墨山水 as a deterministic nine-step chain
+# (docs/styles.md §1.2). The painting theory IS the gate set:
+#
+#   墨分五色 (焦浓重淡清)  -> the artifact is quantised to the declared 5-step
+#                            ink ramp and each band's occupancy is gated
+#   留白 (计白当黑)        -> negative-space ratio between 25% and 60%
+#   云气                   -> the mist band is measured WHITER than the paper
+#                            average (region-weighted, never a global floor)
+#   诗书画印               -> colophon in an OFL running-script font (hashed
+#                            into the cache key) + a seal whose red presence
+#                            is counted as connected components
+id: ink-landscape
+title: 江流天地外 — three-distance ink mountains
+medium: ink
+
+width: 768
+height: 1024
+seed: 11
+
+# 色域: paper + ink five tones (清 淡 重 浓 焦) + seal-paste red.
+palette:
+  paper: "#F5F1E6"
+  ink1: "#B7AEA1"     # 清 — farthest wash
+  ink2: "#8C8377"     # 淡
+  ink3: "#5C554D"     # 重
+  ink4: "#3B3630"     # 浓
+  ink5: "#211D19"     # 焦 — contour accents
+  seal: "#B03A2E"     # 印泥红
+
+# 题款 font — external licensed input (OFL-1.1), hashed into the cache key.
+font:
+  paths:
+    - assets/fonts/ZhiMangXing-Regular.ttf
+  licence: "OFL-1.1"
+  licence_note: >-
+    钟齐志莽行书 (Zhi Mang Xing), Google Fonts, SIL Open Font License 1.1 —
+    redistributable; fetched by scripts/fetch_assets.py, sha256 in
+    assets.lock.json and in the manifest.
+
+paper_grain: 1.0
+mist_top: 0.26
+
+layers:
+  # 高远: one tall pale peak, its wash hugging the silhouette
+  - {base_y: 0.50, amp: 0.40, freq: 5, warp: 0.07, ink: 2, alpha: 0.85, reach: 0.38, style: none, contour_ink: 2}
+  # 平远: rolling mid ridges, dotted
+  - {base_y: 0.64, amp: 0.20, freq: 4, warp: 0.12, ink: 3, alpha: 1.0, reach: 0.32, style: yudian, contour_ink: 4, texture_ink: 3}
+  # 深远: grounded near hill, pima-textured
+  - {base_y: 0.85, amp: 0.20, freq: 3, warp: 0.16, ink: 5, alpha: 1.0, reach: 0.38, style: pima, contour_ink: 5, texture_ink: 5}
+
+acceptance:
+  - resolution exactly 768x1024
+  - distinct palette colors at most 8
+  - at least 99% of pixels are exact palette colors
+  - five ink value bands each above 1.0%
+  - negative space between 25% and 60%
+  - mist region luminance at least 235
+  - painted-region entropy above 1.8
+  - at least 1 seal marks visible
