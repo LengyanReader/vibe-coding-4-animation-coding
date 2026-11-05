@@ -156,8 +156,16 @@ def test_palette_ceiling_is_not_read_as_the_color_floor():
 # gate; here it shows up as a reviewable diff instead of a silent shift.
 
 KIND_SNAPSHOT = {
+    "anime-eave.yaml": ["duration_range", "resolution_exact", "scene_cuts_min",
+                        "max_black_run"],
     "dodge-headless.yaml": ["moved", "score_min", "hp_decreased", "terminated"],
     "film-mux.yaml": ["duration_range", "has_video", "has_audio", "av_sync"],
+    "ink-landscape.yaml": ["resolution_exact", "palette_max", "palette_exact_pct_min",
+                           "value_bands_min", "negative_space_range", "mist_luma_min",
+                           "painted_entropy_min", "seal_count_min"],
+    "kern-piano.yaml": ["duration_range", "sample_rate_exact", "channels_exact",
+                        "lufs_target", "peak_max_dbfs", "not_silent",
+                        "clipping_max_pct", "dc_max"],
     "orbiting-cubes.yaml": ["duration_range", "resolution_exact", "max_black_run"],
     "poster-noise.yaml": ["resolution_exact", "unique_colors_min", "entropy_min"],
     "spectrogram-truth.yaml": ["sample_rate_exact", "duration_range", "peak_max_dbfs",
