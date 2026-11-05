@@ -101,6 +101,15 @@ KNOWN_PATHS = {
         ("msedge-headless", "image/browser-rasterizer"),
 }
 
+# Tools fetched by scripts/fetch_assets.py into the repo (gitignored,
+# hash-locked). Repo-relative so the probe works from any cwd; the registry
+# entry says `via: repo-tool` so a manifest can tell PATH installs and repo
+# tools apart.
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+_REPO_TOOLS = {
+    "fluidsynth": _REPO_ROOT / "assets" / "tools" / "fluidsynth" / "fluidsynth.exe",
+}
+
 # Windows trap: `convert` resolves to System32\convert.exe (the disk utility),
 # NOT ImageMagick. That is why ImageMagick is probed as `magick` only.
 TRAP_NAMES = ("convert", "ping", "curl", "timeout")
@@ -216,6 +225,18 @@ def build_registry() -> dict:
         registry[key] = {"available": ok, "kind": kind, "via": "known-path"}
         if ok:
             registry[key]["path"] = exe
+    for key, exe in sorted(_REPO_TOOLS.items()):
+        if registry.get(key, {}).get("available"):
+            continue  # a PATH install wins; the repo copy is the fallback
+        ok = exe.is_file()
+        entry = {"available": ok, "kind": "audio/synth", "via": "repo-tool"}
+        if ok:
+            entry["path"] = str(exe)
+            entry["version"] = "repo-tool (assets/tools/fluidsynth)"
+        else:
+            entry["reason"] = (f"{exe.name} not fetched — run "
+                               f"python scripts/fetch_assets.py")
+        registry[key] = entry
     browsers, ok = probe_playwright_browsers()
     registry["playwright-browsers"] = {
         "available": ok, "kind": "image/browser-rasterizer", "via": "LOCALAPPDATA",

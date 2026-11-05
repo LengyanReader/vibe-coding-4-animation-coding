@@ -15,3 +15,12 @@ Thumbs.db
 
 # agent-local state
 .zcode/
+
+# Downloaded assets stay out of git wholesale: scripts/fetch_assets.py re-fetches
+# each one and verifies it against assets/assets.lock.json (README §14 — the hash
+# is the provenance, the blob is a cache). That applies to the 4 MB OFL font too:
+# a font inside git history is permanent, and the ink route reports a named,
+# reasoned failure without it rather than falling back to a system font.
+# The lock file is the only thing here under version control.
+assets/*
+!assets/assets.lock.json
