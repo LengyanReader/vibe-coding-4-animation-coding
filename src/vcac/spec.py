@@ -124,6 +124,14 @@ REQUIRED_KEYS = {
     "type": ("font", "text", "width", "height", "frames", "palette"),
     "spectrum": ("sample_rate", "duration", "fundamental_hz", "size"),
     "ink": ("width", "height", "palette", "font"),
+    # a still ensemble portrait is authored, not parsed by the frame contract:
+    # the figures ARE the substance, so an empty cast is a schema error
+    "illustration": ("width", "height", "palette", "palette_order", "font",
+                     "backdrop", "figures", "tone", "frame", "title_text"),
+    # an inked page is authored as paths: the nib block is the pen, the tone block
+    # is the lattice, and a page with no cast has no line to measure
+    "manga": ("width", "height", "palette", "palette_order", "figures", "tone",
+              "nib", "frame"),
     # anime speaks the frame contract (see VIDEO_CONTRACT_MEDIA below); its cut
     # is the gate, so a spec without a timeline is not an anime shot
     "anime": ("format", "style", "timeline"),

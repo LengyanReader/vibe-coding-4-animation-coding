@@ -157,7 +157,7 @@ def test_palette_ceiling_is_not_read_as_the_color_floor():
 
 KIND_SNAPSHOT = {
     "anime-eave.yaml": ["duration_range", "resolution_exact", "scene_cuts_min",
-                        "max_black_run"],
+                        "title_element_min", "max_black_run"],
     "dodge-headless.yaml": ["moved", "score_min", "hp_decreased", "terminated"],
     "film-mux.yaml": ["duration_range", "has_video", "has_audio", "av_sync"],
     "ink-landscape.yaml": ["resolution_exact", "palette_max", "palette_exact_pct_min",

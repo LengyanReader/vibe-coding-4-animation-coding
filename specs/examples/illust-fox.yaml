@@ -1,0 +1,154 @@
+# specs/examples/illust-fox.yaml
+# Illustration route, second grammar: 狐影黄昏 / Foxshadow Dusk.
+#
+# What is quoted from the yōkai-at-dusk school is its *construction*, not its
+# cast: a low horizon with a great deal of empty sky, one warm light source low
+# in the frame, a masked companion whose face is never shown, figures spaced
+# apart rather than lunging at the camera, and tone used as atmosphere instead
+# of as energy. No character, name or mark from any existing work appears here —
+# the five presences are original designs assembled from parameters, the same
+# stance `anime-eave.yaml` declares (docs/styles.md §2 §4 §7).
+id: illust-fox
+title: 狐影黄昏 — an original dusk ensemble
+medium: illustration
+
+width: 1440
+height: 1080
+seed: 44
+
+palette:
+  paper: "#F7F2E3"
+  ink: "#241C18"
+  tone: "#6B5B41"
+  rim: "#FFE9C4"
+  light: "#FFF3CF"
+  shadow: "#33291F"
+  accent_shade: "#1F4B4A"
+  steel: "#93A2A8"
+  flame: "#F2A03D"
+  seal: "#B4463A"
+  skin: "#EFC9A4"
+  wall: "#7E6748"
+  structure: "#4B3A2B"
+  sky_top: "#2C3B57"
+  sky_mid: "#7E9BB0"
+  sky_low: "#E9C073"
+  leaf: "#4F6B43"
+  hair_ash: "#55506B"
+  hair_white: "#DCE3DD"
+  hair_rust: "#A8562A"
+  cloth_dark: "#39404F"
+  cloth_cream: "#E4D9BE"
+palette_order: [sky_top, sky_mid, sky_low, leaf, structure, wall, shadow, ink,
+                tone, cloth_dark, cloth_cream, steel, hair_ash, hair_white,
+                hair_rust, flame, seal, accent_shade, skin, paper, rim, light]
+
+font:
+  paths:
+    - "C:/Windows/Fonts/NotoSansSC-VF.ttf"
+    - "C:/Users/data/AppData/Local/Microsoft/Windows/Fonts/NotoSansSC-VF.ttf"
+  licence: "SIL Open Font License 1.1 (Noto Sans SC, Google)"
+
+title_text: 狐影黄昏
+
+backdrop:
+  # the dusk ramp runs cold at the zenith and warm at the ground, and the whole
+  # band above the horizon is left alone: in this grammar the emptiness is the
+  # subject, so the sheet must stay unmarked where the eye is asked to rest
+  stops:
+    - {at: 0.00, color: sky_top}
+    - {at: 0.52, color: sky_mid}
+    - {at: 1.00, color: sky_low}
+  sun: {at: [0.70, 0.60], radius: 0.085, color: light}
+  ridges:
+    - {at: 0.63, amp: 0.045, freq: 1.6, color: leaf, salt: 5}
+    - {at: 0.71, amp: 0.030, freq: 2.4, color: structure, salt: 9}
+  clouds:
+    # dusk clouds are flat bands, not balls: lobes spread wide along one height,
+    # so the eye reads weather lying across the sky rather than objects in it.
+    # band: top because the sun is low -- the underside of the weather is the lit
+    # side at dusk, and a cloud shaded underneath here would be a midday cloud
+    - {at: [0.24, 0.33], scale: 0.11, shade: sky_mid, lit: sky_low, band: top,
+       edge: rim,
+       lobes: [[-0.9, 0.02, 0.20], [-0.45, -0.04, 0.26], [0.0, 0.02, 0.30],
+               [0.45, -0.02, 0.24], [0.9, 0.04, 0.18]]}
+    - {at: [0.78, 0.40], scale: 0.085, shade: sky_mid, lit: sky_low, band: top,
+       edge: rim,
+       lobes: [[-0.8, 0.02, 0.20], [-0.3, -0.04, 0.26], [0.2, 0.02, 0.24],
+               [0.7, 0.04, 0.18]]}
+
+set:
+  - {kind: gate, at: [0.66, 0.70], scale: 0.30, color: seal, shade: ink}
+  # the paddy is now a contained field: furrows laid straight onto the ground
+  # read as scratches on the sheet, so the field gets a bank and water in it
+  - {kind: paddy, at: [0.155, 0.795], scale: 0.26, color: leaf, shade: ink,
+     sheen: sky_low}
+  - {kind: roof, at: [0.90, 0.665], scale: 0.20, color: structure, shade: ink}
+  # reeds in the near corner: the dusk ground is a large flat band, and one
+  # silhouette clump low in the frame is what puts the viewer outside in it
+  - {kind: reeds, at: [0.065, 0.975], scale: 0.26, color: leaf, shade: ink}
+
+# spaced, not stacked. The back row is drawn SMALL as well as high: distance in
+# this grammar is scale, and a ridge figure at front-row height reads as a giant
+# standing in a field of normals, which is not the quiet the sheet is after
+figures:
+  - {at: [0.17, 0.715], scale: 0.30, depth: 0.85, lit: -1, pose: ready,
+     expression: calm, hair_style: long, hair: hair_rust, garment_style: armor,
+     garment: structure, garment_shade: shadow, accent: seal, skin: skin,
+     sleeve: true, accessory: []}
+  - {at: [0.83, 0.715], scale: 0.27, depth: 0.8, lit: 1, pose: akimbo,
+     expression: hot, hair_style: twin, hair: hair_white, garment_style: dress,
+     garment: leaf, garment_shade: shadow, accent: flame, skin: skin,
+     sleeve: true, accessory: []}
+  - {at: [0.40, 0.92], scale: 0.60, depth: 0.15, lit: 1, pose: ready,
+     expression: calm, hair_style: short, hair: hair_ash, garment_style: school,
+     garment: cloth_dark, garment_shade: shadow, accent: steel, skin: skin,
+     sleeve: true, accessory: []}
+  - {at: [0.585, 0.90], scale: 0.44, depth: 0.3, lit: 1, pose: hold,
+     expression: smile, hair_style: short, hair: hair_white,
+     garment_style: coat, garment: cloth_cream, garment_shade: shadow,
+     accent: seal, skin: skin, sleeve: true, mask: true, accessory: []}
+  - {at: [0.09, 0.86], scale: 0.36, depth: 0.45, lit: 1, pose: hold,
+     expression: grin, hair_style: short, hair: hair_rust, garment_style: coat,
+     garment: cloth_cream, garment_shade: shadow, accent: flame, skin: skin,
+     accessory: [lantern]}
+
+tone:
+  pitch: 8
+  dot: 0.40
+  dither: 20
+  regions:
+    # both regions sit BELOW the measured sky band: atmosphere tone laid over the
+    # upper sky would break the one promise this grammar makes, that the emptiness
+    # is real and not merely quiet-looking
+    - {at: [0.50, 1.14], radius: 0.50, level: 0.40}
+    - {at: [0.08, 0.56], radius: 0.20, level: 0.30}
+
+frame:
+  border: 0.012
+  logo_band: 0.13
+  title_size: 0.42
+  subtitle: "黄昏的约定 · an original dusk, rendered by code"
+
+acceptance:
+  - resolution exactly 1440x1080
+  - distinct palette colors at most 23
+  - at least 99% of pixels are exact palette colors
+  - undeclared palette entries at most 0
+  - screentone coverage between 1% and 12%
+  - linework edge density above 2.5%
+  - at least 4 separate figures
+  # the dusk sky is a soft gradient with a few large banks: mostly EMPTY of drawn
+  # edge. Measured on the 5x5-median luma (docs/styles.md §8.3) the sheet scores
+  # 82.6; the floor below was set by watching a mutant fail it -- cluttering the
+  # sky with ten small hard-edged clouds reaches only 73.5, so 78 is a falsifiable
+  # floor and not a restatement of the authoring.
+  - sky negative space between 78% and 92%
+  - title band ink between 0.5% and 14%
+  - luma spread across the sheet above 90
+
+assumptions:
+  - "style grammar only: no character, logo or name from any existing work"
+  - "the dusk school's emptiness is gated as unmarked area, not as brightness"
+  - "the mask is worn tipped at the temple rather than over the eyes: it stays an
+     object a person could put on, and the cast stays readable as a family"

@@ -38,9 +38,14 @@ render:
 
 # Four gates. "at least 1 scene cut" is not a restatement of the timeline — the
 # route counts luma discontinuities between decoded frames, so a clip that loses
-# its cut in a refactor fails here instead of shipping silent.
+# its cut in a refactor fails here instead of shipping silent. The fifth gate is
+# the one this route needed most: the clip is TITLED 飞檐 and shipped six seconds
+# of it with the eave below the frame, so the title element is now measured from
+# the pixels that carry the roof-tile colours (the fades cannot hold it, which is
+# why the bound is 80% and not 100%).
 acceptance:
   - duration between 11.8s and 12.2s
   - resolution exactly 960x540
   - at least 1 scene cut
+  - at least 80% of frames show the title element
   - no black frame longer than 0.5s

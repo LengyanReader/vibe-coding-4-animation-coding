@@ -38,15 +38,47 @@ font:
     assets.lock.json and in the manifest.
 
 paper_grain: 1.0
-mist_top: 0.26
+mist_top: 0.20
 
+# Five ranges and a channel through them. The palest is the farthest: 远山淡墨
+# is not a mountain drawn lighter, it is a mountain whose CONTRAST range
+# collapses -- one tone, low alpha, soft edge, no 皴 and no 点苔 at all. Each
+# range then gets the 皴法 its own geology asks for, and the 焦墨 lands only on
+# the foreground, which is what 近山浓 actually pays for.
+#
+# The last range is a foreground SHORE, not a sixth mountain: the sheet is
+# titled 江流天地外, so the river has to pass somewhere, and a channel cut
+# through a mountain range is a flood. The near bank therefore sits BELOW the
+# water and the trees root on it.
 layers:
-  # 高远: one tall pale peak, its wash hugging the silhouette
-  - {base_y: 0.50, amp: 0.40, freq: 5, warp: 0.07, ink: 2, alpha: 0.85, reach: 0.38, style: none, contour_ink: 2}
-  # 平远: rolling mid ridges, dotted
-  - {base_y: 0.64, amp: 0.20, freq: 4, warp: 0.12, ink: 3, alpha: 1.0, reach: 0.32, style: yudian, contour_ink: 4, texture_ink: 3}
-  # 深远: grounded near hill, pima-textured
-  - {base_y: 0.85, amp: 0.20, freq: 3, warp: 0.16, ink: 5, alpha: 1.0, reach: 0.38, style: pima, contour_ink: 5, texture_ink: 5}
+  # 远山淡墨: one tone above the mist, no texture, no moss, no contour weight
+  - {base_y: 0.40, amp: 0.12, freq: 6, warp: 0.05, ink: 1, alpha: 0.28, reach: 0.45,
+     style: none, contour_ink: 1, peakiness: 0.38}
+  # 高远: the tall pale peak, dotted 雨点 because distance turns rock to spatter
+  - {base_y: 0.50, amp: 0.26, freq: 4, warp: 0.09, ink: 2, alpha: 0.48, reach: 0.34,
+     style: yudian, contour_ink: 2, texture_ink: 2, moss: 6, moss_scale: 0.55,
+     peakiness: 0.48}
+  # 平远: rolling earth, so 披麻 fibres fan down its fall line
+  - {base_y: 0.63, amp: 0.15, freq: 5, warp: 0.12, ink: 3, alpha: 0.62, reach: 0.28,
+     style: pima, contour_ink: 3, texture_ink: 3, moss: 9, moss_scale: 0.85}
+  # 岩壁: the wall the river runs against is exposed stone -> 斧劈. amp is small
+  # because this is a buttress, not a range: the stroke needs a face to throw off
+  - {base_y: 0.74, amp: 0.10, freq: 3, warp: 0.14, ink: 4, alpha: 0.74, reach: 0.22,
+     style: axe, contour_ink: 4, texture_ink: 4, moss: 10, moss_scale: 1.0}
+  # 近岸: the foreground bank is sedimentary course-stone -> 折带; `jiao` lays
+  # the third 焦墨 wash pass, and it is the only layer that gets one
+  - {base_y: 0.92, amp: 0.07, freq: 3, warp: 0.16, ink: 4, alpha: 0.82, reach: 0.26,
+     style: zhedai, contour_ink: 5, texture_ink: 5, moss: 12, moss_scale: 1.25,
+     jiao: true}
+
+# 江流 + 树 + 亭: the water is 留白 with a SHAPE, and the trees and the pavilion
+# are what give the masses a scale to argue with. `anchors` says which range each
+# marker is planted on -- the trees on the near shore, the 亭 on the far bank.
+features:
+  water: {at: 0.815, width: 0.030, wind: 0.022}
+  anchors: {trees: 4, pavilion: 2}
+  trees: 6
+  pavilion: 0.28
 
 acceptance:
   - resolution exactly 768x1024

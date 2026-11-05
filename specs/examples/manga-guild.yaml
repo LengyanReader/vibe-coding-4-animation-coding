@@ -1,0 +1,637 @@
+# specs/examples/manga-guild.yaml
+# Manga inking route: 余烬公会 as an inked page (彩色扉页的相反选择: 黑白 + 赤).
+#
+# Why black and white. The brief was 「真正像日本这些漫画的原汁原味」. What those
+# pages are made of is a G-pen, tone paper and one red: skin is left as paper,
+# hair is filled solid black with its highlight punched out, shadow is a dot
+# screen, and colour appears at most in the logotype and a scarf. The previous
+# attempt on this workspace put a flat colour on every shape and its gates stayed
+# green; stripping colour is what makes the line the thing being judged.
+#
+# What is quoted is the grammar, never a cast: no character, name, mark or
+# costume from any existing work (docs/styles.md §2 §4 §7). The five adventurers
+# are the original 余烬公会 already declared by illust-guild.yaml.
+#
+# Authorship, and it is the point of this file: the code owns the brush, every
+# coordinate below is placed by hand. Each figure is built in its own unit box
+# with the CHIN at (0,0) and the CROWN at about (0,-110): so a facial point is a
+# distance from the chin, the way a drawing is actually measured off a face.
+# Locks of hair, folds and the eyes are one authored template placed at chosen
+# positions and angles -- positions the seed is never allowed to pick.
+id: manga-guild
+title: 余烬公会 — an inked ensemble page
+medium: manga
+
+width: 1400
+height: 1000
+seed: 21
+supersample: 3          # a tapered line ends below one pixel; at 1:1 the nib is lost
+
+# 墨 + 紙 + 网点 + 一色赤. Every entry stays distinct: the gates count pixels
+# per colour, and `skin` is a warm white rather than the page's own so that a
+# face is measurable as a mass and the eye's paper is measurable as a hole in it.
+palette:
+  paper: "#FBF7EE"        # 紙: the page, the sclera, every punched highlight
+  skin: "#F2E2C6"         # 肌: left almost white, deliberately near the paper
+  ink: "#171310"          # 墨: the line, the hair mass, the mouth cavity
+  eye_dark: "#3A2E28"     # 瞳: an ink that is NOT the line's ink, so the iris keeps
+                          # its own edge inside a black lash, and so the pen gate
+                          # cannot count a pupil as a thick stroke
+  tone_mid: "#8C7A62"     # 网点 mid grey-brown: the shadow screens
+  tone_lite: "#C9B99F"    # 网点 light: volume on skin, the far plane
+  cloth: "#4A4038"        # 深色衣: a tone with weight, distinct from 墨
+  accent: "#BE3A26"       # 赤: the logotype and one scarf, nowhere else
+palette_order: [ink, eye_dark, cloth, tone_mid, tone_lite, accent, skin, paper]
+
+font:
+  paths:
+    - "C:/Windows/Fonts/NotoSansSC-VF.ttf"
+    - "C:/Users/data/AppData/Local/Microsoft/Windows/Fonts/NotoSansSC-VF.ttf"
+  licence: "SIL Open Font License 1.1 (Noto Sans SC, Google)"
+
+title_text: 余烬公会
+
+nib:
+  resample: 2.6           # print px between pressure samples along a stroke
+  jitter: 0.055           # the pen skips on the paper; never moves a facial point
+  measure_max_px: 13      # above this a mark is a filled mass, not a line (see §gate)
+
+tone:
+  pitch: 5                # print px of the dot lattice
+  dither: 11              # ordered-dither depth for the quantiser's soft edges
+  keys: [tone_mid, tone_lite]
+
+frame:
+  face_zone: 0.86         # the cast lives above the logotype; see _figure_count
+  border: 0.011
+
+# ---------------------------------------------------------------------------
+# templates: the parts somebody drew once, in their own unit box, and then
+# placed. `at` is (0,0) at the part's centre and 1.0 is the part's own half
+# extent, so a call site says where, how big, how tilted and how heavy -- and
+# `shift` moves one tagged group inside it, which is how five characters can
+# look in five directions without five eyes being redrawn.
+# ---------------------------------------------------------------------------
+templates:
+  # 目. The order IS the craft: white, then iris ramp, then the pupil's weight at
+  # the top of it, then the highlights punched out of the iris, and only then the
+  # lash laid over all of it. A manga eye is read by its UPPER LASH, which is a
+  # wedge dragged onto its outer corner -- not by circles inside circles.
+  eye:
+    - {kind: mass, fill: paper, line: false,          # 強膜: the almond itself
+       d: "M -1.02,0.10 C -0.78,-0.52 -0.30,-0.94 0.20,-0.96 C 0.66,-0.98 0.94,-0.66 1.06,-0.28 C 0.92,0.34 0.44,0.88 -0.04,0.90 C -0.54,0.92 -0.90,0.56 -1.02,0.10 Z"}
+    # 虹膜: it nearly FILLS the almond. An iris drawn small inside a wide white
+    # eye is the single most reliable way to make a face look dazed, and the first
+    # pass of this page did exactly that. It ramps to tone_MID and not to a light:
+    # an iris that fades to near-white at the bottom turns the eye into a glassy
+    # blob and loses the pupil's edge, which is the second thing the first pass did.
+    - {kind: grad, tag: iris, at: [-0.14, 0.04], line: false, from: eye_dark, to: tone_mid,
+       d: "M -0.62,-0.44 C -0.62,-0.92 0.62,-0.92 0.62,-0.44 C 0.62,0.44 0.36,0.82 0.00,0.82 C -0.36,0.82 -0.62,0.44 -0.62,-0.44 Z"}
+    - {kind: mass, tag: iris, at: [-0.14, 0.04], fill: eye_dark, line: false,   # 瞳孔
+       d: "M -0.52,-0.50 C -0.50,-0.88 0.50,-0.88 0.52,-0.50 C 0.40,-0.14 -0.40,-0.14 -0.52,-0.50 Z"}
+    # 主高光: a corner of light, NOT a lake. It sits at the top-left of the iris and
+    # leaves a dark ring all the way round the pupil or the eye loses its focus.
+    - {kind: mass, tag: iris, at: [-0.14, 0.04], fill: paper, line: false,
+       d: "M -0.44,-0.44 C -0.28,-0.72 0.06,-0.66 0.14,-0.40 C 0.00,-0.16 -0.32,-0.18 -0.44,-0.44 Z"}
+    - {kind: mass, tag: iris, at: [-0.14, 0.04], fill: paper, line: false,      # 副高光
+       d: "M 0.20,0.30 C 0.36,0.18 0.50,0.32 0.36,0.52 C 0.24,0.60 0.10,0.44 0.20,0.30 Z"}
+    - {kind: ink, w: {profile: wedge, a: 0.40, b: 3.4, p: 0.7},   # 上睫毛
+       d: "M -1.08,0.06 C -0.80,-0.62 -0.26,-1.06 0.24,-1.04 C 0.74,-1.02 1.04,-0.66 1.24,-0.18"}
+    - {kind: ink, w: {profile: taper, a: 0.05, b: 1.8, peak: 0.12}, # 目の際の跳ね
+       d: "M 1.18,-0.24 C 1.40,-0.42 1.58,-0.62 1.70,-0.88"}
+    # 下睫毛: the bottom edge has to EXIST. A light lower lid lets the eye dissolve
+    # into the cheek and the face reads as two holes
+    - {kind: ink, w: {profile: ramp, a: 0.5, b: 1.2},
+       d: "M -0.94,0.44 C -0.56,0.94 0.20,1.02 0.70,0.72 C 0.92,0.58 1.06,0.38 1.14,0.16"}
+    - {kind: ink, w: {profile: taper, a: 0.05, b: 0.8, peak: 0.5}, # 二重の線
+       d: "M -0.86,-0.84 C -0.34,-1.28 0.56,-1.26 1.10,-0.84"}
+  # 目 (鋭). The same architecture with a lid pulled down and a heavier lash: the
+  # difference between a shout and a threat is one line above the iris.
+  eye_sharp:
+    - {kind: mass, fill: paper, line: false,
+       d: "M -1.02,0.24 C -0.70,-0.26 -0.18,-0.56 0.32,-0.58 C 0.76,-0.60 1.00,-0.36 1.08,-0.06 C 0.90,0.48 0.34,0.86 -0.14,0.82 C -0.60,0.78 -0.92,0.56 -1.02,0.24 Z"}
+    - {kind: grad, tag: iris, at: [-0.10, 0.12], line: false, from: eye_dark, to: tone_lite,
+       d: "M -0.56,-0.22 C -0.56,-0.62 0.56,-0.62 0.56,-0.22 C 0.56,0.48 0.32,0.76 0.00,0.76 C -0.32,0.76 -0.56,0.48 -0.56,-0.22 Z"}
+    - {kind: mass, tag: iris, at: [-0.10, 0.12], fill: eye_dark, line: false,
+       d: "M -0.46,-0.28 C -0.44,-0.60 0.44,-0.60 0.46,-0.28 C 0.34,0.02 -0.34,0.02 -0.46,-0.28 Z"}
+    - {kind: mass, tag: iris, at: [-0.10, 0.12], fill: paper, line: false,
+       d: "M -0.38,-0.18 C -0.16,-0.46 0.20,-0.38 0.24,-0.10 C 0.12,0.10 -0.26,0.06 -0.38,-0.18 Z"}
+    - {kind: ink, w: {profile: wedge, a: 0.55, b: 3.6, p: 0.6},
+       d: "M -1.08,0.18 C -0.72,-0.38 -0.14,-0.68 0.38,-0.66 C 0.86,-0.64 1.12,-0.38 1.28,0.00"}
+    - {kind: ink, w: {profile: taper, a: 0.05, b: 2.0, peak: 0.10},
+       d: "M 1.22,-0.10 C 1.44,-0.22 1.64,-0.38 1.80,-0.58"}
+    - {kind: ink, w: {profile: ramp, a: 0.5, b: 1.1},
+       d: "M -0.82,0.56 C -0.42,0.92 0.32,0.94 0.78,0.64"}
+  # 眉. A wedge too, but flat-side down: a brow is drawn with the belly of the nib.
+  brow:
+    - {kind: ink, w: {profile: wedge, a: 0.25, b: 2.3, p: 0.55},
+       d: "M -1.00,0.30 C -0.52,-0.24 0.32,-0.44 1.00,-0.24"}
+  # 鼻. Three strokes that must TOUCH: the bridge coming down out of the space
+  # between the brows, the underside of the tip, and one weight at the far nostril.
+  # A bridge and an underside that do not meet read as a checkmark dropped on the
+  # cheek, which is exactly what the first pass of this page did.
+  nose:
+    - {kind: ink, w: {profile: wedge, a: 0.10, b: 1.0, p: 1.6},
+       d: "M 0.34,-0.72 C 0.10,-0.24 -0.02,0.20 0.20,0.52"}
+    - {kind: ink, w: {profile: taper, a: 0.10, b: 1.5, peak: 0.6},
+       d: "M -0.56,0.42 C -0.30,0.72 0.06,0.78 0.34,0.60"}
+    - {kind: ink, w: {profile: taper, a: 0.1, b: 0.9, peak: 0.5},
+       d: "M 0.30,0.58 C 0.42,0.52 0.50,0.42 0.52,0.30"}
+  # 口 (閉). The line of the mouth plus a shadow under the lower lip.
+  mouth:
+    - {kind: ink, w: {profile: taper, a: 0.15, b: 1.3, peak: 0.4},
+       d: "M -1.00,-0.10 C -0.42,0.30 0.42,0.32 1.02,-0.06"}
+    - {kind: ink, w: {profile: taper, a: 0.05, b: 0.6, peak: 0.5},
+       d: "M -0.62,0.52 C -0.20,0.76 0.26,0.74 0.64,0.48"}
+  # 口 (開). A shout: the cavity is inked, the upper teeth are a SHORT paper band
+  # riding the TOP edge -- one that spans the middle of the mouth reads as a
+  # grille, and a cavity wider than it is tall reads as a gasp.
+  mouth_open:
+    - {kind: mass, fill: ink, line: false,
+       d: "M -1.00,-0.06 C -0.56,0.54 0.56,0.58 1.02,-0.02 C 0.56,-0.44 -0.54,-0.48 -1.00,-0.06 Z"}
+    - {kind: mass, fill: paper, line: false,
+       d: "M -0.66,-0.30 C -0.30,-0.46 0.32,-0.44 0.68,-0.26 C 0.32,-0.12 -0.30,-0.12 -0.66,-0.30 Z"}
+    # 上唇: the line ABOVE the cavity has to be heavier than the cavity's own edge,
+    # or the open mouth is a black hole with a white stripe and reads as a grille
+    - {kind: ink, w: {profile: taper, a: 0.1, b: 1.7, peak: 0.35},
+       d: "M -1.10,-0.22 C -0.56,-0.66 0.58,-0.64 1.14,-0.18"}
+  # 毛束. ONE authored lock, placed thirty times. The origin is the ROOT, not the
+  # middle, because a lock is pinned at the scalp and swung: `at` is where it is
+  # attached and `tilt` is the direction it hangs (0 = right, 90 = down). A lock
+  # whose origin is its middle floats off the head, which is what the first pass
+  # of this page did to every side lock.
+  #
+  # The root edge spans y = +-0.5 on purpose, so `sy` reads as the lock's own
+  # half-width AT THE SCALP and `sx` as its length. The first version had the root
+  # at +-0.3 and every call site was given an sy that made sense that way, which
+  # produced seven thin teeth hanging under a hairline: bangs are WIDE where they
+  # are parted and come to a point, never the other way round.
+  clump:
+    - {kind: mass, fill: ink, w: {profile: ramp, a: 1.3, b: 0.5},
+       d: "M 0.00,-0.50 C 0.34,-0.56 0.70,-0.40 1.00,-0.14 C 0.72,-0.10 0.36,0.14 0.02,0.50 C -0.04,0.16 -0.05,-0.16 0.00,-0.50 Z"}
+  # the same lock drawn a second and third time: a real head has at least three
+  # lock silhouettes and a bang row made of ONE shape repeated seven times is a
+  # saw, which is the second thing the first pass of this page looked like
+  clump_b:
+    - {kind: mass, fill: ink, w: {profile: ramp, a: 1.2, b: 0.45},
+       d: "M 0.00,-0.52 C 0.42,-0.54 0.78,-0.32 1.00,0.04 C 0.74,0.14 0.38,0.22 0.06,0.48 C -0.02,0.20 -0.04,-0.22 0.00,-0.52 Z"}
+  clump_c:
+    - {kind: mass, fill: ink, w: {profile: ramp, a: 1.1, b: 0.4},
+       d: "M 0.00,-0.40 C 0.46,-0.44 0.80,-0.16 0.96,0.30 C 0.70,0.18 0.34,0.16 0.04,0.42 C -0.03,0.14 -0.04,-0.16 0.00,-0.40 Z"}
+  # 天使の輪: a highlight drawn ACROSS a solid black mass with a paper-coloured
+  # nib. It is not an eraser, it is a second pass of ink in a different colour.
+  shine:
+    - {kind: ink, line: paper, w: {profile: taper, a: 0.2, b: 3.6, peak: 0.45},
+       d: "M -1.00,0.10 C -0.30,-0.30 0.34,-0.34 1.00,-0.06"}
+  # 衣紋. A fold: two edges that meet at the ends and are widest in the middle,
+  # i.e. a taper stroke, laid from a joint outward. Folds start somewhere.
+  fold:
+    - {kind: ink, w: {profile: taper, a: 0.2, b: 1.5, peak: 0.3},
+       d: "M -1.00,0.00 C -0.36,0.22 0.34,0.24 1.00,-0.06"}
+
+# ---------------------------------------------------------------------------
+# the cast. Order inside a figure IS the drawing order, and it is the cel order
+# a studio uses: the hair volume and the hanging locks go down first, then the
+# neck, then the garment over it, then the face over all of that, then the
+# features, then the bangs in FRONT of the forehead, then the highlights.
+# ---------------------------------------------------------------------------
+figures:
+  # 艾妤 (Ember) — the lead, mid-shout, three-quarters turned to the viewer's
+  # left.
+  #
+  # The proportions are the whole lesson of the first pass, which drew a face
+  # whose hairline-to-chin was 1.42x its own width with the widest point up in
+  # the temples: a horse. Measured off the chin instead, the numbers a studio
+  # actually works to are -- chin to hairline 86, face width 82 (ratio 1.05),
+  # widest at the cheekbone just ABOVE the eye line, eye centre 0.52 of the way
+  # up, brow 0.72, nose base 0.30, mouth 0.16, and the head's own sphere sitting
+  # another 48 units above the hairline. Everything below is those numbers.
+  #
+  # The turn: the facial midline is at x=-7 and the CHIN is on it, so the near
+  # half of the face is 46 wide and the far half 36, the near eye is the wider
+  # one and the far eye is smaller and crowded toward the middle. A chin on the
+  # axis of the skull is what makes a ¾ view collapse into a mask.
+  - id: ember
+    at: [0.50, 0.42]
+    scale: 2.42
+    depth: 0.05
+    nib: 1.06
+    tilt: -2.0
+    probe_at: [0.50, 0.72]
+    parts:
+      # 髪 (volume + the locks that hang BEHIND the shoulders), first and lowest.
+      #
+      # The dome is SMOOTH and every point hangs DOWN. Two failed attempts at this
+      # are worth keeping: wedges drawn ON the silhouette pointing outward made a
+      # holly leaf, and an outline with an anchor at each place where the direction
+      # reversed -- (-64,-4) and (52,-14) in the ninth pass -- rendered as a pair of
+      # thorns, because a control polygon that goes out and back in leaves a corner
+      # and a corner on a hair silhouette is a spike. So each side is now ONE
+      # continuous taper from the widest point under the ear to the shoulder.
+      #
+      # A third thing was blamed on this outline and was not its fault at all: the
+      # sideways fins were the shoulder locks, and they were sideways because
+      # `_mul` was transposing tilt against non-uniform scale. See the note there.
+      - {kind: mass, fill: ink, line: false,
+         d: "M -6,-136 C -34,-136 -56,-122 -64,-96 C -72,-68 -72,-30 -66,4 C -63,26 -58,44 -52,58 C -30,66 -4,66 18,64 C 34,62 46,58 54,52 C 58,28 58,2 56,-22 C 54,-58 46,-100 26,-122 C 16,-133 6,-136 -6,-136 Z"}
+      # 首: short and narrow -- the first pass drew a neck 48 units long and 44
+      # wide under a face 70 wide, i.e. a column, and the head looked mounted on a
+      # pillar. The visible neck is a third of the face height and half its width,
+      # and the shoulders start under it rather than a head-length below.
+      - {kind: mass, fill: skin, w: {profile: ramp, a: 1.1, b: 1.7},
+         d: "M -18,-8 C -19,2 -21,12 -23,20 C -6,26 12,25 21,19 C 17,10 14,2 13,-10 Z"}
+      # 首の影: moved DOWN to after the face and switched from a dot screen to
+      # solid 墨. Two faults in one: the screen was drawn before the face, so the
+      # face covered its own shadow's top edge and what survived was a rectangle
+      # of dots across the neck -- stubble, not shade; and a shadow whose shape is
+      # a blob is a blob however light its level. A chin shadow is a CRESCENT that
+      # follows the jaw line exactly and is only as deep as the jaw overhangs the
+      # neck, which here is six units, and manga lays it flat black.
+      # 衣: a dark coat, because the bottom of the page has to carry weight, and a
+      # collar left as paper so the neck reads against it
+      - {kind: mass, fill: cloth, w: {profile: ramp, a: 1.6, b: 2.6},
+         d: "M -23,20 C -46,26 -72,38 -90,58 C -104,74 -112,96 -114,124 C -115,176 -112,226 -108,268 L 108,268 C 112,226 115,176 114,124 C 112,96 104,74 90,58 C 72,40 46,30 25,20 C 14,36 4,46 -2,52 C -8,44 -14,34 -23,20 Z"}
+      - {kind: mass, fill: paper, w: {profile: taper, a: 0.6, b: 1.4, peak: 0.5},
+         d: "M -23,20 C -14,34 -8,44 -2,52 C 4,46 14,36 25,20 C 16,26 8,30 -2,30 C -12,30 -18,26 -23,20 Z"}
+      # 緘帯: the one red on the page besides the logotype, and it is doing the
+      # work of a diagonal — a cover with nothing moving across it is a wall
+      - {kind: mass, fill: accent, w: {profile: ramp, a: 1.8, b: 1.2},
+         d: "M -30,32 C -8,46 14,46 34,34 C 40,44 42,54 40,64 C 14,78 -12,76 -34,62 C -38,50 -36,40 -30,32 Z"}
+      - {use: fold, at: [24, 54], sx: 22, sy: 8, tilt: -14, line: ink}
+      - {use: fold, at: [-12, 60], sx: 19, sy: 7, tilt: 10, line: ink}
+      - {kind: ink, w: {profile: taper, a: 0.2, b: 2.4, peak: 0.25},
+         d: "M 36,60 C 52,84 60,118 56,156"}
+      # hair falling IN FRONT of the shoulders. They have to fall OUTSIDE the
+      # collar -- the seventh pass put them on the shoulder line and they came back
+      # as a cape, the eighth laid four across the chest and they merged into a band
+      # that cut the scarf in half. Two locks, rooted beside the neck, hanging past
+      # it: hair that ends in a straight line is a wig.
+      #
+      # These two are the reason the affine bug was found. For nine rounds every
+      # lock put down with a tilt came out lying SIDEWAYS, poking horizontally out
+      # of the head like a fin, and the explanation kept being sought in the author:
+      # first "a fat root on the silhouette edge", then "sy becomes the horizontal
+      # root under a 90 deg tilt". Neither was true. `_mul` transposed the 2x2 block
+      # whenever a tilt met a non-uniform scale, so sx and sy swapped axes -- the
+      # lock was never sideways by design, it was sideways by a transpose. The sizes
+      # below are what they were always meant to be: length down, width across.
+      - {use: clump_b, at: [-34, 2], sx: 76, sy: 11, tilt: 100,
+         w: {profile: ramp, a: 1.8, b: 0.8}}
+      - {use: clump, at: [30, -4], sx: 66, sy: 10, tilt: 84,
+         w: {profile: ramp, a: 1.8, b: 0.8}}
+      # 顔: the skull is wider than the jaw and the jaw is a curve that ENDS at a
+      # point — a chin is where two curves meet at an angle, not a semicircle.
+      # The outline is a taper with its thick end at the chin (the path starts and
+      # finishes there) and its thin end up under the hair: a face line that is
+      # uniform all the way round is a stencil.
+      - {kind: mass, fill: skin, w: {profile: taper, a: 2.4, b: 0.9, peak: 0.5},
+         d: "M -7,1 C -21,-6 -33,-17 -39,-31 C -45,-43 -47,-54 -44,-64 C -42,-74 -38,-81 -33,-86 C -14,-93 12,-93 28,-86 C 33,-78 37,-70 36,-56 C 35,-42 30,-30 22,-19 C 14,-9 4,-3 -7,1 Z"}
+      # 首の影 again, but AFTER the skin. It took three tries to stop reading as a
+      # CHOKER, and the reason is worth keeping: a black band with skin above it and
+      # skin below it is jewellery, however well it hugs the jaw. The eleventh pass
+      # was four units thick and still a necklace, because the gap between it and
+      # the collar was wider than the shadow. What a real page does is shade the
+      # WHOLE neck -- the jaw casts, the neck is in that cast, the shading ends only
+      # where the garment starts -- so there is no second edge to read as an object.
+      # Its top edge is the jaw curve sampled off the face path, not eyeballed.
+      - {kind: mass, fill: ink, line: false,
+         d: "M -23,-6 C -16,-1 -12,1 -7,1 C 2,-1 12,-8 21,-17 C 20,-6 19,8 18,19 C 6,25 -8,24 -22,20 C -22,8 -23,0 -23,-6 Z"}
+      # 額の影: none. The second pass screened a band under the hairline and it
+      # floated in the middle of the forehead as a strip of dots, because a lattice
+      # at 5px pitch on a 24-unit forehead is only a handful of dots wide. Manga
+      # skin is LEFT AS PAPER: the shadow goes where light is actually blocked,
+      # which on this face is under the chin and nowhere else.
+      # 目: the near one is the wider one. `at` is the eye's CENTRE, and the
+      # template's own half-extent is 1.0, so sx 9.2 is a 19-unit almond on an
+      # 82-unit face -- four eyes across, which is the manga measure.
+      # `mx`, not `flip`: the eye's asymmetry is along its LENGTH (the lash wedge
+      # is heaviest at the outer corner), so turning a face the other way mirrors
+      # x. `flip` mirrors y, which put the near eye's lash on its LOWER lid and
+      # -- because the shift compensation keyed off the same flag -- drove both
+      # irises toward the nose. A cross-eyed face was the whole result of one
+      # wrong letter, and no gate could see it.
+      - {use: eye, at: [-25, -45], sx: 9.2, sy: 7.0, mx: true, shift: {iris: [-0.30, -0.04]}}
+      - {use: eye, at: [10, -45], sx: 7.6, sy: 6.0, shift: {iris: [-0.30, -0.04]}}
+      # 眉: close above the eyes and laid with the belly of the nib. A brow drawn
+      # a full eye-height above the lash reads as surprise; a brow in a shout is
+      # pressed DOWN onto the eye, and the third pass had them as light dashes
+      # because the template's own wedge ends at 2.3px -- a brow is the second
+      # heaviest line on a face after the lash, so the call site overrides it.
+      - {use: brow, at: [-25, -56], sx: 10.4, sy: 4.6, tilt: -9, mx: true,
+         w: {profile: wedge, a: 0.6, b: 3.4, p: 0.45}}
+      - {use: brow, at: [11, -56], sx: 8.8, sy: 4.0, tilt: 8,
+         w: {profile: wedge, a: 0.5, b: 2.9, p: 0.45}}
+      # 鼻: small and light. A nose drawn at the weight of the jaw line becomes an
+      # object on the face instead of the end of a plane, and the second pass had a
+      # checkmark where a nose should be. Both nose and mouth sit ON the midline
+      # (x=-7); the eighth pass had them five units off it and the face looked
+      # turned one way while its eyes looked another.
+      - {use: nose, at: [-8, -26], sx: 4.0, sy: 5.2, mx: true}
+      - {use: mouth_open, at: [-9, -11], sx: 9.0, sy: 8.2, tilt: 2}
+      # 前髪. The cap goes down AFTER the face: the volume behind only supplies the
+      # outer silhouette, and the HAIRLINE is the cap's own lower edge, which has
+      # to cut across the forehead it is drawn over. An arch, highest at the
+      # middle and receding at the temples, because that is where hair actually is
+      # -- and its corners are pulled INSIDE the face outline (x -38 / +32 against
+      # an outline at -46 / +36), because the temple is skin and a hairline that
+      # stops at the silhouette leaves the whole forehead bare.
+      - {kind: mass, fill: ink, line: false,
+         d: "M -38,-56 C -42,-72 -34,-84 -22,-90 C -6,-96 12,-94 24,-86 C 30,-80 32,-68 32,-52 C 40,-70 44,-94 32,-110 C 20,-128 -20,-130 -38,-112 C -48,-92 -46,-72 -38,-56 Z"}
+      # the fringe -- ONE authored mass, not a row of placed locks.
+      #
+      # Nine passes of `use: clump` proved the point: a bang row built from
+      # separate shapes can only ever be two things, because everything here is
+      # the same black. Space them and they are leopard spots on a forehead; overlap
+      # them and they fuse into the cap and all that survives is the ragged hem -- a
+      # bitten edge. A real page draws bangs as ONE shape whose lower boundary is a
+      # hem of broad points and shallow notches, and gets the lock structure from
+      # the notches reading against the hairline behind them. So: the mass's own top
+      # edge is buried inside the cap (y -104..-112) so there is no seam, its points
+      # come down to the eyebrow line, and its notches stop just short of the
+      # hairline, which leaves a sliver of forehead between the two -- that sliver
+      # IS the lock separation, and it is the only place skin is allowed to show.
+      #
+      # the tenth pass's hem had three points and notches that climbed to the
+      # hairline, so between the two centre points the skin ran forty units up into
+      # the cap and the face got a widow's peak instead of a fringe. A fringe covers
+      # the forehead: the points stop just above the brow, the notches stop just
+      # below the hairline, and nowhere is there a gap taller than the lock itself.
+      # Which means the notch depth, not the point spacing, is the thing to author:
+      # notch twelve units under the hairline and the skin reads as slits; let it
+      # reach the hairline and it reads as a part in the hair.
+      - {kind: mass, fill: ink, line: false,
+         d: "M -45,-64 C -48,-84 -42,-104 -26,-112 C -6,-120 18,-116 32,-104 C 38,-92 40,-76 37,-60 C 33,-66 28,-70 22,-74 C 18,-66 13,-58 7,-54 C 3,-58 -1,-62 -6,-66 C -11,-60 -16,-56 -22,-54 C -28,-58 -33,-64 -37,-68 C -41,-66 -43,-65 -45,-64 Z"}
+      # 毛筋: the pass that makes black hair read as HAIR. Once the mass is laid
+      # flat, a few strands are drawn OVER it in paper -- not erased, inked again
+      # with a white pen -- each one starting inside the mass, swelling in the
+      # middle and ending at a point. Without this a head of ink is a helmet, and
+      # no proportion fix can save it.
+      #
+      # Where they go is the whole lesson of the ninth pass, which read as a black
+      # slab with a white rim: every strand was placed ONE UNIT INSIDE the
+      # silhouette, so it traced the outline and became a highlight on the edge
+      # rather than structure inside the mass. A strand has to sit in the middle of
+      # the fall, run the length of it, and start ABOVE the shine band so the crown
+      # reads as a sphere the hair is stretched over. Four, ending well inside the
+      # ink -- one that leaves the mass paints a white streak on the coat, and the
+      # tenth pass learned that the hard way: its right strand ran at x=36..38, the
+      # face's own outline is at x=37, so the white pen drew THROUGH the jaw and
+      # opened the silhouette like a cut. A strand is confined to the hair, and the
+      # hair's inner boundary is the face outline, with a margin.
+      - {kind: ink, line: paper, w: {profile: taper, a: 0.1, b: 2.0, peak: 0.3},
+         d: "M -22,-100 C -40,-78 -50,-50 -52,-18 C -54,8 -52,28 -48,44"}
+      - {kind: ink, line: paper, w: {profile: taper, a: 0.1, b: 2.2, peak: 0.3},
+         d: "M 2,-104 C 22,-80 32,-52 34,-18 C 36,8 34,28 30,44"}
+      - {kind: ink, line: paper, w: {profile: taper, a: 0.1, b: 1.5, peak: 0.4},
+         d: "M -30,-116 C -44,-100 -52,-82 -56,-62"}
+      - {kind: ink, line: paper, w: {profile: taper, a: 0.1, b: 1.6, peak: 0.4},
+         d: "M 10,-118 C 24,-102 34,-84 38,-64"}
+      # 散り毛: ONE flyaway at the bottom of the silhouette, where the hair thins
+      # out. The two passes that drew them off the crown -- long, thin, rising
+      # symmetrically, twice -- produced antennae, and a stray that leaves the
+      # dome is a lie because the dome IS the hair.
+      - {kind: ink, w: {profile: taper, a: 0.1, b: 1.2, peak: 0.3},
+         d: "M -48,70 C -54,88 -56,106 -54,124"}
+      - {kind: ink, w: {profile: taper, a: 0.1, b: 1.0, peak: 0.35},
+         d: "M 44,58 C 48,74 50,88 48,102"}
+      # 天使の輪: the crown highlight, one arc each side of the part, laid along the
+      # curve of the skull. It goes where the strands do NOT, or the two passes
+      # cross and the crown turns into a ball of scratched-out string.
+      - {use: shine, at: [-16, -121], sx: 14, sy: 6, tilt: 18, line: paper}
+      - {use: shine, at: [28, -112], sx: 13, sy: 6, tilt: -26, line: paper}
+
+  # 剣斗 (Kento) — the swordsman, second from left, half a step behind the lead.
+  #
+  # Every figure is authored in the SAME unit box -- chin at (0,0), hairline at
+  # -86, face 82 wide, crown at -132 -- because those are the proportions of a
+  # head, not of a character. What differs is the hair silhouette, the eye type,
+  # the brow angle and the mouth, which is exactly what a studio varies between
+  # cast members on a page. Distance is then carried by `scale`, `nib` and
+  # `depth` alone, and `mx` turns a face the other way so the five do not all
+  # look over the same shoulder.
+  #
+  # The background cast gets FEWER strokes on purpose and it is not laziness: a
+  # real page draws the far figures with less, and if the third rank were inked as
+  # finely as the first the eye would not know which face to read first. No 毛筋,
+  # no 天使の輪, no flyaway, one lock instead of two.
+  - id: kento
+    at: [0.225, 0.47]
+    scale: 1.80
+    depth: 0.32
+    nib: 0.94
+    tilt: 5.0
+    parts:
+      # short hair: the shell follows the skull and stops at the nape, so the
+      # spikiness lives in the fringe's hem and in ONE cowlick that genuinely
+      # leaves the dome -- which is allowed here and nowhere else, because on long
+      # hair the dome IS the hair and a stray off it is a lie
+      - {kind: mass, fill: ink, line: false,
+         d: "M -4,-132 C -32,-134 -54,-120 -62,-96 C -68,-70 -66,-42 -60,-20 C -56,-6 -52,6 -46,16 C -28,22 -4,24 18,21 C 32,19 42,13 47,4 C 49,-26 48,-58 42,-88 C 34,-116 16,-130 -4,-132 Z"}
+      - {kind: mass, fill: skin, w: {profile: ramp, a: 1.1, b: 1.5},
+         d: "M -16,-6 C -17,4 -19,12 -20,18 C -6,24 10,23 18,17 C 15,9 12,2 11,-8 Z"}
+      - {kind: mass, fill: cloth, w: {profile: ramp, a: 1.5, b: 2.4},
+         d: "M -20,18 C -44,26 -66,42 -80,66 C -90,88 -96,112 -96,140 C -96,196 -94,240 -92,268 L 92,268 C 94,240 96,196 96,140 C 96,112 90,88 80,66 C 66,44 44,28 22,20 C 12,34 2,42 -2,46 C -8,38 -14,28 -20,18 Z"}
+      - {use: clump, at: [30, -2], sx: 40, sy: 9, tilt: 88, w: {profile: ramp, a: 1.6, b: 0.7}}
+      - {kind: mass, fill: skin, w: {profile: taper, a: 2.2, b: 0.9, peak: 0.5},
+         d: "M -6,2 C -20,-5 -32,-16 -38,-30 C -44,-42 -46,-53 -43,-63 C -41,-73 -37,-80 -32,-85 C -13,-92 11,-92 27,-85 C 32,-77 36,-69 35,-55 C 34,-41 29,-29 21,-18 C 13,-8 3,-2 -6,2 Z"}
+      - {kind: mass, fill: ink, line: false,
+         d: "M -20,18 C -14,4 -12,-6 -6,2 C 2,-2 12,-9 18,-17 C 18,-4 17,8 16,18 C 6,23 -8,23 -20,18 Z"}
+      # 鋭い目 + brows angled down to the nose: two lines that would not be
+      # allowed on the lead's face, and the only reason this figure reads as
+      # somebody other than her
+      - {use: eye_sharp, at: [-24, -44], sx: 8.6, sy: 6.2, mx: true, shift: {iris: [-0.26, -0.02]}}
+      - {use: eye_sharp, at: [8, -44], sx: 7.2, sy: 5.4, shift: {iris: [-0.26, -0.02]}}
+      - {use: brow, at: [-24, -53], sx: 10.0, sy: 4.6, tilt: -12, mx: true,
+         w: {profile: wedge, a: 0.7, b: 3.6, p: 0.4}}
+      - {use: brow, at: [9, -53], sx: 8.4, sy: 4.0, tilt: -12,
+         w: {profile: wedge, a: 0.6, b: 3.2, p: 0.4}}
+      - {use: nose, at: [-8, -25], sx: 4.0, sy: 5.0, mx: true}
+      - {use: mouth, at: [-9, -11], sx: 8.4, sy: 5.2, tilt: -3}
+      - {kind: mass, fill: ink, line: false,
+         d: "M -36,-58 C -40,-74 -32,-86 -20,-92 C -4,-98 12,-96 24,-88 C 30,-82 32,-70 32,-54 C 40,-72 44,-96 32,-112 C 18,-128 -20,-130 -38,-112 C -48,-92 -44,-72 -36,-58 Z"}
+      - {kind: mass, fill: ink, line: false,
+         d: "M -44,-62 C -46,-82 -40,-102 -24,-110 C -4,-118 18,-114 30,-102 C 36,-90 38,-76 35,-58 C 31,-66 26,-70 20,-74 C 16,-66 12,-58 6,-52 C 2,-60 -2,-66 -8,-72 C -12,-64 -18,-58 -24,-52 C -30,-60 -36,-64 -44,-62 Z"}
+      - {kind: ink, line: paper, w: {profile: taper, a: 0.1, b: 1.7, peak: 0.35},
+         d: "M -18,-100 C -34,-80 -44,-56 -46,-28"}
+      - {kind: ink, line: paper, w: {profile: taper, a: 0.1, b: 1.6, peak: 0.35},
+         d: "M 6,-102 C 20,-82 28,-58 28,-30"}
+      - {use: clump, at: [-18, -118], sx: 24, sy: 8, tilt: -124}
+
+  # 灯 (Hibari) — the lantern-bearer, right of centre, turned inward toward the
+  # group. Her figure carries `mx`, so every part below is still authored in the
+  # canonical frame -- near eye at -x, lash thick at the outer corner -- and the
+  # page mirrors the whole face at once. That is the only way one set of numbers
+  # serves both directions.
+  - id: hibari
+    at: [0.775, 0.49]
+    scale: 1.72
+    depth: 0.40
+    nib: 0.90
+    tilt: -4.0
+    mx: true
+    parts:
+      # a soft round volume with the hair swept off the face on one side, so the
+      # silhouette is deliberately asymmetric and the mirror puts that the right way
+      - {kind: mass, fill: ink, line: false,
+         d: "M -2,-134 C -34,-134 -58,-118 -66,-92 C -72,-64 -70,-32 -62,-2 C -58,22 -52,44 -44,62 C -20,56 14,56 40,60 C 44,34 48,10 50,-14 C 52,-52 44,-100 24,-122 C 14,-132 8,-134 -2,-134 Z"}
+      - {kind: mass, fill: skin, w: {profile: ramp, a: 1.0, b: 1.4},
+         d: "M -16,-6 C -17,4 -19,12 -20,18 C -6,24 10,23 18,17 C 15,9 12,2 11,-8 Z"}
+      - {kind: mass, fill: cloth, w: {profile: ramp, a: 1.4, b: 2.2},
+         d: "M -20,18 C -42,26 -62,42 -74,66 C -84,88 -88,112 -88,140 C -88,196 -86,240 -84,268 L 84,268 C 86,240 88,196 88,140 C 88,112 84,88 74,66 C 62,44 42,28 22,20 C 12,34 2,42 -2,46 C -8,38 -14,28 -20,18 Z"}
+      - {use: clump_b, at: [-32, 4], sx: 58, sy: 10, tilt: 98, w: {profile: ramp, a: 1.5, b: 0.7}}
+      - {kind: mass, fill: skin, w: {profile: taper, a: 2.1, b: 0.85, peak: 0.5},
+         d: "M -6,1 C -19,-6 -31,-16 -37,-30 C -43,-42 -45,-53 -42,-63 C -40,-72 -36,-79 -31,-84 C -13,-91 11,-91 26,-84 C 31,-76 35,-68 34,-55 C 33,-42 28,-30 21,-19 C 13,-9 3,-3 -6,1 Z"}
+      - {kind: mass, fill: ink, line: false,
+         d: "M -20,18 C -14,4 -12,-6 -6,1 C 2,-2 12,-9 18,-16 C 18,-4 17,8 16,18 C 6,23 -8,23 -20,18 Z"}
+      - {use: eye, at: [-23, -43], sx: 8.8, sy: 7.2, mx: true, shift: {iris: [-0.24, -0.06]}}
+      - {use: eye, at: [8, -43], sx: 7.4, sy: 6.2, shift: {iris: [-0.24, -0.06]}}
+      - {use: brow, at: [-23, -55], sx: 9.6, sy: 3.8, tilt: -5, mx: true,
+         w: {profile: wedge, a: 0.4, b: 2.6, p: 0.5}}
+      - {use: brow, at: [9, -55], sx: 8.2, sy: 3.4, tilt: 5,
+         w: {profile: wedge, a: 0.4, b: 2.4, p: 0.5}}
+      - {use: nose, at: [-8, -24], sx: 3.6, sy: 4.6, mx: true}
+      - {use: mouth, at: [-9, -10], sx: 7.6, sy: 5.0, tilt: 2}
+      - {kind: mass, fill: ink, line: false,
+         d: "M -36,-54 C -42,-72 -34,-86 -20,-92 C -4,-98 14,-96 26,-86 C 32,-78 34,-64 33,-48 C 44,-68 50,-98 38,-116 C 20,-134 -24,-136 -44,-116 C -54,-96 -48,-72 -36,-54 Z"}
+      # one side-swept bang: a hem with its points walking across the forehead in
+      # ONE direction, which is what "swept" means and what a symmetric row of
+      # teeth cannot say
+      - {kind: mass, fill: ink, line: false,
+         d: "M -44,-58 C -48,-80 -40,-100 -22,-110 C 0,-118 22,-112 34,-96 C 40,-84 40,-66 36,-50 C 30,-64 22,-74 12,-80 C 10,-66 6,-56 0,-50 C -4,-62 -10,-72 -18,-78 C -22,-66 -30,-58 -44,-58 Z"}
+      - {kind: ink, line: paper, w: {profile: taper, a: 0.1, b: 1.6, peak: 0.35},
+         d: "M -20,-102 C -38,-80 -48,-52 -50,-20"}
+      - {kind: ink, line: paper, w: {profile: taper, a: 0.1, b: 1.5, peak: 0.35},
+         d: "M 8,-104 C 24,-82 32,-54 32,-22"}
+
+  # 灰 (Hai) — the armorer, far left, a head behind Kento. Two ranks back means
+  # about half the strokes: the features stay (an eyeless figure in the back reads
+  # as a bug), the secondary passes go.
+  - id: hai
+    at: [0.098, 0.60]
+    scale: 1.30
+    depth: 0.64
+    nib: 0.80
+    tilt: 9.0
+    parts:
+      # a hood: the cheapest silhouette in manga for a background figure and the
+      # honest one -- an anvil-smith on a page is drawn covered, and a hood gives a
+      # shape that needs no hair authoring at all
+      - {kind: mass, fill: ink, line: false,
+         d: "M -2,-138 C -40,-136 -66,-114 -72,-78 C -76,-46 -70,-14 -58,10 C -46,32 -30,46 -12,52 C 10,56 32,50 48,36 C 62,22 68,-2 66,-32 C 62,-72 46,-116 20,-132 C 12,-137 6,-138 -2,-138 Z"}
+      - {kind: mass, fill: skin, w: {profile: taper, a: 2.0, b: 0.8, peak: 0.5},
+         d: "M -6,2 C -18,-6 -28,-18 -32,-34 C -36,-48 -34,-64 -26,-76 C -12,-86 8,-86 22,-76 C 30,-64 32,-48 28,-34 C 24,-18 12,-4 -6,2 Z"}
+      - {kind: mass, fill: cloth, w: {profile: ramp, a: 1.4, b: 2.2},
+         d: "M -40,30 C -58,44 -72,68 -78,98 C -84,132 -84,180 -82,268 L 74,268 C 76,180 74,132 66,98 C 58,66 44,44 30,32 C 16,44 2,50 -6,50 C -18,48 -30,42 -40,30 Z"}
+      - {kind: mass, fill: ink, line: false,
+         d: "M -30,-30 C -22,-12 -12,0 -6,2 C 2,0 12,-10 20,-26 C 20,-10 14,4 4,12 C -6,18 -18,14 -26,4 C -30,-6 -31,-18 -30,-30 Z"}
+      - {use: eye_sharp, at: [-20, -40], sx: 7.4, sy: 5.2, mx: true}
+      - {use: eye_sharp, at: [7, -40], sx: 6.4, sy: 4.6}
+      - {use: brow, at: [-20, -50], sx: 8.6, sy: 4.0, tilt: -10, mx: true,
+         w: {profile: wedge, a: 0.6, b: 3.0, p: 0.4}}
+      - {use: brow, at: [8, -50], sx: 7.4, sy: 3.6, tilt: -10,
+         w: {profile: wedge, a: 0.6, b: 2.8, p: 0.4}}
+      - {use: nose, at: [-7, -22], sx: 3.4, sy: 4.4, mx: true}
+      - {use: mouth, at: [-8, -9], sx: 7.0, sy: 4.4}
+      # the hood's inner edge IS the hairline here, so the face needs no cap and no
+      # bangs -- one dark shape at the top of the opening and the reading is done
+      - {kind: mass, fill: ink, line: false,
+         d: "M -30,-58 C -22,-74 -6,-82 8,-78 C 22,-74 30,-60 30,-46 C 22,-58 10,-64 -2,-64 C -16,-64 -26,-56 -30,-58 Z"}
+
+  # 双 (Futa) — the twin, far right, the smallest and turned inward. Same reduced
+  # pass; the difference from Hai is only the outline of the hair and a level mouth,
+  # which is all a fifth figure on a cover is ever asked to carry.
+  - id: futa
+    at: [0.905, 0.62]
+    scale: 1.26
+    depth: 0.70
+    nib: 0.78
+    tilt: -10.0
+    mx: true
+    parts:
+      - {kind: mass, fill: ink, line: false,
+         d: "M -4,-134 C -34,-134 -56,-116 -62,-88 C -68,-58 -64,-24 -54,6 C -48,26 -42,44 -34,58 C -12,52 16,52 38,58 C 42,32 46,6 48,-20 C 50,-58 40,-108 20,-126 C 12,-133 4,-134 -4,-134 Z"}
+      - {kind: mass, fill: skin, w: {profile: ramp, a: 0.9, b: 1.3},
+         d: "M -14,-4 C -15,6 -17,14 -18,20 C -4,25 10,24 17,18 C 14,10 11,3 10,-6 Z"}
+      - {kind: mass, fill: cloth, w: {profile: ramp, a: 1.3, b: 2.0},
+         d: "M -18,20 C -40,28 -58,44 -70,68 C -78,90 -82,116 -82,150 C -82,200 -80,240 -78,268 L 72,268 C 74,240 76,200 76,150 C 76,116 72,90 64,68 C 54,44 38,30 20,22 C 10,36 2,44 -2,48 C -8,40 -12,30 -18,20 Z"}
+      - {use: clump, at: [28, 0], sx: 42, sy: 9, tilt: 86, w: {profile: ramp, a: 1.4, b: 0.6}}
+      - {kind: mass, fill: skin, w: {profile: taper, a: 1.9, b: 0.8, peak: 0.5},
+         d: "M -6,1 C -18,-6 -29,-17 -34,-31 C -40,-43 -41,-53 -39,-62 C -37,-71 -33,-78 -29,-83 C -12,-89 10,-89 24,-83 C 29,-75 32,-67 32,-55 C 31,-43 27,-31 20,-20 C 13,-9 3,-3 -6,1 Z"}
+      - {kind: mass, fill: ink, line: false,
+         d: "M -18,20 C -13,6 -11,-4 -6,1 C 2,-2 11,-8 17,-15 C 17,-4 16,8 15,18 C 6,23 -7,23 -18,20 Z"}
+      - {use: eye, at: [-21, -41], sx: 7.6, sy: 5.8, mx: true, shift: {iris: [-0.20, 0.0]}}
+      - {use: eye, at: [7, -41], sx: 6.4, sy: 5.0, shift: {iris: [-0.20, 0.0]}}
+      - {use: brow, at: [-21, -52], sx: 8.4, sy: 3.2, tilt: -2, mx: true}
+      - {use: brow, at: [8, -52], sx: 7.2, sy: 3.0, tilt: 2}
+      - {use: nose, at: [-7, -22], sx: 3.2, sy: 4.0, mx: true}
+      - {use: mouth, at: [-8, -9], sx: 6.4, sy: 4.2}
+      - {kind: mass, fill: ink, line: false,
+         d: "M -34,-52 C -40,-70 -32,-84 -18,-90 C -2,-96 14,-94 24,-84 C 30,-76 32,-62 31,-46 C 42,-64 46,-96 34,-114 C 16,-132 -22,-134 -42,-114 C -52,-94 -46,-68 -34,-52 Z"}
+      - {kind: mass, fill: ink, line: false,
+         d: "M -40,-56 C -44,-78 -36,-98 -20,-106 C 0,-114 20,-108 30,-94 C 36,-82 36,-64 33,-50 C 28,-62 22,-68 14,-72 C 12,-62 8,-54 2,-48 C -2,-58 -8,-66 -14,-70 C -20,-60 -30,-54 -40,-56 Z"}
+      - {kind: ink, line: paper, w: {profile: taper, a: 0.1, b: 1.4, peak: 0.35},
+         d: "M -16,-98 C -32,-76 -42,-48 -44,-16"}
+
+# ---------------------------------------------------------------------------
+# the sheet. 集中線 first, under the cast: the figures are opaque, so their own
+# masses mask the lines' inner ends and only the runs across the paper survive.
+# That is the layering a cover uses, and it is why no line has to be computed to
+# stop at a face.
+# ---------------------------------------------------------------------------
+backdrop:
+  - {kind: burst, focus: [0.50, 0.30], count: 108, skip: 0.24, inner: 0.10,
+     outer: 1.15, w: 6.0, color: ink}
+  # one light screen at the top corners so the burst is not lying on bare paper
+  - {kind: tone, color: tone_lite, level: 0.42, pitch: 1.0,
+     d: "M 0,0 L 300,0 C 250,90 150,150 0,170 Z"}
+  - {kind: tone, color: tone_lite, level: 0.42, pitch: 1.0,
+     d: "M 1400,0 L 1100,0 C 1150,90 1250,150 1400,170 Z"}
+
+foreground:
+  # 台詞 wind bubble: paper inside, ink around, tail as part of the same outline
+  - {kind: mass, fill: paper, w: {profile: ramp, a: 2.6, b: 1.5},
+     d: "M 122,74 C 60,74 30,100 30,132 C 30,166 62,190 122,190 L 168,190 L 148,228 L 212,190 L 332,190 C 394,190 422,166 422,132 C 422,100 394,74 332,74 Z"}
+  - {kind: title, text: 今日也从这里出发, at: [0.159, 0.132], size: 0.030, color: ink}
+  # the logotype: 赤, and the only place red touches besides the scarf
+  - {kind: title, text: 余烬公会, at: 0.935, size: 0.115, color: accent, shade: ink}
+  - {kind: title, text: 原版一頁 · 手绘上墨, at: 0.986, size: 0.020, color: ink}
+  # 枠: the panel edge, then a keyline inside it — a page without a frame is a drawing
+  - {kind: ink, closed: true, w: {profile: flat, a: 5.0},
+     d: "M 16,16 L 1384,16 L 1384,984 L 16,984 Z"}
+
+acceptance:
+  - resolution exactly 1400x1000
+  - distinct palette colors at most 12
+  - undeclared palette entries at most 0
+  - at least 99% of pixels are exact palette colors
+  # the pen gate. p90-p10 of the line thickness recovered from the pixels: a
+  # constant-width outline scores near zero here no matter how well drawn it is,
+  # which is exactly the fault the previous route shipped green.
+  # 2.4 px, NOT 1.4, and the number is measured rather than picked: the floor was
+  # calibrated against scripts/probes/nib_gate_mutant_probe.py, which redraws every
+  # stroke on this page at one width and still recovers **1.84 px** on the
+  # pre-downsample raster (a 1.7 px print line is 5.1 px at supersample 3, and the
+  # pen's own jitter plus half-pixel landing account for the rest). A floor below
+  # that cannot see its own fault; the authored page measures 4.00 px.
+  # The sample itself is clean, and that had to be checked rather than assumed:
+  # only **0.4%** of the ridge points are wider than any nib this page authors
+  # (the widest is 6.36 px -- a flat 5.0 px line in foreground[4] carries the
+  # 5.33 px mode and 31.5% of the sample). An earlier reading compared against the
+  # figures' parts only, found 3.60 px, and declared a third of the spread to be
+  # filled masses; that was wrong, and `ink_weight_over_nib_pct` is now in the
+  # manifest so the claim has to be re-measured to be repeated.
+  - ink weight spread above 2.4 px
+  # manga pages are mostly WHITE. Tone everywhere is the other fault the earlier
+  # sheets had, and this is the rule that would have caught it
+  - unmarked paper between 20% and 70%
+  - screentone coverage between 1% and 14%
+  - linework edge density above 2%
+  - at least 4 separate figures
+  - at least 8 drawn eyes
+  - luma spread across the sheet above 150
+
+assumptions:
+  - "style grammar only: no character, name, mark or costume from any existing work"
+  - "monochrome by choice: a weekly-shonen page is pen, tone paper and one red"
+  - "every coordinate in figures[] is authored; the seed only jitters the nib"
+  - "the page is supersampled 3x because a tapered line ends below one pixel"

@@ -1,0 +1,155 @@
+# specs/examples/illust-cumulus.yaml
+# Illustration route, third grammar: 积云飞行社 / Cumulus Flight Club.
+#
+# What is quoted from the hand-painted-cel school is its *scenography*: a sky
+# that takes up most of the frame and is built from one towering cumulus with a
+# shaded base and a lit crown, a horizon of warm grass under a hard light, small
+# working buildings tucked into the landscape, and people drawn mid-action
+# against weather rather than posing for the camera. Every figure here is an
+# original design assembled from parameters — no character, aircraft, studio
+# mark or name from any existing work appears (docs/styles.md §2 §4 §7).
+id: illust-cumulus
+title: 积云飞行社 — an original flight club on a hill
+medium: illustration
+
+width: 1600
+height: 900
+seed: 7
+
+palette:
+  paper: "#F4F6EE"
+  ink: "#1E241F"
+  tone: "#5C6B4E"
+  rim: "#FFF6D8"
+  light: "#FFFAE8"
+  shadow: "#2C3A33"
+  accent_shade: "#1F5C74"
+  steel: "#A9B4BC"
+  flame: "#F2B23C"
+  seal: "#C0463F"
+  skin: "#F1CDA6"
+  wall: "#C9A05F"
+  structure: "#6B4A2E"
+  sky_top: "#1E5FA8"
+  sky_mid: "#62A8DC"
+  sky_low: "#C4E4F4"
+  grass: "#4E8B3A"
+  grass_dark: "#2E5F2A"
+  hair_brown: "#4A3220"
+  hair_red: "#B4472A"
+  cloth_blue: "#2F4A7A"
+  cloth_khaki: "#B99A5B"
+palette_order: [sky_top, sky_mid, sky_low, grass_dark, grass, structure, wall,
+                shadow, ink, tone, cloth_blue, cloth_khaki, steel, hair_brown,
+                hair_red, flame, seal, accent_shade, skin, paper, rim, light]
+
+font:
+  paths:
+    - "C:/Windows/Fonts/NotoSansSC-VF.ttf"
+    - "C:/Users/data/AppData/Local/Microsoft/Windows/Fonts/NotoSansSC-VF.ttf"
+  licence: "SIL Open Font License 1.1 (Noto Sans SC, Google)"
+
+title_text: 积云飞行社
+
+backdrop:
+  # a deep vertical ramp with the weather in it: the zenith is dark enough that
+  # the cumulus crown reads as the brightest thing on the sheet
+  stops:
+    - {at: 0.00, color: sky_top}
+    - {at: 0.42, color: sky_mid}
+    - {at: 0.86, color: sky_low}
+    - {at: 1.00, color: sky_low}
+  sun: {at: [0.14, 0.16], radius: 0.055, color: light}
+  ridges:
+    - {at: 0.60, amp: 0.035, freq: 1.3, color: grass, salt: 11}
+    - {at: 0.72, amp: 0.028, freq: 2.1, color: grass_dark, salt: 4}
+  # the tower: lobes stacked upward from a flat base, its underside shaded with
+  # the sky's own mid blue and its crown lit to paper. dy is measured downward,
+  # so the lobes that build height carry negative offsets. `mid` adds the third
+  # value a hand-painted cumulus actually has -- a break between the shade and
+  # the light rather than one hard step, which is what kept the mass flat
+  clouds:
+    - {at: [0.62, 0.40], scale: 0.34, shade: sky_mid, mid: sky_low, lit: paper,
+       edge: rim,
+       lobes: [[-0.55, 0.28, 0.26], [0.55, 0.30, 0.24], [0.0, 0.30, 0.34],
+               [-0.34, 0.02, 0.30], [0.30, -0.02, 0.32], [0.0, -0.30, 0.36],
+               [-0.18, -0.56, 0.24], [0.22, -0.58, 0.20]]}
+    - {at: [0.18, 0.52], scale: 0.13, shade: sky_mid, lit: paper, edge: rim,
+       lobes: [[-0.5, 0.1, 0.26], [0.0, -0.06, 0.32], [0.5, 0.1, 0.24]]}
+    - {at: [0.90, 0.56], scale: 0.10, shade: sky_mid, lit: paper, edge: rim,
+       lobes: [[-0.8, 0.06, 0.18], [-0.25, -0.04, 0.24], [0.3, 0.04, 0.20],
+               [0.78, 0.08, 0.15]]}
+
+set:
+  - {kind: roof, at: [0.075, 0.635], scale: 0.16, color: wall, shade: ink}
+  - {kind: roof, at: [0.795, 0.655], scale: 0.13, color: structure, shade: ink}
+  # a mast rather than furrowed lines: a hill carries grass, and the scratch
+  # marks a paddy makes on turf read as a drawing error, not as a field. It is
+  # built as a lattice with bracing, a platform, a windsock and guy wires, since
+  # a single filled bar has nothing to argue with about its scale
+  - {kind: mast, at: [0.335, 0.70], scale: 0.30, color: structure, shade: ink,
+     deck: steel, flag: seal}
+
+# the cast is doing something: two of them have their arms up at the weather,
+# one is mid-stride on the ridge, and the tallest is a presence rather than a pose
+figures:
+  # the distant shepherd is cut SHORT rather than LONG: at a 28x32 px skull the
+  # side locks and the crown cap leave under 173 skin pixels, so the hair eats
+  # the face and the cast stops being countable -- distance constrains the cut
+  - {at: [0.115, 0.655], scale: 0.22, depth: 0.85, lit: 1, pose: ready,
+     expression: calm, hair_style: short, hair: structure, garment_style: coat,
+     garment: cloth_blue, garment_shade: shadow, accent: steel, skin: skin,
+     sleeve: true, accessory: []}
+  - {at: [0.885, 0.685], scale: 0.28, depth: 0.8, lit: -1, pose: akimbo,
+     expression: calm, hair_style: long, hair: sky_low, garment_style: dress,
+     garment: sky_mid, garment_shade: shadow, accent: light, skin: skin,
+     accessory: []}
+  - {at: [0.455, 0.96], scale: 0.66, depth: 0.1, lit: 1, pose: raised,
+     expression: grin, hair_style: short, hair: hair_brown,
+     garment_style: pilot, garment: cloth_khaki, garment_shade: shadow,
+     accent: steel, skin: skin, goggles: true, accessory: []}
+  - {at: [0.70, 0.90], scale: 0.54, depth: 0.28, lit: -1, pose: hold,
+     expression: smile, hair_style: short, hair: hair_red,
+     garment_style: coat, garment: cloth_blue, garment_shade: shadow,
+     accent: flame, skin: skin, sleeve: true, accessory: []}
+  - {at: [0.235, 0.88], scale: 0.42, depth: 0.38, lit: 1, pose: raised,
+     expression: grin, hair_style: twin, hair: hair_brown,
+     garment_style: dress, garment: paper, garment_shade: shadow,
+     accent: seal, skin: skin, companion: true, accessory: []}
+
+tone:
+  pitch: 7
+  dot: 0.42
+  dither: 24
+  regions:
+    # tone belongs to the ground: dots printed over the cumulus would dirty the
+    # one object on the sheet that has to stay clean, and would also steal the
+    # sky's negative space from the very metric that guards it
+    - {at: [0.50, 1.16], radius: 0.40, level: 0.46}
+    - {at: [0.02, 0.92], radius: 0.16, level: 0.34}
+    - {at: [0.98, 0.92], radius: 0.16, level: 0.34}
+
+frame:
+  border: 0.012
+  logo_band: 0.12
+  title_size: 0.44
+  subtitle: "風の上の飛行社 · an original flight club, rendered by code"
+
+acceptance:
+  - resolution exactly 1600x900
+  - distinct palette colors at most 24
+  - at least 99% of pixels are exact palette colors
+  - undeclared palette entries at most 0
+  - screentone coverage between 1% and 12%
+  - linework edge density above 2.5%
+  - at least 4 separate figures
+  # the pastoral sky is cumulus against light: mostly clear. Measured on the
+  # 5x5-median luma the sheet scores 79.6 (docs/styles.md §8.3); band set around it.
+  - sky negative space between 60% and 92%
+  - title band ink between 0.5% and 14%
+  - luma spread across the sheet above 100
+
+assumptions:
+  - "style grammar only: no character, aircraft, studio mark or name is quoted"
+  - "the cumulus is a union of lobes with a shaded base, not a painted plate"
+  - "the hill carries the cast, so no perspective floor is drawn"

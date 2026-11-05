@@ -40,8 +40,9 @@ from pathlib import Path
 import yaml
 
 from . import (audio_sample, anime_sample, ffmpeg, film_sample, firstloop,
-               game_sample, image_sample, ink_landscape, layout_sample,
-               provenance, registry, spectrum_sample, type_sample)
+               game_sample, image_sample, illustration_sample, ink_landscape,
+               layout_sample, manga_ink, provenance, registry, spectrum_sample,
+               type_sample)
 
 PIPELINE_VERSION = "vcac-pipeline/0.1"
 
@@ -90,6 +91,12 @@ ROUTES = {
     "type": RouteEntry(type_sample.run, "type.mp4", ("fonttools",)),
     "spectrum": RouteEntry(spectrum_sample.run, "spectrum.png", ("ffmpeg",)),
     "ink": RouteEntry(ink_landscape.run, "ink.png", ("scipy", "pillow")),
+    # a still ensemble portrait: same Pillow/SciPy stack, a print-ready artifact
+    "illustration": RouteEntry(illustration_sample.run, "print.png",
+                               ("scipy", "pillow")),
+    # the inked page: same stack, but the line itself is authored as curves and
+    # laid down with a pressure profile, so the gate can measure the pen
+    "manga": RouteEntry(manga_ink.run, "page.png", ("scipy", "pillow")),
 }
 
 

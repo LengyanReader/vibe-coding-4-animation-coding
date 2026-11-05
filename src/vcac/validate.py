@@ -82,6 +82,42 @@ _PATTERNS = [
     # discontinuity; scene_cuts counts them from the rendered frames.
     (re.compile(rf"at least (\d+) scene cuts?\b", re.I),
      "scene_cuts_min", ("scene_cuts",)),
+    # A shot can be NAMED for an element and never show it: the anime clip titled
+    # 飞檐少年 ran its first six seconds with the eave below the frame, because the
+    # camera was a zoom rather than a crop rectangle, and every gate stayed green
+    # because not one of them asked whether the thing the title promises is on
+    # screen. This one asks, and answers from pixels.
+    (re.compile(rf"at least ({_NUM})\s*% of frames show the title element", re.I),
+     "title_element_min", ("title_element_frame_pct",)),
+    # --- illustration route: 网点 / 线稿 / 群像 as constraints (styles.md §2 §4) ---
+    # MOST-SPECIFIC-FIRST again: "sky negative space between X% and Y%" contains
+    # the ink route's "negative space between X% and Y%", so registering the
+    # generic one first would silently hand the illustration gate the wrong field
+    (re.compile(rf"sky negative space between ({_NUM})\s*% and ({_NUM})\s*%", re.I),
+     "sky_negative_range", ("sky_negative_pct",)),
+    (re.compile(rf"screentone coverage between ({_NUM})\s*% and ({_NUM})\s*%", re.I),
+     "screentone_dot_range", ("screentone_dot_pct",)),
+    (re.compile(rf"linework edge density above ({_NUM})\s*%", re.I),
+     "edge_density_min", ("edge_density_pct",)),
+    (re.compile(rf"at least (\d+) separate figures", re.I),
+     "figure_count_min", ("figure_count",)),
+    (re.compile(rf"undeclared palette entries at most ({_NUM})", re.I),
+     "undeclared_max", ("palette_undeclared_colors",)),
+    (re.compile(rf"title band ink between ({_NUM})\s*% and ({_NUM})\s*%", re.I),
+     "title_ink_range", ("title_ink_pct",)),
+    (re.compile(rf"luma spread across the sheet above ({_NUM})", re.I),
+     "luma_spread_min", ("luma_spread",)),
+    # --- manga inking route: the NIB is measurable (styles.md §2) ---
+    # The one pixel statistic that separates an inked page from a vector outline:
+    # how much the line WIDTH varies along the lines. A constant-width pen gives
+    # a spread near zero however good the drawing is, which is exactly how the
+    # illustration route passed every gate it had and still looked like clip art.
+    (re.compile(rf"ink weight spread above ({_NUM})\s*px", re.I),
+     "ink_weight_spread_min", ("ink_weight_spread",)),
+    (re.compile(rf"unmarked paper between ({_NUM})\s*% and ({_NUM})\s*%", re.I),
+     "paper_negative_range", ("paper_negative_pct",)),
+    (re.compile(rf"at least (\d+) drawn eyes", re.I),
+     "eye_count_min", ("eye_count",)),
     # --- ink-landscape route: 画理 as constraints (styles.md §1.2) ---
     (re.compile(rf"five ink value bands each above ({_NUM})\s*%", re.I),
      "value_bands_min", ("value_bands_min_pct",)),
@@ -169,6 +205,40 @@ def _evaluate(kind, m, measured):
             # the rule fails with evidence instead of raising inside the gate
             return False, f"{target}\u00b1{tol}", "unmeasurable"
         return abs(float(v) - target) <= tol, f"{target}\u00b1{tol}", round(float(v), 2)
+    if kind == "sky_negative_range":
+        lo, hi = float(m.group(1)), float(m.group(2))
+        v = measured["sky_negative_pct"]
+        return lo <= v <= hi, f"{lo}..{hi}%", round(v, 2)
+    if kind == "screentone_dot_range":
+        lo, hi = float(m.group(1)), float(m.group(2))
+        v = measured["screentone_dot_pct"]
+        return lo <= v <= hi, f"{lo}..{hi}%", round(v, 3)
+    if kind == "edge_density_min":
+        x = float(m.group(1)); v = measured["edge_density_pct"]
+        return v >= x, f">={x}%", round(v, 2)
+    if kind == "figure_count_min":
+        n = int(m.group(1)); v = int(measured["figure_count"])
+        return v >= n, f">={n}", v
+    if kind == "undeclared_max":
+        n = int(m.group(1)); v = int(measured["palette_undeclared_colors"])
+        return v <= n, f"<={n}", v
+    if kind == "title_ink_range":
+        lo, hi = float(m.group(1)), float(m.group(2))
+        v = measured["title_ink_pct"]
+        return lo <= v <= hi, f"{lo}..{hi}%", round(v, 2)
+    if kind == "luma_spread_min":
+        x = float(m.group(1)); v = measured["luma_spread"]
+        return v >= x, f">={x}", round(v, 1)
+    if kind == "ink_weight_spread_min":
+        x = float(m.group(1)); v = measured["ink_weight_spread"]
+        return v >= x, f">={x}px", round(v, 2)
+    if kind == "paper_negative_range":
+        lo, hi = float(m.group(1)), float(m.group(2))
+        v = measured["paper_negative_pct"]
+        return lo <= v <= hi, f"{lo}..{hi}%", round(v, 2)
+    if kind == "eye_count_min":
+        n = int(m.group(1)); v = int(measured["eye_count"])
+        return v >= n, f">={n}", v
     if kind == "value_bands_min":
         x = float(m.group(1)); v = measured["value_bands_min_pct"]
         return v >= x, f">={x}%", round(v, 3)
@@ -188,6 +258,9 @@ def _evaluate(kind, m, measured):
     if kind == "scene_cuts_min":
         n = int(m.group(1)); v = int(measured["scene_cuts"])
         return v >= n, f">={n}", v
+    if kind == "title_element_min":
+        x = float(m.group(1)); v = float(measured["title_element_frame_pct"])
+        return v >= x, f">={x}", round(v, 1)
     if kind == "harmonics_min":
         n = int(m.group(1)); v = measured["harmonics"]
         if v is None:

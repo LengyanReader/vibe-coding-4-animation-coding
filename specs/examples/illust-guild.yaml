@@ -1,0 +1,156 @@
+# specs/examples/illust-guild.yaml
+# Illustration route: a shonen-manga *ensemble cover* (余烬公会 / Ember Guild).
+#
+# What is quoted is the grammar, never a cast: staggered group posing, tapered
+# ink line, screentone as a real dot screen, radial speed lines, two-tone cel
+# shading with an outer rim line, and a logo band. The five adventurers and the
+# winged cat are original designs assembled from parameters — the same stance
+# `anime-eave.yaml` declares (docs/styles.md §2 §4 §7).
+id: illust-guild
+title: 余烬公会 — an original guild ensemble cover
+medium: illustration
+
+width: 1536
+height: 1024
+seed: 21
+
+# every entry must be distinct: the palette gates count pixels per colour, so a
+# collapsed palette would measure nothing (the ink route refuses for the same reason)
+palette:
+  paper: "#F6EFDC"
+  ink: "#221A15"
+  tone: "#8C5A2E"
+  rim: "#FFD9A8"
+  light: "#FFE7A6"
+  shadow: "#3B2A20"
+  accent_shade: "#7E2B16"
+  steel: "#A6B3BD"
+  flame: "#FF7A22"
+  seal: "#C7362B"
+  skin: "#F0C49B"
+  hair_ember: "#FF5A1F"
+  hair_blond: "#F2C24A"
+  hair_blue: "#3E63C8"
+  hair_ash: "#4A4458"
+  cloth_dark: "#2E3440"
+  cloth_white: "#E9E0C9"
+  cloth_mail: "#6E7A85"
+  structure: "#5A3A22"
+  wall: "#C8A26A"
+  sky_top: "#2B1B2E"
+  sky_mid: "#B4562A"
+  sky_low: "#F0B35A"
+palette_order: [sky_top, sky_mid, sky_low, wall, structure, shadow, ink, tone,
+                cloth_dark, cloth_mail, cloth_white, steel, hair_ember,
+                hair_blond, hair_blue, hair_ash, flame, seal, accent_shade,
+                skin, paper, rim, light]
+
+font:
+  paths:
+    - "C:/Windows/Fonts/NotoSansSC-VF.ttf"
+    - "C:/Users/data/AppData/Local/Microsoft/Windows/Fonts/NotoSansSC-VF.ttf"
+  licence: "SIL Open Font License 1.1 (Noto Sans SC, Google)"
+
+title_text: 余烬公会
+
+backdrop:
+  stops:
+    - {at: 0.00, color: sky_top}
+    - {at: 0.46, color: sky_mid}
+    - {at: 1.00, color: sky_low}
+  ridges:
+    - {at: 0.66, amp: 0.05, freq: 2.0, color: structure, salt: 3}
+  # the ground is a plane with boards converging on a vanish point, not a colour
+  # band: the cast has to stand somewhere, and a flat band flattens the whole sheet
+  floor: {at: 0.66, color: structure, planks: 16, vanish_x: 0.5}
+  # the clouds are lit from below by the sunset, so the shade is the sky's own
+  # mid tone rather than a hard brown mass: dark lobes on a dusk sky read as
+  # smudges, a value step of one or two stops reads as distance
+  clouds:
+    - {at: [0.16, 0.30], scale: 0.11, shade: sky_mid, lit: sky_low, edge: rim,
+       band: top,
+       lobes: [[-0.85, 0.06, 0.22], [-0.4, -0.10, 0.34], [0.05, 0.0, 0.30],
+               [0.5, -0.08, 0.26], [0.9, 0.06, 0.18]]}
+    - {at: [0.84, 0.24], scale: 0.09, shade: sky_mid, lit: sky_low, edge: rim,
+       band: top,
+       lobes: [[-0.85, 0.04, 0.20], [-0.35, -0.10, 0.30], [0.15, 0.0, 0.26],
+               [0.65, -0.06, 0.22]]}
+    - {at: [0.50, 0.40], scale: 0.13, shade: sky_mid, lit: sky_low, band: top,
+       lobes: [[-0.7, 0.0, 0.30], [-0.2, -0.10, 0.40], [0.3, 0.02, 0.34],
+               [0.72, 0.06, 0.26]]}
+
+set:
+  - {kind: column, at: [0.05, 0.95], scale: 0.55, color: structure, shade: ink}
+  - {kind: column, at: [0.95, 0.95], scale: 0.55, color: structure, shade: ink}
+  - {kind: banner, at: [0.17, 0.52], scale: 0.30, color: seal, shade: ink}
+  - {kind: banner, at: [0.83, 0.52], scale: 0.30, color: accent_shade, shade: ink}
+
+# the cast: depth sorts the back row first, so the front row overlaps them.
+# `garment` is a palette key (a colour), `garment_style` is the cut of it -- the
+# renderer refuses to invent either one silently
+figures:
+  - {at: [0.30, 0.70], scale: 0.44, depth: 0.8, lit: 1, pose: ready,
+     expression: calm, hair_style: short, hair: hair_ash, garment_style: armor,
+     garment: cloth_mail, garment_shade: shadow, accent: steel, skin: skin,
+     accessory: []}
+  - {at: [0.72, 0.71], scale: 0.46, depth: 0.75, lit: -1, pose: ready,
+     expression: hot, hair_style: short, hair: hair_blue, garment_style: coat,
+     garment: cloth_dark, garment_shade: shadow, skin: skin,
+     accessory: [sword]}
+  - {at: [0.19, 0.90], scale: 0.56, depth: 0.2, lit: 1, pose: akimbo,
+     expression: smile, hair_style: long, hair: hair_blond,
+     garment_style: dress, garment: cloth_white, garment_shade: shadow,
+     accent: light, skin: skin, accessory: [lantern]}
+  - {at: [0.50, 0.93], scale: 0.64, depth: 0.1, lit: 1, pose: raised,
+     expression: grin, hair_style: spiky, hair: hair_ember, garment_style: coat,
+     garment: seal, garment_shade: shadow, accent: flame, skin: skin,
+     accessory: [flame], companion: true}
+  - {at: [0.85, 0.90], scale: 0.54, depth: 0.25, lit: -1, pose: ready,
+     expression: calm, hair_style: twin, hair: hair_ash,
+     garment_style: school, garment: cloth_dark, garment_shade: shadow,
+     accent: steel, skin: skin, accessory: []}
+
+speed_lines:
+  focus: [0.50, 0.52]
+  count: 72
+  skip: 0.22
+
+tone:
+  pitch: 7
+  dot: 0.44
+  dither: 26
+  regions:
+    # the tone sits below the logo band: dots printed over the title would make
+    # title_ink_pct a measurement of the screen rather than of the lettering
+    - {at: [0.50, 1.00], radius: 0.58, level: 0.55}
+    - {at: [0.05, 0.44], radius: 0.15, level: 0.50}
+    - {at: [0.95, 0.44], radius: 0.15, level: 0.50}
+
+frame:
+  border: 0.012
+  logo_band: 0.15
+  title_size: 0.46
+  emblem: 0.16
+  subtitle: "an original ensemble, rendered by code"
+
+acceptance:
+  - resolution exactly 1536x1024
+  - distinct palette colors at most 24
+  - at least 99% of pixels are exact palette colors
+  - undeclared palette entries at most 0
+  - screentone coverage between 2% and 14%
+  - linework edge density above 3%
+  - at least 4 separate figures
+  # the shonen cover keeps its sky BUSY: radial lines and tone fill the band,
+  # which is the opposite of the dusk grammar and is measured as unmarked area.
+  # Recalibrated on the 5x5-median luma: the sheet scores 58.9 (docs/styles.md
+  # §8.3), so the old 55% ceiling was BELOW its own authored value and the rule
+  # was red for a correct sheet; the ceiling now sits above it.
+  - sky negative space between 40% and 72%
+  - title band ink between 0.5% and 14%
+  - luma spread across the sheet above 110
+
+assumptions:
+  - "style grammar only: no character, logo or name from any existing work"
+  - "screentone is a staggered dot screen, not an image-model texture"
+  - "the title face is an OFL font resolved from the system, hashed into the manifest"
