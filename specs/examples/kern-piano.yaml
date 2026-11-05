@@ -1,0 +1,43 @@
+# Kevin Kern-style felt-piano study — sampled piano via FluidSynth, composed
+# as reviewable note data (audio.piano_events), not improvisation.
+#
+# Form: 8 bars, 72 BPM (≈26.7s), A–A′–B–A″; C-major ballad harmony (C Am F G),
+# left-hand broken chords in eighths, right-hand melody with phrase-shaped
+# gains, a soft pad bed under every two bars, stereo spread from decorrelated
+# detune streams, and a small deterministic synthetic room.
+id: kern-piano
+title: Quiet morning — felt piano in C
+medium: audio
+
+engine: fluidsynth
+soundfont:
+  paths:
+    - assets/soundfonts/FluidR3_GM.sf2
+  licence: "MIT (FluidR3, Debian fluid-soundfont 3.1-6)"
+  licence_note: >-
+    MIT-licensed General MIDI soundfont, pulled from the canonical Debian
+    package by scripts/fetch_assets.py (sha256 in assets.lock.json and in the
+    manifest); the sf2 itself is not committed to git.
+
+duration: 26.7s
+sample_rate: 48000
+tempo: 72
+bars: 8
+key_root: C4
+seed: 7
+
+reverb: {seconds: 1.6, wet: 0.22}
+
+target_lufs: -18.0     # Kern-era new-age masters sit quieter than pop
+target_tp: -1.5
+lra: 11.0
+
+acceptance:
+  - duration between 26 and 30
+  - sample rate exactly 48000
+  - channels exactly 2
+  - loudness -18 LUFS
+  - peak below -1 dBFS
+  - not silent
+  - clipping < 0.01%
+  - dc offset < 0.001
