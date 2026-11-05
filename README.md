@@ -10,19 +10,21 @@
 
 每条路线都是一个 `medium` 名 + 一份 spec + 一组**实测**验收门 + 一个人类确认过的 golden 内容哈希，外加至少一个**被看着变红**的突变体（或一条拒绝规则）。表里的哈希由另一个进程记录、由 `tests/e2e` 断言，所以一次普通 pass 同时就是跨进程可复现性证明。“规则数”只数 spec 里的 acceptance 条目；路由额外测了确定性时，`validate` 会再追加一条 `determinism` 检查。
 
-| medium | 路由 module | spec | 渲染工具 | golden 内容哈希 | acceptance 规则数 |
-| --- | --- | --- | --- | --- | --- |
-| `video` | `firstloop` | `orbiting-cubes.yaml` | Pillow 逐帧 + FFmpeg | `d27999e7…` | 3 |
-| `image` | `image_sample` | `poster-noise.yaml` | Pillow/NumPy + FFmpeg 图像编码 | `d538c350…` | 3 |
-| `audio` | `audio_sample` | `synth-pad.yaml` | SciPy 加法合成 + FFmpeg R128 | `2f9351c5…` | 7 |
-| `audio` (sampled) | `audio_sample` | `kern-piano.yaml` | **FluidSynth 2.6.2** + FluidR3_GM（仓库自带，不入 git） | `b5bf04fd…` | 8 |
-| `film` | `film_sample` | `film-mux.yaml` | FFmpeg 装配（音画同步实测） | *无 pinned 哈希*：它是输入容器哈希的函数，改由 `test_pipeline_bundle` 与直接 `film_sample.run` 交叉校验 | 4 |
-| `game` | `game_sample` | `dodge-headless.yaml` | 纯 Python 定步长模拟 | `c67acbf8…` | 4 |
-| `layout` | `layout_sample` | `swiss-poster.yaml` | Playwright/Chromium（PNG+PDF 同源） | `ce95c593…` | 7 |
-| `type` | `type_sample` | `variable-weight.yaml` | fontTools 可变字体实例化 | `3796ddf4…` | 4 |
-| `spectrum` | `spectrum_sample` | `spectrogram-truth.yaml` | SciPy STFT → 图 → 再读出音高 | `e3591c8c…` | 7 |
-| `ink` | `ink_landscape` | `ink-landscape.yaml` | 九步水墨链（Pillow+SciPy），题款用 OFL 行书 | `7b767025…` | 8 |
-| `anime` | `anime_sample` | `anime-eave.yaml` | Pillow cel 渲染 + FFmpeg；镜头切换由直方图 TV 实测 | `c05722c8…` | 4 |
+成品的位置是固定的：`python -m vcac.<路由 module> specs/examples/<id>.yaml` 不指定 `--out` 时一律写到 **`outputs/<spec id>/`**，所以“找某件作品”= 找它的 spec 标题（每个 spec 的 `title:` 就是作品名，例如 `anime-eave.yaml` 的 `title: 飞檐少年 / Boy on the Temple Eave`），再进同名目录看 `clip.mp4` / `ink.png` / `master.wav`。这些文件全部可再生、不入 git。
+
+| medium | 路由 module | spec（`title:` 即作品名） | 成品（可再生，不入 git） | 渲染工具 | golden 内容哈希 | acceptance 规则数 |
+| --- | --- | --- | --- | --- | --- | --- |
+| `video` | `firstloop` | `orbiting-cubes.yaml` | `outputs/orbiting-cubes/final.mp4` | Pillow 逐帧 + FFmpeg | `d27999e7…` | 3 |
+| `image` | `image_sample` | `poster-noise.yaml` | `outputs/poster-noise/poster.png` | Pillow/NumPy + FFmpeg 图像编码 | `d538c350…` | 3 |
+| `audio` | `audio_sample` | `synth-pad.yaml` | `outputs/synth-pad/master.wav` | SciPy 加法合成 + FFmpeg R128 | `2f9351c5…` | 7 |
+| `audio` (sampled) | `audio_sample` | `kern-piano.yaml`（*Quiet morning*） | `outputs/kern-piano/{score.mid, master.wav}` | **FluidSynth 2.6.2** + FluidR3_GM（仓库自带，不入 git） | `b5bf04fd…` | 8 |
+| `film` | `film_sample` | `film-mux.yaml` | `outputs/film-mux/film.mp4` | FFmpeg 装配（音画同步实测） | *无 pinned 哈希*：它是输入容器哈希的函数，改由 `test_pipeline_bundle` 与直接 `film_sample.run` 交叉校验 | 4 |
+| `game` | `game_sample` | `dodge-headless.yaml` | `outputs/dodge-headless/{playtest.mp4, trace.json}` | 纯 Python 定步长模拟 | `c67acbf8…` | 4 |
+| `layout` | `layout_sample` | `swiss-poster.yaml`（*Der Grid*） | `outputs/swiss-poster/{poster.png, poster.pdf}` | Playwright/Chromium（PNG+PDF 同源） | `ce95c593…` | 7 |
+| `type` | `type_sample` | `variable-weight.yaml` | `outputs/variable-weight/type.mp4` | fontTools 可变字体实例化 | `3796ddf4…` | 4 |
+| `spectrum` | `spectrum_sample` | `spectrogram-truth.yaml` | `outputs/spectrogram-truth/spectrum.png` | SciPy STFT → 图 → 再读出音高 | `e3591c8c…` | 7 |
+| `ink` | `ink_landscape` | `ink-landscape.yaml`（*江流天地外*） | `outputs/ink-landscape/ink.png` | 九步水墨链（Pillow+SciPy），题款用 OFL 行书 | `7b767025…` | 8 |
+| `anime` | `anime_sample` | `anime-eave.yaml`（**飞檐少年**） | `outputs/anime-eave/clip.mp4` | Pillow cel 渲染 + FFmpeg；镜头切换由直方图 TV 实测 | `c05722c8…` | 4 |
 
 > 空间账：`outputs/` 全部可再生（git 不存）；`assets/` 里 151 MB 的工具与素材同样不入 git，只有 `assets/assets.lock.json`（194 B）入库，取用走 `python scripts/fetch_assets.py`。
 
