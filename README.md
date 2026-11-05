@@ -3,8 +3,28 @@
 > 用 Vibe Coding 写“生成媒体与游戏的代码”，而不是让多模态模型直接产出媒体。
 > Write code that makes media and games — instead of asking a multimodal model to make them.
 
-**状态 / Status:** 实现阶段。已跑通 8 条确定性媒体路线（video/image/audio/film/game/layout/type/spectrum，各有 golden 内容哈希与突变验证过的验收门）+ 管线骨架（capability registry、带内容哈希缓存的 DAG 执行器、`vcac run/doctor` CLI）+ 模拟故障注入测试层。工程台账见 `docs/audit-2026-11-05.md`；下文尚未实现的部分（planner/codegen/sandbox/playtest、完整 CLI 子命令、tests 全层矩阵）仍按目标设计描述。
-**Status:** Implementation stage. Eight deterministic media routes (video/image/audio/film/game/layout/type/spectrum, each with a golden content hash and mutant-verified acceptance gates) run end-to-end, plus a pipeline skeleton (capability registry, content-hash-cached DAG executor, `vcac run/doctor` CLI) and a fault-injection simulation tier. The engineering ledger is `docs/audit-2026-11-05.md`; parts below that are not built yet (planner/codegen/sandbox/playtest, the full CLI surface, the full test-layer matrix) still describe the target design.
+**状态 / Status:** 实现阶段。已跑通 10 条确定性媒体路线（video/image/audio/film/game/layout/type/spectrum/ink/anime；除 film 外每条都有人类确认过的 golden 内容哈希与被突变体验证过的验收门，film 的哈希是输入容器哈希的函数，改走跨节点校验，见 §0 表）+ 管线骨架（capability registry、带内容哈希缓存的 DAG 执行器、`vcac run/doctor` CLI）+ 模拟故障注入测试层。工程台账见 `docs/audit-2026-11-05.md`；下文尚未实现的部分（planner/codegen/sandbox/playtest、完整 CLI 子命令、tests 全层矩阵）仍按目标设计描述。
+**Status:** Implementation stage. Ten deterministic media routes (video/image/audio/film/game/layout/type/spectrum/ink/anime; every one but film has a human-confirmed golden content hash plus mutant-verified acceptance gates — film's hash is a function of its inputs' container hashes, so it is cross-checked between executor and direct run instead, see the §0 table). Also built: the pipeline skeleton (capability registry, content-hash-cached DAG executor, `vcac run/doctor` CLI) and a fault-injection simulation tier. The engineering ledger is `docs/audit-2026-11-05.md`; parts below that are not built yet (planner/codegen/sandbox/playtest, the full CLI surface, the full test-layer matrix) still describe the target design.
+
+### 0. 已跑通的路线 / The routes that actually run
+
+每条路线都是一个 `medium` 名 + 一份 spec + 一组**实测**验收门 + 一个人类确认过的 golden 内容哈希，外加至少一个**被看着变红**的突变体（或一条拒绝规则）。表里的哈希由另一个进程记录、由 `tests/e2e` 断言，所以一次普通 pass 同时就是跨进程可复现性证明。“规则数”只数 spec 里的 acceptance 条目；路由额外测了确定性时，`validate` 会再追加一条 `determinism` 检查。
+
+| medium | 路由 module | spec | 渲染工具 | golden 内容哈希 | acceptance 规则数 |
+| --- | --- | --- | --- | --- | --- |
+| `video` | `firstloop` | `orbiting-cubes.yaml` | Pillow 逐帧 + FFmpeg | `d27999e7…` | 3 |
+| `image` | `image_sample` | `poster-noise.yaml` | Pillow/NumPy + FFmpeg 图像编码 | `d538c350…` | 3 |
+| `audio` | `audio_sample` | `synth-pad.yaml` | SciPy 加法合成 + FFmpeg R128 | `2f9351c5…` | 7 |
+| `audio` (sampled) | `audio_sample` | `kern-piano.yaml` | **FluidSynth 2.6.2** + FluidR3_GM（仓库自带，不入 git） | `b5bf04fd…` | 8 |
+| `film` | `film_sample` | `film-mux.yaml` | FFmpeg 装配（音画同步实测） | *无 pinned 哈希*：它是输入容器哈希的函数，改由 `test_pipeline_bundle` 与直接 `film_sample.run` 交叉校验 | 4 |
+| `game` | `game_sample` | `dodge-headless.yaml` | 纯 Python 定步长模拟 | `c67acbf8…` | 4 |
+| `layout` | `layout_sample` | `swiss-poster.yaml` | Playwright/Chromium（PNG+PDF 同源） | `ce95c593…` | 7 |
+| `type` | `type_sample` | `variable-weight.yaml` | fontTools 可变字体实例化 | `3796ddf4…` | 4 |
+| `spectrum` | `spectrum_sample` | `spectrogram-truth.yaml` | SciPy STFT → 图 → 再读出音高 | `e3591c8c…` | 7 |
+| `ink` | `ink_landscape` | `ink-landscape.yaml` | 九步水墨链（Pillow+SciPy），题款用 OFL 行书 | `7b767025…` | 8 |
+| `anime` | `anime_sample` | `anime-eave.yaml` | Pillow cel 渲染 + FFmpeg；镜头切换由直方图 TV 实测 | `c05722c8…` | 4 |
+
+> 空间账：`outputs/` 全部可再生（git 不存）；`assets/` 里 151 MB 的工具与素材同样不入 git，只有 `assets/assets.lock.json`（194 B）入库，取用走 `python scripts/fetch_assets.py`。
 
 ---
 
@@ -53,7 +73,7 @@ The trade-off is that we need an engineered loop of **planning, sandboxing, vali
 - **Outputs:** interesting still images, audio, video, animations, short films, and **playable games** (2D/3D, web games, interactive fiction).
 - **Method:** no multimodal generation models. An LLM writes executable code or invocation scripts for **professional tools** (music21, LilyPond, FluidSynth, Blender, Manim, FFmpeg, Pygame, Godot, Phaser, Ren'Py, etc.). The tools render or run the final media; the model never synthesizes pixels or waveforms directly.
 - **Pipeline:** `brief → spec.yaml → plan.json (DAG) → generated code → static checks → sandboxed build/render → playtest (games) → validation → repair loop → assembly/packaging → manifest.json`.
-- **Structure (actual today):** a flat Python package `src/vcac/` — route modules (`firstloop`, `image_sample`, `audio_sample`, `film_sample`, `game_sample`, `layout_sample`, `type_sample`, `spectrum_sample`), shared primitives (`spec`, `validate`, `provenance`, `media`, `audio`, `ffmpeg`, `browser`), and the pipeline skeleton (`registry`, `pipeline`, `cli`); plus `specs/`, `tests/` (unit/e2e/simulation), and `docs/`. The `planner`/`codegen`/`sandbox`/`playtest` split and the `renderers/` tree remain the target design (§4).
+- **Structure (actual today):** a flat Python package `src/vcac/` — route modules (`firstloop`, `image_sample`, `audio_sample`, `film_sample`, `game_sample`, `layout_sample`, `type_sample`, `spectrum_sample`, `ink_landscape`, `anime_sample`), shared primitives (`spec`, `validate`, `provenance`, `media`, `audio`, `ffmpeg`, `browser`), and the pipeline skeleton (`registry`, `pipeline`, `cli`); plus `specs/`, `tests/` (unit/e2e/simulation), and `docs/`. The `planner`/`codegen`/`sandbox`/`playtest` split and the `renderers/` tree remain the target design (§4).
 - **Reproducibility:** fixed seeds, pinned tool versions, content-hash caching, and a provenance manifest so any run can be rebuilt.
 - **Environment:** `conda activate hy_py312` (Python 3.12.13, NumPy, Pillow, OpenCV, SciPy, FFmpeg verified); other renderers and engines are optional, installed on demand.
 - **Non-goals:** training media models, wrapping cloud text-to-image/video/music APIs, or building a general-purpose game engine from scratch.
@@ -394,7 +414,7 @@ python -V
 > ⚠ **环境事实纠正（2026-11-04 穷尽性审计第二轮实测）**：本机其实有**两个 Python**，能力集不同——
 > 上表的 `hy_py312`（3.12.13，**已跑的 5 条路线与全部 golden manifest 均产自它**）**不含** matplotlib / fonttools / playwright；
 > 而 PATH 默认的 `C:\Python313`（**3.13.5**）里有：matplotlib 3.11.0、fonttools 4.63.0、playwright 1.58.0（+已下载 Chromium 145.0.7632.6）、pypdf 6.19.0、scikit-image **无**。
-> 测试现状：91 项（3.13.5，playwright+fontTools 在位）；hy_py312 下其中 12 项浏览器/可变字体测试 skip（importorskip 门控）。因此：“某工具已装”必须说明**在哪个解释器**；`python scripts/doctor.py` 已改为输出 `sys.executable`+`sys.prefix`，**逐解释器跑一次再引用结论**。
+> 测试现状：**108 项**（3.13.5，playwright+fontTools 在位，全绿）；hy_py312 下其中 12 项浏览器/可变字体测试 skip（importorskip 门控；本轮新增的 17 项未在 hy_py312 复跑，108 这个数只在 3.13.5 实测）。因此：“某工具已装”必须说明**在哪个解释器**；`python scripts/doctor.py` 已改为输出 `sys.executable`+`sys.prefix`，**逐解释器跑一次再引用结论**。
 > 选定交付环境（装进 hy_py312，或正式切换到 3.13.5）属人工决策，未得同意不自定。
 
 **按需安装 / Optional extras**（规划中，按渲染器启用）

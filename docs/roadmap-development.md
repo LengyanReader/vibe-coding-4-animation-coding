@@ -9,19 +9,27 @@
 
 ## 0. What is proven today (the base we build on)
 
-Five routes run end-to-end with **zero installs** (Pillow + NumPy + FFmpeg only),
+Ten routes run end-to-end with **no system installs** (Pillow + NumPy + SciPy +
+FFmpeg, plus three sha256-locked assets fetched into `assets/` by
+`scripts/fetch_assets.py` for the ink/piano routes),
 each following the same invariant pipeline
 `spec → render → measure → validate → manifest`, each with a determinism gate,
-and each locked by a golden content hash in `tests/e2e/test_routes.py` (the
-suite has since grown to 91 tests across routes + pipeline + simulation tiers):
+and each locked by a golden content hash in `tests/e2e/` (the
+suite has since grown to 108 tests across routes + pipeline + simulation tiers):
 
 | Route | Entry point | Medium | Gates | Golden content hash (prefix) |
 |-------|-------------|--------|-------|------------------------------|
 | Video | `vcac.firstloop` | 6s orbiting-cubes mp4 | duration, resolution, black-run, determinism | `d27999e7…` |
 | Image | `vcac.image_sample` | value-noise poster png | resolution, unique-colors, entropy, determinism | `d538c350…` |
 | Audio | `vcac.audio_sample` | R128 pad+arp wav | duration, sample-rate, LUFS, peak, silence, clip, DC, determinism | `2f9351c5…` |
+| Audio (sampled) | `vcac.audio_sample` (`engine: fluidsynth`) | felt-piano study: score.mid + master/raw wav | duration, sample-rate, channels, LUFS, peak, silence, clip, DC, determinism | `b5bf04fd…` |
 | Film | `vcac.film_sample` | mux(video,audio) mp4 | duration, has-video, has-audio, A/V sync | (input-hash pinned) |
 | Game | `vcac.game_sample` | headless dodge sim + playtest mp4 | moved, score, hp, terminated, determinism | `c67acbf8…` |
+| Layout | `vcac.layout_sample` | Swiss-grid poster png + pdf | resolution, grid-left, baseline, palette ceiling/floor, overflow, font resolution, determinism | `ce95c593…` |
+| Type | `vcac.type_sample` | variable-weight glyph ramp mp4 | axis range, ink monotonic, resolution, duration, determinism | `3796ddf4…` |
+| Spectrum | `vcac.spectrum_sample` | spectrogram of a known tone | sample-rate, duration, peak dBFS, silence, resolution, pitch, harmonics, PSNR, determinism | `e3591c8c…` |
+| Ink | `vcac.ink_landscape` | nine-step 水墨山水 png | resolution, palette ceiling/floor, value bands, 留白, mist, entropy, seal, determinism | `7b767025…` |
+| Anime | `vcac.anime_sample` | 2D cel shot mp4 on the frame contract | duration, resolution, scene cuts, black-run, determinism | `c05722c8…` |
 
 Shared, reusable primitives now in `src/vcac/`: `media.py` (numpy↔PIL↔WAV +
 exact image/audio metrics), `audio.py` (deterministic additive synth), `ffmpeg.py`
@@ -93,25 +101,40 @@ checks** → **the concrete sample to build next**.
 
 - **Now:** additive synthesis (pad/arp/bass/marimba timbres as harmonic sums),
   two-pass EBU R128 mastering; metrics for LUFS/peak/RMS/DC/clipping/duration.
+  **Plus a sampled-acoustic engine**: `engine: fluidsynth` behind the same event
+  contract (`specs/examples/kern-piano.yaml`) — the composed score is authored data
+  (`audio.piano_events`), serialised to a real MIDI file, rendered by the vendored
+  FluidSynth 2.6.2 + FluidR3_GM, then the same R128 master and the same eight gates.
+  Golden `b5bf04fd…`; the MIDI is in the artifact list and the transient render wav
+  is deleted (16.7 MB → 11.16 MB per run).
 - **Next tier of outputs:**
   - *Real notation*: music21 → score → LilyPond → PDF/PNG (readable sheet music,
     not just sound). The symbolic layer becomes an inspectable artifact.
-  - *Acoustic timbres*: FluidSynth + SoundFont for piano/strings/brass/kit.
+  - ~~*Acoustic timbres*~~: **done for piano** — FluidSynth + SoundFont behind the audio
+    route (`engine` switch, `registry` capability `fluidsynth` recorded as `via: repo-tool`).
+    Strings/brass/kit remain open: same engine, different note data + different gate set.
   - *Rhythm & electronic*: kick/snare/hat synthesis, sidechain, filters (SciPy is
     already installed — biquads, FFT, resampling).
   - *Sound design / SFX*: noise bursts, sweeps, impacts — **consumed by Game & Film**.
   - *Adaptive/branching music*: stems + vertical layering for games (a music DAG).
   - *Voice-over*: optional TTS for explainer films.
-- **Tools to adopt:** `music21`, `lilypond`, `fluidsynth` + a SoundFont. (SciPy present.)
+- **Tools to adopt:** `fluidsynth` + a SoundFont — **done, and without a system install**
+  (fetched into `assets/`, sha256-locked, gitignored). Still to adopt: `music21`, `lilypond`.
+  (SciPy present.)
 - **New acceptance checks:** per-platform loudness (−14 LUFS streaming vs −16 here),
   true-peak (inter-sample, distinct from the sample-peak we measure), loudness
   range (LRA), tempo-grid alignment, stem loop continuity (seam energy).
 - **Next sample:** *notated loop* — music21 writes 4 bars → LilyPond png (score) +
   FluidSynth wav (render); gate on score-file present + LUFS + note-count == spec.
+  The FluidSynth half of this already exists; the engraving half does not.
 
 ### 2.3 Video
 
 - **Now:** orthographic 3D cubes in Pillow → H.264; duration/resolution/black/determinism.
+  **And a second renderer over the same frame contract**: `medium: anime`
+  (`src/vcac/anime_sample.py`, `specs/examples/anime-eave.yaml`) — a 2D cel shot with
+  keyframe interpolation on twos, camera drift, and a real edit. Not a new schema: same
+  `format/style/render/timeline` keys, so one spec vocabulary covers both animators.
 - **Next tier of outputs:**
   - *Transitions & titles*: crossfade/dissolve, lower-thirds, end-cards (FFmpeg filters).
   - *Subtitles / captions*: SRT/ASS burn-in; opens the door to localised deliverables.
@@ -122,8 +145,12 @@ checks** → **the concrete sample to build next**.
   - *Real 3D*: headless Blender for product shots (cubes → shaded/beauty renders).
   - *Colour pipeline*: LUTs, bt709 tagging, HDR→SDR tone-map.
 - **Tools to adopt:** `manim` (community), later headless `blender` (heavier).
-- **New acceptance checks:** shot count / scene boundaries, transition duration,
-  subtitle coverage %, colour primaries (bt709) via ffprobe, optical flow sanity.
+- **New acceptance checks:** ~~shot count / scene boundaries~~ **done** — `at least N scene
+  cuts` is measured as the isolated peak of frame-to-frame luma-histogram total variation
+  (a fade's per-frame shift is *larger* than a cut's, so amplitude alone cannot name an edit;
+  the classifier separates hard cuts from ramps and the report carries the measured margin,
+  4.2× on the shipped clip); transition duration, subtitle coverage %, colour primaries
+  (bt709) via ffprobe, optical flow sanity — still open.
 - **Next sample:** *scored, captioned explainer* — title card + animated chart +
   VO + burned captions, assembled from a timeline DAG (composes 2.1 + 2.2 + here).
 
@@ -151,13 +178,20 @@ checks** → **the concrete sample to build next**.
 A **sixth medium class**, not a new tool: "what style can be formalised into code".
 `docs/styles.md` is the map; the render path stays the proven image route.
 
-- **Now:** nothing built — the survey is the asset. The gap is honest and closed on paper:
-  hand-drawn/2D-animation families, painterly styles, feature-3D and anime stacks are now
-  registered in `docs/tools.md` §5–§7 with licence + headless columns.
+- **Now:** **ink chain built** — `src/vcac/ink_landscape.py` + `specs/examples/ink-landscape.yaml`,
+  nine-step 山水 renderer (纸本→地形→勾→皴→染→积墨→云气留白→题款钤印→量化), 9 measured gates,
+  golden `7b767025…`, 6 mutants/refusals in `tests/e2e/test_ink_piano_anime_routes.py`. The OFL
+  colophon face is a fetched asset (`assets/fonts/`, sha256-locked, not in git) and is hashed into
+  the manifest. What is still survey-only: hand-drawn/2D-animation families beyond the cel route
+  below, painterly styles, feature-3D and anime stacks — registered in `docs/tools.md` §5–§7 with
+  licence + headless columns.
 - **Highest-leverage first tier (zero install, all deterministic):**
-  - *Ink-wash landscape chain* — styles.md §1.2 nine-step chain (paper base → fBm+domain-warp
-    terrain → contour "勾" → texture-primitive "皴" → wash → accumulated ink → negative-space
-    mist → seal + colophon → acceptance). 画理 becomes constraints, not a filter.
+  - ~~*Ink-wash landscape chain*~~ — **done** (`ink_landscape.py`; styles.md §1.2 nine-step chain:
+    paper base → fBm+domain-warp terrain → contour "勾" → texture-primitive "皴" → wash → accumulated
+    ink → negative-space mist → seal + colophon → acceptance). 画理 becomes constraints, not a filter.
+    One measured lesson worth keeping: the chain must write each layer's strokes back into the float
+    buffer, or every layer but the nearest paints into an image that is thrown away — a spec knob with
+    no artifact and no gate able to notice it absent.
   - *Woodcut / ukiyo-e as layered DAG* — one block = one channel = one mask; the multi-block
     full-colour print is literally our `alpha_composite` chain (styles.md §2).
   - *XDoG / OpenCV sketch / halftone* — already installed (cv2 5.0.0, SciPy); pure filtering.
@@ -168,11 +202,13 @@ A **sixth medium class**, not a new tool: "what style can be formalised into cod
 - **Deferred, gated:** Blender as an *alternative renderer* for 2.5D (toon shader + Freestyle
   + Grease Pencil + composited painted backgrounds). Feature-3D tooling is not the bottleneck —
   art labour is (see §6).
-- **New acceptance checks:** five-band value histogram (墨分五色), negative-space ratio
-  (留白, region-weighted — not a global entropy floor), palette ΔE against a fixed ink/mineral
-  set, seal-red presence and count, licence check on every font and reference image.
-- **Next sample:** `ink-landscape` — spec → nine-step renderer → PNG, gated on
-  resolution + value-band + whitespace-ratio + palette-ΔE + determinism. *(no install)*
+- **New acceptance checks:** five-band value histogram (墨分五色) ✓, negative-space ratio
+  (留白, with both a floor and a ceiling) ✓, seal-red presence and count as connected
+  components ✓, licence check on every font ✓ — palette ΔE against a fixed ink/mineral set
+  ✗ (superseded for this route: the artifact is *quantised onto* the declared gamut, so exact
+  occupancy is a stronger claim than distance).
+- **Next sample:** ~~`ink-landscape`~~ **delivered**; the open one in this class is now
+  *woodcut/ukiyo-e as a layered DAG* and *Riso separation*. *(no install)*
 
 ### 2.6 Layout & document media (the zero-install blind spot we just found)
 
@@ -258,8 +294,17 @@ abstraction is extracted from ≥2 concrete cases rather than guessed.
 3. ~~**Browser-layout route**~~ — **done** (`src/vcac/layout_sample.py` + `browser.py`,
    golden + 4 mutants, PNG+PDF from one spec).
 4. **Caption route** — timings → ASS → `ffmpeg` burn-in on the loop1 video. *(no install)*
-5. **`ink-landscape` style loop** — the nine-step 山水 chain from `docs/styles.md` §1.2,
-   plus XDoG/sketch and Riso separations. Proves style can be a *spec*, not a filter. *(no install)*
+5. ~~**`ink-landscape` style loop**~~ — **done 2026-11-05** (`src/vcac/ink_landscape.py`, golden
+   `7b767025…`, 9 gates, 6 mutants/refusals): the nine-step 山水 chain from `docs/styles.md` §1.2
+   as a spec. Proves style can be a *spec*, not a filter. XDoG/sketch and Riso separations are
+   still open items inside this loop. *(no install)*
+   - ~~**2D cel animation loop**~~ — **done 2026-11-05** (`src/vcac/anime_sample.py`,
+     `medium: anime`, golden `c05722c8…`): keyframes on twos + camera drift + a measured scene
+     cut, over the existing frame contract rather than a new schema. *(no install)*
+   - ~~**Sampled-instrument audio loop**~~ — **done 2026-11-05** (`engine: fluidsynth` in
+     `audio_sample.py`, `specs/examples/kern-piano.yaml`, golden `b5bf04fd…`): authored note
+     data → MIDI → vendored FluidSynth → R128 master → eight gates. *(no system install: the
+     binary and the SoundFont are fetched into `assets/`)*
 6. **Graphic-design-movement loop** — one movement = a 4-tuple `{palette, grid, type-pair, motif}` in
    `spec.yaml` → poster via loop 3 (Swiss grid first: `styles.md` §10, `swiss-grid-generator` MIT as the
    reference implementation of the grid maths). Acceptance = alignment ratio, baseline divisibility,
@@ -275,12 +320,17 @@ abstraction is extracted from ≥2 concrete cases rather than guessed.
     `plt.xkcd()` **degrades** because Humor Sans / Comic Neue are absent (72 `findfont` warnings, no error) —
     so the hand-drawn *line* is free, the hand-drawn *glyph* is not. Either add the font or write the
     jitter ourselves (the honest, code-first answer). *(+1 install only for `vl-convert-python`)*
-11. **Notation audio loop** — music21 → LilyPond (score png/pdf) + FluidSynth (wav). *(installs)*
+11. **Notation audio loop** — music21 → LilyPond (score png/pdf) + FluidSynth (wav).
+    FluidSynth half delivered 2026-11-05 (see the sub-item under 5); the engraving half still
+    *(installs)*.
 12. **30s pygame-ce microgame** — headless playtest reusing the game harness. *(+1 install)*
 13. **Multi-shot explainer film** — timeline DAG: title + chart + gameplay + VO + captions +
     PDF handout. *(composes 1–10)*
 14. **(later, needs approval) 2.5D anime shot** — Blender toon render + painted background from
-    loop 5 → first frame from the feature-3D/anime column, as an *alternative renderer*. *(heavy install)*
+    loop 5 → first frame from the feature-3D/anime column, as an *alternative renderer*. The
+    zero-install version (cel shading in Pillow, real edit measured off the frames) shipped
+    first under item 5; this item is now specifically the *Blender* renderer behind the same
+    spec. *(heavy install)*
 
 Every loop is gated by `tests/e2e` + a new golden content hash before it is called done.
 
