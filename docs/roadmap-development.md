@@ -52,6 +52,18 @@ upstream *payload* content hashes, the **whole-package** code hash and tool
 versions — so any code edit invalidates every node (coarse but honest); the
 remaining §3 items (spec schema, codegen, CLI beyond `run`/`doctor`) stay open.
 
+**2026-11-05/07 addendum: thirteen routes.** The three style loops (ink, anime,
+sampled audio) closed with goldens and mutant-red tests, then two further media
+(illustration, manga) shipped — with the honest finding that **all gates green
+while the viewer refused the artwork**, which produced the capability tiers in
+`docs/styles.md` §0.1 and five false-green probes (see the §F ledger). The
+**document route** closed on 2026-11-07 (`src/vcac/ebook.py`: pandoc → EPUB3 +
+XeTeX PDF twin, stdlib OCF/OPF validation, pinned `dc:identifier` and zip
+timestamps — normalised-payload hash, not container bytes): sample
+`ebook-ink-notes.yaml`, golden `9947c986…`. Capability matrix per medium:
+`docs/capability-2026-11-07.md`. Game/gamification/serious-game/interactive-
+narrative survey and candidate queue: `docs/research-games-2026-11-07.md`.
+
 ---
 
 ## 1. Design principles carried forward
@@ -289,8 +301,12 @@ abstraction is extracted from ≥2 concrete cases rather than guessed.
    2026-11-04** — `src/vcac/registry.py` + `src/vcac/pipeline.py`, gated by
    `tests/e2e/test_pipeline_bundle.py` (see §0). Turns samples into cached,
    composable builds. *(no install)*
-2. **Document route** — `pandoc + MiKTeX` → spec → PDF report/handout. **Cheapest new medium
-   on this machine** (both already installed and measured). *(no install)*
+2. ~~**Document route**~~ — **done 2026-11-07, and beyond the PDF it promised**:
+   `src/vcac/ebook.py` renders **EPUB3** (stdlib OCF/OPF/spine/link validation,
+   pinned identifier + zip timestamps, normalised-payload golden `9947c986…`)
+   plus the xelatex PDF twin (pypdf gates, honestly `skipped` where pypdf is
+   absent). Sample: `specs/examples/ebook-ink-notes.yaml` — the book about the
+   ink route, covered by the ink route's own painting. *(no install)*
 3. ~~**Browser-layout route**~~ — **done** (`src/vcac/layout_sample.py` + `browser.py`,
    golden + 4 mutants, PNG+PDF from one spec).
 4. **Caption route** — timings → ASS → `ffmpeg` burn-in on the loop1 video. *(no install)*
@@ -330,6 +346,22 @@ abstraction is extracted from ≥2 concrete cases rather than guessed.
     loop 5 → first frame from the feature-3D/anime column, as an *alternative renderer*. The
     zero-install version (cel shading in Pillow, real edit measured off the frames) shipped
     first under item 5; this item is now specifically the *Blender* renderer behind the same
+
+**Game / narrative queue (surveyed 2026-11-07, `docs/research-games-2026-11-07.md`;
+each item starts only on a human go-ahead):**
+
+15. **诗词山水鉴赏 serious game** — zero-install, eats ink/illustration outputs;
+    single-objective microgame (the form the serious-games literature favours); 甲-tier reachable.
+16. **Ear-training microgame** (intervals/chords) — zero-install, eats the audio
+    engine's deterministic voices; assertions = correctness state.
+17. **Minimal in-repo IF engine + visual-novel sample** — YAML story graph as spec,
+    scripted walk-throughs as playtests, dead-branch reachability as a gate; consumes
+    manga/illustration art + piano music; the strategic base for all narrative media.
+18. **pygame-ce micro-arcade** — light install (consent required); the pure sim stays
+    as the reference model, same-input runs must agree on final state hash (roadmap §2.4).
+19. **Procedural-dungeon roguelike sample** — zero-install seeded levels; win/lose
+    reachability gates. *(gamification meta-layer recorded, deliberately not queued.)*
+
     spec. *(heavy install)*
 
 Every loop is gated by `tests/e2e` + a new golden content hash before it is called done.

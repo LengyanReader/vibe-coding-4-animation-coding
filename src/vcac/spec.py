@@ -135,6 +135,9 @@ REQUIRED_KEYS = {
     # anime speaks the frame contract (see VIDEO_CONTRACT_MEDIA below); its cut
     # is the gate, so a spec without a timeline is not an anime shot
     "anime": ("format", "style", "timeline"),
+    # a book is authored: its identity (metadata) and its chapters ARE the
+    # deliverable, so either missing is a schema error before pandoc runs
+    "ebook": ("metadata", "chapters"),
 }
 
 #: Media authored against the *frame contract* that :func:`load` parses: a

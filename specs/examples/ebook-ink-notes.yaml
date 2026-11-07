@@ -1,0 +1,40 @@
+# ebook route sample — 《水墨笔记》: the book ABOUT the ink route, rendered by
+# the ebook route, with the ink route's own painting as the cover.
+#
+# The chapters are authored markdown (specs/ebooks/ink-notes/); identity and
+# determinism come from the metadata block: dc:identifier is pinned here (never
+# generated), and SOURCE_DATE_EPOCH is derived from metadata.date so zip
+# timestamps stop being a function of the wall clock.
+id: ebook-ink-notes
+title: 水墨笔记 — 画理如何变成约束
+medium: ebook
+
+metadata:
+  title: 水墨笔记：画理如何变成约束
+  author: vcac ink route
+  language: zh-CN
+  identifier: urn:vcac:ink-notes:2026-11-07   # pinned — regeneration is bit-stable
+  date: "2026-11-07"
+
+# the cover is the ink route's own deliverable (regenerable, not in git):
+# python -m vcac.ink_landscape specs/examples/ink-landscape.yaml
+cover: outputs/ink-landscape/ink.png
+css: specs/ebooks/ink-notes/notes.css
+toc_depth: 2
+formats: [epub3, pdf]
+papersize: a5
+
+chapters:
+  - specs/ebooks/ink-notes/ch01-intro.md
+  - specs/ebooks/ink-notes/ch02-nine-steps.md
+  - specs/ebooks/ink-notes/ch03-gates.md
+  - specs/ebooks/ink-notes/ch04-false-greens.md
+  - specs/ebooks/ink-notes/ch05-outlook.md
+
+acceptance:
+  - spine count exactly 5
+  - toc entries at least 5
+  - cover image present
+  - all manifest hrefs exist
+  - language exactly zh-CN
+  - page count between 4 and 24

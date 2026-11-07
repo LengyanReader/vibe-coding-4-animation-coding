@@ -118,6 +118,19 @@ _PATTERNS = [
      "paper_negative_range", ("paper_negative_pct",)),
     (re.compile(rf"at least (\d+) drawn eyes", re.I),
      "eye_count_min", ("eye_count",)),
+    # --- ebook route: the book is measurable too ---
+    (re.compile(r"spine count exactly (\d+)", re.I),
+     "spine_exact", ("spine_count",)),
+    (re.compile(r"toc entries at least (\d+)", re.I),
+     "toc_min", ("toc_entries",)),
+    (re.compile(r"cover image present", re.I),
+     "cover_present", ("cover_present",)),
+    (re.compile(r"all manifest hrefs exist", re.I),
+     "hrefs_exist", ("missing_hrefs",)),
+    (re.compile(r"language exactly ([\w-]+)", re.I),
+     "language_exact", ("language",)),
+    (re.compile(rf"page count between ({_NUM}) and ({_NUM})", re.I),
+     "page_count_range", ("pdf_pages",)),
     # --- ink-landscape route: 画理 as constraints (styles.md §1.2) ---
     (re.compile(rf"five ink value bands each above ({_NUM})\s*%", re.I),
      "value_bands_min", ("value_bands_min_pct",)),
@@ -239,6 +252,25 @@ def _evaluate(kind, m, measured):
     if kind == "eye_count_min":
         n = int(m.group(1)); v = int(measured["eye_count"])
         return v >= n, f">={n}", v
+    if kind == "spine_exact":
+        n = int(m.group(1)); v = int(measured["spine_count"])
+        return v == n, n, v
+    if kind == "toc_min":
+        n = int(m.group(1)); v = int(measured["toc_entries"])
+        return v >= n, f">={n}", v
+    if kind == "cover_present":
+        v = bool(measured["cover_present"])
+        return v, "present", "present" if v else "missing"
+    if kind == "hrefs_exist":
+        v = list(measured["missing_hrefs"])
+        return not v, "all exist", ("all exist" if not v else f"missing: {v}")
+    if kind == "language_exact":
+        want = m.group(1); v = str(measured.get("language") or "")
+        return v == want, want, (v or "unset")
+    if kind == "page_count_range":
+        lo, hi = float(m.group(1)), float(m.group(2))
+        v = int(measured["pdf_pages"])
+        return lo <= v <= hi, f"{lo}..{hi}", v
     if kind == "value_bands_min":
         x = float(m.group(1)); v = measured["value_bands_min_pct"]
         return v >= x, f">={x}%", round(v, 3)

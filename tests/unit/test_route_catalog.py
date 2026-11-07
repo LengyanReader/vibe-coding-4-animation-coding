@@ -104,7 +104,8 @@ def test_every_route_is_loadable_and_schema_known():
         assert callable(entry.run), medium
         # `provides` is the artifact downstream bundle nodes read, so an empty
         # name would register a route that can run but cannot be fed forward
-        assert entry.provides.endswith((".mp4", ".wav", ".png", ".pdf", ".json")), \
+        assert entry.provides.endswith(
+            (".mp4", ".wav", ".png", ".pdf", ".json", ".epub")), \
             (medium, entry.provides)
 
 

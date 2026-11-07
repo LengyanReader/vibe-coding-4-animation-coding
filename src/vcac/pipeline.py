@@ -39,10 +39,10 @@ from pathlib import Path
 
 import yaml
 
-from . import (audio_sample, anime_sample, ffmpeg, film_sample, firstloop,
-               game_sample, image_sample, illustration_sample, ink_landscape,
-               layout_sample, manga_ink, provenance, registry, spectrum_sample,
-               type_sample)
+from . import (anime_sample, audio_sample, ebook, ffmpeg, film_sample,
+               firstloop, game_sample, image_sample, illustration_sample,
+               ink_landscape, layout_sample, manga_ink, provenance, registry,
+               spectrum_sample, type_sample)
 
 PIPELINE_VERSION = "vcac-pipeline/0.1"
 
@@ -97,6 +97,7 @@ ROUTES = {
     # the inked page: same stack, but the line itself is authored as curves and
     # laid down with a pressure profile, so the gate can measure the pen
     "manga": RouteEntry(manga_ink.run, "page.png", ("scipy", "pillow")),
+    "ebook": RouteEntry(ebook.run, "book.epub", ("pandoc",)),
 }
 
 

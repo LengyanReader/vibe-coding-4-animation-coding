@@ -1,0 +1,13 @@
+/* 水墨笔记 — EPUB stylesheet. Paper-warm, restrained; the book talks about ink. */
+body { font-family: "Noto Serif CJK SC", "Source Han Serif SC", "Noto Serif SC", serif;
+       line-height: 1.75; margin: 1.2em 1em; color: #26221D; background: #F7F3EA; }
+h1 { font-size: 1.45em; margin: 1.4em 0 0.6em; color: #211D19; }
+h2 { font-size: 1.15em; margin: 1.2em 0 0.5em; color: #3B3630; }
+p { margin: 0.55em 0; text-align: justify; }
+blockquote { margin: 0.8em 1.2em; padding-left: 0.8em;
+             border-left: 3px solid #B7AEA1; color: #5C554D; }
+code { font-family: "Cascadia Mono", Consolas, monospace; font-size: 0.85em;
+       background: #EFEAE0; padding: 0 0.25em; }
+nav#toc ol { list-style: none; padding-left: 0.6em; }
+nav#toc li { margin: 0.3em 0; }
+.seal { color: #B03A2E; font-weight: bold; }
