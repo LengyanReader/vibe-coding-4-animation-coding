@@ -1,0 +1,50 @@
+# 全部界面文本(非情景内容)——{key: {zh, en}},缺一即红(i18n 完整性门)
+# All chrome text. Keys are namespaced; interpolation uses {token}.
+ui:
+  app_title: {zh: 一息 · 研究演示器, en: "One Breath · research demonstrator"}
+  app_subtitle:
+    zh: 四个乐章:遭遇 — 互系 — 放下 — 回应。棋盘是镜子,不是裁判。
+    en: "Four movements: Encounter — Interrelate — Release — Respond. The board is a mirror, not a judge."
+  choose_language: {zh: 语言 / Language, en: 语言 / Language}
+  reduced_motion: {zh: 减弱动效, en: Reduced motion}
+  audio: {zh: 声音, en: Sound}
+  "on": {zh: "开", en: "on"}
+  "off": {zh: "关", en: "off"}
+  begin: {zh: 开始, en: Begin}
+  vignettes_title:
+    zh: 选择一个情景(每个 2–4 分钟,可随时退出)
+    en: Choose a scenario (2–4 minutes each; you may leave at any time)
+  movement:
+    encounter: {zh: 遭遇, en: Encounter}
+    interrelate: {zh: 互系, en: Interrelate}
+    release: {zh: 放下, en: Release}
+    respond: {zh: 回应, en: Respond}
+    ending: {zh: 余象, en: After-image}
+  mirror_caption:
+    zh: 对照棋局——你的处境,在棋盘上的样子
+    en: Mirror board — your situation, as a position
+  mirror_hint_attack:
+    zh: 他的棋只剩一口气;而你的另一块,也只剩一口气
+    en: His chain has one liberty left; so does one of yours
+  mirror_hint_calm:
+    zh: 没有人的气被点掉——相安
+    en: Nobody lost a liberty — coexistence
+  mirror_hint_pass:
+    zh: 虚着之后,一切如常
+    en: After the pass, everything as it was
+  ending_title: {zh: 这一回应保护的是, en: What this response protects}
+  ending_all_equal:
+    zh: 五种回应并列,没有哪一种更"对"。它们各自保护了不同的东西。
+    en: The five responses stand side by side; none is more right. Each protects a different thing.
+  reflection:
+    zh: "一个不带评分的问题:刚才那一手棋,你在自己的生活里见过吗?"
+    en: "One un-scored question: have you seen that board move somewhere in your own life?"
+  skip_reflection: {zh: 跳过, en: Skip}
+  replay: {zh: 再走一次这个情景, en: Walk this scenario again}
+  back_to_list: {zh: 回到情景列表, en: Back to the scenarios}
+  afterimage_caption:
+    zh: 全盘——每一子都有效率(吴清源,「中的精神」)
+    en: The whole board — every stone doing its work (Wu Qingyuan, "the spirit of the middle")
+  footer:
+    zh: 研究演示器 · 无评分 · 无数据收集 · 无 AI · 内容与棋局全部确定性生成
+    en: Research demonstrator · no scoring · no data collection · no AI · all content and positions deterministic

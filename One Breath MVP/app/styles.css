@@ -1,0 +1,70 @@
+/* One Breath — ink-wash paper UI. 暖纸底,墨字层次,呼吸圆相。 */
+:root {
+  --paper: #F5F1E6;
+  --paper-deep: #EFE9DC;
+  --ink: #26221D;
+  --ink-soft: #5C554D;
+  --ink-faint: #B7AEA1;
+  --seal: #B03A2E;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: "Noto Serif SC", "Source Han Serif SC", "SimSun", "Songti SC", serif;
+  background: var(--paper);
+  color: var(--ink);
+  line-height: 1.8;
+  min-height: 100vh;
+}
+#screen { max-width: 960px; margin: 0 auto; padding: 2rem 1.25rem 3rem; }
+
+h1.brush { font-size: 2rem; letter-spacing: 0.12em; margin: 0.4em 0; font-weight: 600; }
+.subtitle { color: var(--ink-soft); margin-top: 0; }
+h2 { font-size: 1.05rem; font-weight: 600; color: var(--ink-soft); }
+
+.row { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; }
+.spread { justify-content: space-between; align-items: center; }
+.toggle { color: var(--ink-soft); font-size: 0.85rem; }
+button {
+  font: inherit; cursor: pointer;
+  background: var(--paper-deep); color: var(--ink);
+  border: 1px solid var(--ink-faint); border-radius: 3px;
+  padding: 0.35em 0.9em;
+}
+button:hover { border-color: var(--ink-soft); }
+button.ghost { background: none; border: none; color: var(--ink-soft); text-decoration: underline; padding: 0; }
+
+.cards { display: flex; gap: 1rem; flex-wrap: wrap; margin: 1rem 0 2rem; }
+.card {
+  display: flex; flex-direction: column; gap: 0.3em; align-items: flex-start;
+  min-width: 220px; padding: 1rem 1.2rem; text-align: left;
+  background: var(--paper-deep);
+}
+.card-title { font-size: 1.1rem; font-weight: 600; }
+.card-tag { color: var(--ink-soft); font-size: 0.88rem; }
+.card-min { color: var(--ink-faint); font-size: 0.8rem; }
+
+.movement {
+  font-size: 0.85rem; color: var(--seal); letter-spacing: 0.3em;
+  border-bottom: 1px solid var(--ink-faint); padding-bottom: 0.15em;
+}
+.stage { display: flex; gap: 2rem; align-items: flex-start; }
+.story { flex: 1 1 420px; max-width: 560px; }
+.mirror { flex: 0 0 300px; }
+#board { border: 1px solid var(--ink-faint); }
+.mirror-caption { color: var(--ink-soft); font-size: 0.8rem; }
+@media (max-width: 760px) {
+  .stage { flex-direction: column-reverse; }
+  .mirror { flex: none; align-self: center; }
+}
+
+.story-text { font-size: 1.02rem; text-align: justify; margin: 0.6em 0; }
+.choices { display: flex; flex-direction: column; gap: 0.5rem; margin: 1.2rem 0; }
+.choice { text-align: left; padding: 0.6em 1em; }
+.ending-note { border-left: 3px solid var(--ink-faint); padding-left: 0.8em; color: var(--ink-soft); }
+.seal { color: var(--seal); }
+.reflection { color: var(--ink-soft); font-size: 0.92rem; }
+.footer { color: var(--ink-faint); font-size: 0.78rem; margin-top: 3rem; }
+
+.reduced * { animation: none !important; transition: none !important; }
+.reduced #board { transform: none !important; }

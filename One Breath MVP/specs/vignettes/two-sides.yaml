@@ -1,0 +1,272 @@
+# 情景一:两侧 · The Two Sides — 故事图(双语意群成对,M4.10)
+#
+# 创作规程:每节点 zh/en 同期撰写,一个意思两种协调表达;意群是搬运单位,不是词。
+# 回应结局不做排序:每个结局文本只陈述"这一回应保护了什么",不用褒贬词,
+# 不出现 score/正确答案(静态测试守卫 vignette.js 与本文件)。
+# 棋盘对照:board 指向 specs/board-two-sides.yaml 的节拍(beat)。
+
+id: two-sides
+title: {zh: 两侧, en: "The Two Sides"}
+tagline:
+  zh: 当众批评之后,只剩"我对你错"吗?
+  en: After a public criticism, is "I am right, they are wrong" all there is?
+board: board-two-sides          # boards are keyed by their spec id
+start: n1              # explicit entry — node order is irrelevant by design
+
+nodes:
+  n1:
+    movement: encounter
+    board: initial
+    text:
+      zh: >-
+        季度评审会。你刚讲完方案,林——和你平级的同事——当着所有人的面说:
+        "这个方向走不通,你在浪费大家的时间。"
+        空气停了两秒。会议室里,所有人都看向你。
+        此刻,你心里只剩一句话:我对你错。
+      en: >-
+        Quarterly review. You have just finished presenting your plan when Lin —
+        a colleague at your level — says to the whole room: "This direction will
+        not work. You are wasting everyone's time."
+        The air pauses for two seconds. Everyone looks at you.
+        Right now one sentence fills your head: I am right, they are wrong.
+    choices:
+      - {label: {zh: 当场回应, en: Respond right now}, to: n2}
+      - {label: {zh: 先不说话,把这一刻记住, en: Say nothing yet — remember this moment}, to: n2}
+
+  n2:
+    movement: interrelate
+    board: initial
+    text:
+      zh: >-
+        没有马上开口的你,忽然看见了三件刚才看不见的事。
+        它们不是安慰,也不是借口——它们只是,一直在那里。
+      en: >-
+        Before you speak, three things you could not see a moment ago come into view.
+        They are not comforts, and not excuses — they were simply always there.
+    choices:
+      - {label: {zh: 看看他这边, en: Look at his side}, to: n_r1}
+      - {label: {zh: 看看自己这边, en: Look at your side}, to: n_r2}
+      - {label: {zh: 看看那句话本身, en: Look at the sentence itself}, to: n_r3}
+      - {label: {zh: 都看过了,继续, en: Seen enough — continue}, to: n4}
+
+  n_r1:
+    movement: interrelate
+    board: initial
+    highlight: his_pressure
+    text:
+      zh: >-
+        林手里那页进度表,折了角。
+        上周他被许诺的那份资源,正好是你的方案要用的那一份。
+        他的批评,不完全是对你——那里面也有他自己的难处。
+      en: >-
+        The corner of Lin's schedule page is folded.
+        The resource promised to him last week is exactly the resource your plan
+        needs. His criticism is not only about you — his own difficulty is in it.
+    choices:
+      - {label: {zh: 回到三件事, en: Back to the three things}, to: n2}
+
+  n_r2:
+    movement: interrelate
+    board: initial
+    highlight: my_flaw
+    text:
+      zh: >-
+        第三节的数据,你自己知道,还没有跑完。
+        他点的不是空处——那一点,是真的。
+        真话可以被说得很难听,但它仍是真话。
+      en: >-
+        The data in section three, you know, is not finished.
+        He did not strike an empty spot — that point is real.
+        A truth can be said badly; it remains true.
+    choices:
+      - {label: {zh: 回到三件事, en: Back to the three things}, to: n2}
+
+  n_r3:
+    movement: interrelate
+    board: initial
+    highlight: manner
+    text:
+      zh: >-
+        但"浪费大家的时间"这七个字,是当着所有人说的。
+        方案可以被质疑;把你这个人定性,是另一回事。
+        这一句,怎么算,都越了界。
+      en: >-
+        But those seven words — "wasting everyone's time" — were said in front
+        of everyone. A plan may be questioned; pinning a label on *you* is a
+        different move. By any counting, that line crossed a boundary.
+    choices:
+      - {label: {zh: 回到三件事, en: Back to the three things}, to: n2}
+
+  n4:
+    movement: release
+    board: initial
+    text:
+      zh: >-
+        棋盘上的棋形,此刻和你的处境一模一样:两块棋,气接在同一处。
+        现在有一个选项,不在任何考核表里——
+        把"必须当场赢回来"这件事,从手里放下。
+        它不是认输,也不是大度。只是,不再攥着。
+      en: >-
+        The mirror position is exactly your situation: two chains, breathing at
+        the same shared edge. Now there is an option on no scoreboard —
+        to put down the need to win this back on the spot.
+        It is not surrender, and not generosity. Just: no longer gripping.
+    choices:
+      - {label: {zh: 放下它, en: Put it down}, to: n5, flag: released}
+      - {label: {zh: 现在还放不下, en: I cannot put it down yet}, to: n5}
+
+  n5:
+    movement: release
+    board: mirror_try
+    text:
+      zh: >-
+        棋盘给你两手,随便试——这里的每一手都安全,后果只落在棋盘上。
+      en: >-
+        The board offers two hands. Try them freely — everything here is safe;
+        consequences land on the board only.
+    choices:
+      - {label: {zh: '试「那一手」:点在他的气上', en: 'Try the obvious move: fill his liberty'}, to: n5_attack}
+      - {label: {zh: '守自己的气,不碰他', en: 'Solidify your own breath, leave him be'}, to: n5_calm}
+      - {label: {zh: '虚着——什么都不做', en: 'Pass — do nothing at all'}, to: n5_pass}
+      - {label: {zh: 回到会议室, en: Back to the meeting room}, to: n6}
+
+  n5_attack:
+    movement: release
+    board: attack
+    text:
+      zh: >-
+        你点在他的气上——他的棋只剩最后一口气。
+        他的回应几乎同时落下:你的另一块棋,也只剩最后一口气。
+        两块棋同时告急。你的,和他的。
+        点杀这一手,杀到的从来不只是对方。
+      en: >-
+        You fill his liberty — his chain is down to its last breath.
+        His answer lands almost at once: one of your chains is down to its last
+        breath too. Two chains, both in danger. Yours, and his.
+        The killing move has never killed only the other side.
+    choices:
+      - {label: {zh: 试别的, en: Try another}, to: n5}
+      - {label: {zh: 回到会议室, en: Back to the meeting room}, to: n6}
+
+  n5_calm:
+    movement: release
+    board: calm
+    text:
+      zh: >-
+        你把棋落在自己的气上,没有碰他的任何一颗子。
+        他的棋没有变少,你的棋也没有变少。
+        棋盘安静下来——什么都没被夺走,什么都没被放弃。
+      en: >-
+        You place your stone on your own breath, touching none of his.
+        His stones lose nothing; yours lose nothing.
+        The board quiets — nothing taken, nothing given up.
+    choices:
+      - {label: {zh: 试别的, en: Try another}, to: n5}
+      - {label: {zh: 回到会议室, en: Back to the meeting room}, to: n6}
+
+  n5_pass:
+    movement: release
+    board: pass
+    text:
+      zh: >-
+        你虚着。棋盘没有任何变化。
+        也没有任何变化,是需要的。
+      en: >-
+        You pass. Nothing on the board changes.
+        And nothing needed to.
+    choices:
+      - {label: {zh: 试别的, en: Try another}, to: n5}
+      - {label: {zh: 回到会议室, en: Back to the meeting room}, to: n6}
+
+  n6:
+    movement: respond
+    board: calm
+    text:
+      zh: >-
+        回到会议室。空气还在等你。
+        {released, y: 你放下过一次,所以手里的这一句,轻了一些。}
+        {released, n: 你还攥着——没关系,攥着也可以开口。}
+        此刻,你想怎么说?
+      en: >-
+        Back in the meeting room. The air is still waiting for you.
+        {released, y: You put it down once, so the sentence in your hands is lighter.}
+        {released, n: You are still gripping — that is fine; gripping hands can still speak.}
+        What do you say?
+    choices:
+      - {label: {zh: 承认那个真实的漏洞, en: Acknowledge the real flaw}, to: e_ack}
+      - {label: {zh: 请求证据, en: Ask for evidence}, to: e_evidence}
+      - {label: {zh: 给方式设边界, en: Set a boundary on the manner}, to: e_boundary}
+      - {label: {zh: 直接表达异议, en: Disagree, plainly}, to: e_disagree}
+      - {label: {zh: 约会后单独谈, en: Take it offline}, to: e_pause}
+
+  e_ack:
+    movement: ending
+    board: calm
+    text:
+      zh: >-
+        "第三节的数据还没跑完,这是我的问题——这周五补上。"
+        你先把自己棋上的那口气补实了。
+        这一回应保护的是:事实。会议室里的注意力,从输赢挪回了事情本身。
+      en: >-
+        "Section three's data is not done — that one is on me; I will close it by
+        Friday." You filled your own liberty first.
+        What this response protects: the facts. The room's attention moves from
+        winning back to the work.
+  e_evidence:
+    movement: ending
+    board: calm
+    text:
+      zh: >-
+        "你说走不通——哪一部分让你得出这个结论?我想看具体的。"
+        你把抽象的定性,换回了一件可以被检查的东西。
+        这一回应保护的是:证据。判断留在事实那边,不留在声音大的一方。
+      en: >-
+        "You say it will not work — which part leads you to that? I would like to
+        see the specifics." You trade an abstract verdict for something checkable.
+        What this response protects: evidence. Judgment stays with the facts,
+        not with the louder voice.
+  e_boundary:
+    movement: ending
+    board: calm
+    text:
+      zh: >-
+        "方案可以讨论。但'浪费大家时间'这样的定性,我们不这么说话。"
+        你没有接他给的框架,你给的是另一条规则。
+        这一回应保护的是:边界。这一次,越界的代价被说清楚了。
+      en: >-
+        "The plan is open for discussion. But a verdict like 'wasting everyone's
+        time' — we do not speak that way here." You decline his frame and offer
+        another rule.
+        What this response protects: the boundary. This time, the cost of
+        crossing it is said out loud.
+  e_disagree:
+    movement: ending
+    board: calm
+    text:
+      zh: >-
+        "我有信心。分歧,交给数据。"
+        你没有解释,没有请求,也没有退让——立场清楚,话说完就停。
+        这一回应保护的是:立场。有些分歧,本来就只该由结果裁决。
+      en: >-
+        "I am confident. Let the data decide the disagreement." No explanation,
+        no request, no retreat — the position stands, and the sentence stops.
+        What this response protects: the position. Some disagreements belong to
+        outcomes alone.
+  e_pause:
+    movement: ending
+    board: calm
+    text:
+      zh: >-
+        "这个问题我接下来单独找你聊。"你把会议还给了议程。
+        会后走廊里,你们谈了十一分钟——比当场的任何一句话都长。
+        这一回应保护的是:时机。有些对话,值得一个不围观的场地。
+      en: >-
+        "I will come to you about this one-on-one." You hand the meeting back to
+        the agenda. In the corridor afterwards you talk for eleven minutes —
+        longer than anything said on the spot.
+        What this response protects: timing. Some conversations deserve a room
+        without an audience.
+
+# 五种回应并列,无一被标为"更好"。每种保护的东西不同:事实/证据/边界/立场/时机。
+# The five endings stand side by side; none is marked better. Each protects a
+# different thing: facts, evidence, boundary, position, timing.

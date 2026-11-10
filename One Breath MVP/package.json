@@ -1,0 +1,11 @@
+{
+  "name": "one-breath-mvp",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "description": "One Breath: Mentor MVP — a bilingual contemplative demonstrator. Deterministic build; no AI, no scoring, no data collection.",
+  "scripts": {
+    "test": "node --test",
+    "build": "python tools/build.py"
+  }
+}

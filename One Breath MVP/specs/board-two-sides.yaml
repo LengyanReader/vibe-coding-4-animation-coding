@@ -1,0 +1,43 @@
+# Mirror board for The Two Sides — six chains, two liberties each.
+#
+# The geometry IS the metaphor: your chains (black) and his chains (white)
+# interlock along the second line — B W B W B on rows 3 and 4. Every chain has
+# exactly two liberties, and each of your chains sits next to one of his.
+# Filling HIS liberty provokes the scripted reply filling YOURS — two chains,
+# one yours and one his, simultaneously in atari (动两块). Extending instead of
+# attacking leaves everyone at two liberties (相安). 虚着 changes nothing,
+# which is the point.
+#
+# Every asserted property is proven by BOTH implementations:
+#   tests/rules.test.js (engine) and tools/verify.py (independent Python).
+id: board-two-sides
+title: {zh: 两侧的棋形, en: The shape of two sides}
+size: 5
+
+stones:
+  black: [[3, 1], [4, 1], [3, 3], [4, 3], [3, 5], [4, 5]]
+  white: [[3, 2], [4, 2], [3, 4], [4, 4]]
+
+beats:
+  initial:
+    # every chain sits at exactly two liberties — the dependency made visible
+    assert: {all_chains_liberties: 2}
+
+  attack:                     # 试一手: fill HIS liberty (the "obvious" move)
+    moves: [{color: black, at: [2, 2]}]     # his c2-pair drops to one liberty
+    reply: {color: white, at: [2, 3]}       # he answers by pointing at YOURS
+    assert: {chain_liberties: {"white@3,2": 1, "black@3,3": 1}}
+    # two chains — one his, one yours — simultaneously at one liberty:
+    # the attack did not weaken only him; it woke the whole border.
+
+  calm:                       # release move one: extend your own breath
+    moves: [{color: black, at: [2, 1]}]     # solidify, nobody loses a liberty
+    reply: {color: white, at: [2, 2]}       # he extends too (scripted)
+    assert: {all_chains_min_liberties: 2}
+    # nothing was taken from anyone. 相安 — coexistence, verified.
+
+  pass:                       # release move two: 虚着, no stone at all
+    moves: [{color: black, at: null}]
+    reply: {color: white, at: null}
+    assert: {all_chains_liberties: 2}
+    # doing nothing changed nothing — and nothing needed changing.

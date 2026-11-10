@@ -24,3 +24,8 @@ Thumbs.db
 # The lock file is the only thing here under version control.
 assets/*
 !assets/assets.lock.json
+
+# One Breath MVP: regenerable artifacts (build + audio bed)
+One Breath MVP/assets/
+One Breath MVP/dist/
+One Breath MVP/docs/_extract_*.md
