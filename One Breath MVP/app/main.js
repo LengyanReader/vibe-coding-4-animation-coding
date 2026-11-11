@@ -8,8 +8,9 @@
 
 import { makeT, loadLang, saveLang, resolveText } from "./i18n.js";
 import { newWalk, choose, renderNode, isEnding } from "./vignette.js";
-import { positionFromSpec, drawBoard, chainsAt } from "./board-mirror.js";
+import { positionFromSpec, drawBoard, chainsAt, emptyPosition, play, key, BLACK, WHITE } from "./board-mirror.js";
 import { drawPanel, drawIcon } from "./panels.js";
+import { drawDharmadhatuView, VIEW_COUNT } from "./dharmadhatu.js";
 
 const CONTENT = window.__ONE_BREATH__;         // embedded by tools/build.py
 const { strings, vignettes, boards } = CONTENT;
@@ -19,6 +20,8 @@ const state = {
   reducedMotion: false,
   audioOn: false,
   wordsOn: false,          // wordless-first: the picture carries the meaning
+  sitting: false,          // inside the 坐观 act
+  sitView: 0,              // which of the four widening views is on screen
   vignetteId: null,
   walk: null,
 };
@@ -181,7 +184,7 @@ function renderEnding(walk) {
   const seals = (respondNode?.choices ?? []).map((c) => {
     const chosen = c.to === walk.node;
     return `<canvas class="seal-tile ${chosen ? "chosen" : "faded"}" width="64" height="64"
-      data-icon="${c.icon ?? "remember"}" aria-label="${escapeHtml(c.label)}"></canvas>`;
+      data-icon="${c.icon ?? "remember"}" aria-label="${escapeHtml(c.label?.[state.lang] ?? "")}"></canvas>`;
   }).join("");
   const root = $("#screen");
   root.innerHTML = `
@@ -193,6 +196,9 @@ function renderEnding(walk) {
           <div class="seal-strip">${seals}</div>
           ${textLayer(walk)}
           <div class="choices icon-row">
+            <button class="icon-tile" data-act="sit" aria-label="${t("sit_view")}">
+              <canvas class="tile" width="72" height="72" data-icon="sit_view"></canvas>
+            </button>
             <button class="icon-tile" data-act="replay" aria-label="${t("replay")}">
               <canvas class="tile" width="72" height="72" data-icon="replay"></canvas>
             </button>
@@ -232,6 +238,63 @@ function toggleAudio() {
   state.audioOn = true;
 }
 
+// --- the 坐观 act: four widening views of the final position ---------------------
+// Staged after the Huayan four-dharmadhatu contemplation (事 → 理 → 理事无碍 →
+// 事事无碍) — a design interpretation of the ladder, not doctrine. Entered
+// only via the sit tile on an ending screen, skippable at every step,
+// reduced-motion renders still frames.
+
+function finalAndInitialPositions() {
+  const v = vignettes[state.vignetteId];
+  const boardSpec = boards[v.board];
+  // the contemplation sits with the ENGINE position — the game where the
+  // three stones were lifted: 观三's ghosts are the night's real events
+  const finalPos = positionFromSpec(boardSpec, "engine");
+  // initial position = setup stones before any beat moves — the source of ghosts
+  const init = emptyPosition(boardSpec.size);
+  for (const [r, c] of boardSpec.stones.black) {
+    const res = play(init, key(r, c), BLACK);
+    if (res.ok) init.stones = res.pos.stones;
+  }
+  for (const [r, c] of boardSpec.stones.white) {
+    const res = play(init, key(r, c), WHITE);
+    if (res.ok) init.stones = res.pos.stones;
+  }
+  return { finalPos, initialPos: init };
+}
+
+function renderSit() {
+  const viewNames = ["view_phenomena", "view_principle", "view_interwork", "view_indra"];
+  const dots = [0, 1, 2, 3].map((i) =>
+    `<span class="sit-dot ${i === state.sitView ? "on" : ""}"></span>`).join("");
+  const root = $("#screen");
+  root.innerHTML = `
+    <section class="sit-screen ${state.reducedMotion ? "reduced" : ""}">
+      <header class="row spread">
+        <button data-act="sit_exit" aria-label="${t("return_board")}">×</button>
+        <button data-act="lang">${state.lang === "zh" ? "EN" : "中文"}</button>
+        <button data-act="words" aria-label="${t("words")}">${t("words")}</button>
+        <button data-act="motion" aria-label="${t("reduced_motion")}">${state.reducedMotion ? "◉" : "○"}</button>
+      </header>
+      <div class="sit-stage">
+        <canvas id="sit-canvas" width="560" height="560"
+          aria-label="${t(viewNames[state.sitView])}"></canvas>
+        <p class="sit-caption">${t(viewNames[state.sitView])}</p>
+        <div class="sit-nav row">
+          <button data-act="sit_prev" aria-label="${t("prev_view")}" ${state.sitView === 0 ? "disabled" : ""}>←</button>
+          <span class="sit-dots">${dots}</span>
+          <button data-act="sit_next" aria-label="${t("next_view")}" ${state.sitView === 3 ? "disabled" : ""}>→</button>
+        </div>
+        <p class="footer">${state.wordsOn ? t("ending_all_equal") : t("return_board")}</p>
+      </div>
+    </section>`;
+  const { finalPos, initialPos } = finalAndInitialPositions();
+  drawDharmadhatuView($("#sit-canvas"), state.sitView, finalPos, initialPos, {
+    reducedMotion: state.reducedMotion,
+    time: performance.now(),
+  });
+}
+
 // --- event wiring ---------------------------------------------------------------
 
 document.addEventListener("click", (e) => {
@@ -256,14 +319,37 @@ document.addEventListener("click", (e) => {
       break;
     case "motion":
       state.reducedMotion = !state.reducedMotion;
-      render();
+      state.sitting ? renderSit() : render();
       break;
     case "words":
       state.wordsOn = !state.wordsOn;
+      state.sitting ? renderSit() : render();
+      break;
+    case "audio": toggleAudio(); state.sitting ? renderSit() : render(); break;
+    case "sit":
+      state.sitView = 0;
+      state.sitting = true;
+      renderSit();
+      break;
+    case "sit_exit":
+      state.sitting = false;
       render();
       break;
-    case "audio": toggleAudio(); render(); break;
-    case "title": state.audioOn = false; breathAudio?.pause(); state.walk = null; renderTitle(); break;
+    case "sit_next":
+      state.sitView = Math.min(VIEW_COUNT - 1, state.sitView + 1);
+      renderSit();
+      break;
+    case "sit_prev":
+      state.sitView = Math.max(0, state.sitView - 1);
+      renderSit();
+      break;
+    case "title":
+      state.audioOn = false;
+      breathAudio?.pause();
+      state.sitting = false;
+      state.walk = null;
+      renderTitle();
+      break;
     case "replay":
       state.walk = newWalk(vignettes[state.vignetteId]);
       renderScreen(state.walk);

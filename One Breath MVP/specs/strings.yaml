@@ -52,3 +52,24 @@ ui:
   footer:
     zh: 研究演示器 · 无评分 · 无数据收集 · 无 AI · 内容与棋局全部确定性生成
     en: Research demonstrator · no scoring · no data collection · no AI · all content and positions deterministic
+
+  sit_view:
+    zh: 坐观——与终局对坐,视野四重
+    en: Sit and contemplate — four widening views of the final position
+  view_phenomena:
+    zh: "观一 · 事:每颗子有它的位置与来历"
+    en: "View 1 · phenomena: every stone has its place and its history"
+  view_principle:
+    zh: "观二 · 理:每颗子都是同一口气的暂时形状"
+    en: "View 2 · principle: every stone is a temporary shape of one breath"
+  view_interwork:
+    zh: "观三 · 理事无碍:提过的子,也仍在棋局里"
+    en: "View 3 · their non-obstruction: the lifted stones are still in the game"
+  view_indra:
+    zh: "观四 · 事事无碍:每颗子里,映着整盘棋"
+    en: "View 4 · Indra's net: in every stone, the whole board is reflected"
+  next_view: {zh: "下一观", en: "Next view"}
+  prev_view: {zh: "上一观", en: "Previous view"}
+  return_board:
+    zh: 回到棋盘——夜还长
+    en: Back to the board — the night is long

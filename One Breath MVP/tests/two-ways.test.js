@@ -11,6 +11,7 @@ import { positionFromSpec, chainsAt } from "../app/board-mirror.js";
 
 const content = JSON.parse(readFileSync(new URL("../dist/content.json", import.meta.url), "utf-8"));
 const boardSpec = content.boards["board-two-ways"];
+const strings = content.strings;
 
 test("the computed move is honest: it captures exactly the machine's three stones", () => {
   const pos = positionFromSpec(boardSpec, "initial");
@@ -61,4 +62,46 @@ test("both ledgers are stable: recompute, same hash", () => {
   const a = positionFromSpec(boardSpec, "engine");
   const b = positionFromSpec(boardSpec, "engine");
   assert.equal(hashPosition(a), hashPosition(b));
+});
+
+// --- the 坐观 act: four dharmadhatu views -------------------------------------
+
+test("sit act: the contemplation derives ghost stones that are exactly the lifted three", () => {
+  // 观三's claim — "the lifted stones are still in the game" — must list
+  // exactly the machine's three stones, no others. The contemplation sits
+  // with the ENGINE position (the night's real events).
+  const finalPos = positionFromSpec(boardSpec, "engine");
+  const init = emptyPosition(boardSpec.size);
+  for (const [r, c] of boardSpec.stones.black) {
+    const res = play(init, key(r, c), BLACK); if (res.ok) init.stones = res.pos.stones;
+  }
+  for (const [r, c] of boardSpec.stones.white) {
+    const res = play(init, key(r, c), WHITE); if (res.ok) init.stones = res.pos.stones;
+  }
+  const ghosts = [...init.stones.keys()].filter((k) => !finalPos.stones.has(k));
+  ghosts.sort();
+  assert.deepEqual(ghosts, ["1,2", "1,3", "1,4"], "ghosts = the machine's lifted three");
+});
+
+test("sit act: the four views are declared and the words layer names all four", () => {
+  // the act is a sequence of exactly four views (判教次第, not a free loop)
+  // and the strings carry all four names bilingually
+  const dharmadhatuSrc = readFileSync(new URL("../app/dharmadhatu.js", import.meta.url), "utf-8");
+  for (const view of ["viewIndex === 0", "viewIndex === 1", "viewIndex === 2", "viewIndex === 3"]) {
+    assert.ok(dharmadhatuSrc.includes(view), `view ${view} missing`);
+  }
+  for (const key of ["view_phenomena", "view_principle", "view_interwork", "view_indra"]) {
+    for (const lang of ["zh", "en"]) {
+      assert.ok(strings[key]?.[lang]?.trim(), `strings.${key}.${lang}`);
+    }
+  }
+});
+
+test("sit act: entry only from an ending screen, exit returns to the ending", () => {
+  // wired via data-act sit / sit_exit in the ending template — pinned so the
+  // contemplation can never silently detach from the story
+  const mainSrc = readFileSync(new URL("../app/main.js", import.meta.url), "utf-8");
+  assert.ok(mainSrc.includes('data-act="sit"'), "ending screen must offer the sit tile");
+  assert.ok(mainSrc.includes('case "sit_exit"'), "the act must be exitable");
+  assert.ok(mainSrc.includes("state.sitting = false;"), "exit must leave the act");
 });

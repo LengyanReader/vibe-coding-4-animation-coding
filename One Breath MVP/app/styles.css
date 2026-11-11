@@ -84,3 +84,14 @@ button.ghost { background: none; border: none; color: var(--ink-soft); text-deco
 .seal-tile.chosen { opacity: 1; border: 2px solid var(--seal); border-radius: 4px; }
 .seal-tile.faded { opacity: 0.28; }
 .choices { margin: 0.8rem 0 0; }
+
+/* 坐观 — the four-view contemplation act */
+.sit-screen { text-align: center; }
+.sit-stage { display: flex; flex-direction: column; align-items: center; gap: 0.8rem; }
+#sit-canvas { border: 1px solid var(--ink-faint); max-width: 92vw; height: auto; }
+.sit-caption { color: var(--ink-soft); font-size: 0.92rem; letter-spacing: 0.08em; }
+.sit-nav { justify-content: center; gap: 1.2rem; }
+.sit-dots { display: inline-flex; gap: 0.5rem; align-items: center; }
+.sit-dot { width: 9px; height: 9px; border-radius: 50%; border: 1.5px solid var(--ink-faint); display: inline-block; }
+.sit-dot.on { background: var(--seal); border-color: var(--seal); }
+.icon-tile[data-act="sit"] { border-color: var(--amber); }

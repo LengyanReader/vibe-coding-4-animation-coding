@@ -23,4 +23,11 @@
 | 道德评分 | moral scoring | 明令禁止出现于游戏逻辑(静态测试守卫) |
 | 灵性逃避 | spiritual bypassing | 简报 §9 术语,保留通行译法 |
 | 余象 | after-image | 体验末尾的克制意象 |
+| 事法界 | the dharmadhātu of phenomena | 华严四法界观第一重:事物如其为事物,各有其位——棋盘上"每颗子有它的落子时刻" |
+| 理法界 | the dharmadhātu of principle | 第二重:现象背后的同一之理——棋盘上"每颗子都是同一口气的暂时形状" |
+| 理事无碍 | non-obstruction of principle and phenomena | 第三重:理不在事外——"提过的子也仍在棋局里"(幽灵子) |
+| 事事无碍 | non-obstruction between phenomena | 第四重:事事相摄,一即一切——"因陀罗网:每颗子里映着整盘棋"(递归小盘) |
+| 判教 | doctrinal classification (panjiao) | 华严宗祖师(法藏)判摄诸教之次第;此处仅借其"次第观"的形式,不作教义等价声明 |
+| 因陀罗网 | Indra's net | 华严譬喻:帝释天宫宝珠之网,珠珠相映,一珠映现一切珠 |
+| 坐观 | sit-and-contemplate | 本 MVP 的第五幕:回应之后,与终局棋盘对坐,依次经行四观(自愿、可跳过) |
 | 留白 | negative space | 借自水墨画论,视觉语汇说明用 |
