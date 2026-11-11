@@ -735,6 +735,12 @@ export const ICONS = {
     ctx.beginPath(); ctx.moveTo(-s * 0.08, -s * 0.14); ctx.lineTo(-s * 0.08, s * 0.14);
     ctx.moveTo(s * 0.08, -s * 0.14); ctx.lineTo(s * 0.08, s * 0.14); ctx.stroke();
   },
+  sit_view: (ctx, s) => {
+    // 坐观: a figure sitting before a board, breath circle above
+    figure(ctx, 0, s * 0.36, s / 130, { pose: "sit" });
+    ctx.strokeStyle = C.sage; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(0, -s * 0.28, s * 0.18, 0, Math.PI * 2); ctx.stroke();
+  },
   replay: (ctx, s) => {
     ctx.strokeStyle = INK; ctx.lineWidth = 3;
     ctx.beginPath(); ctx.arc(0, 0, s * 0.28, -0.6, Math.PI * 1.5); ctx.stroke();

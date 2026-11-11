@@ -52,11 +52,19 @@ class Rules:
         return stones, libs
 
     def play(self, p, color: int):
-        """Returns (ok, captured_count, refusal_reason)."""
+        """Returns (ok, captured_count, refusal_reason).
+
+        Refused moves (occupied/ko/suicide) must leave the board UNCHANGED —
+        the JS engine (rules.js) correctly avoids placing on refusal, and the
+        differential test caught the Python brain leaving a stone behind after
+        a suicide refusal, which diverged every subsequent step."""
         if p in self.stones:
             return False, 0, "occupied"
         if self.ko == p:
             return False, 0, "ko"
+        # snapshot for undo on refusal
+        saved = dict(self.stones)
+        saved_ko = self.ko
         self.stones[p] = color
         enemy = 3 - color
         captured_groups = []
@@ -78,6 +86,9 @@ class Rules:
         self.ko = ko
         stones, libs = self.chain(p)
         if not libs:
+            # suicide: UNDO — restore the pre-move board exactly
+            self.stones = saved
+            self.ko = saved_ko
             return False, 0, "suicide"
         return True, len(captured), None
 
