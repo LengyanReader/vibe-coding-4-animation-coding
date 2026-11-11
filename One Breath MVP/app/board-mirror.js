@@ -17,22 +17,26 @@ export const PALETTE = {
   whiteStone: "#F1EDE3",
   sealRed: "#B03A2E",
   breath: "#7B736B",
+  sage: "#8A9B8E",
 };
 
 export function positionFromSpec(boardSpec, beatName) {
+  const beat = boardSpec.beats[beatName];
+  if (!beat) throw new Error(`mirror: unknown beat "${beatName}"`);
+  // a beat may carry its own setup (teaching positions do); the base stones
+  // are the default for the two case boards.
+  const setup = beat.setup ?? boardSpec.stones;
   const pos = emptyPosition(boardSpec.size);
-  for (const [r, c] of boardSpec.stones.black) {
+  for (const [r, c] of setup.black) {
     const res = play(pos, key(r, c), BLACK);
     if (!res.ok) throw new Error(`mirror: illegal setup stone ${r},${c} (${res.reason})`);
     pos.stones = res.pos.stones;
   }
-  for (const [r, c] of boardSpec.stones.white) {
+  for (const [r, c] of setup.white) {
     const res = play(pos, key(r, c), WHITE);
     if (!res.ok) throw new Error(`mirror: illegal setup stone ${r},${c} (${res.reason})`);
     pos.stones = res.pos.stones;
   }
-  const beat = boardSpec.beats[beatName];
-  if (!beat) throw new Error(`mirror: unknown beat "${beatName}"`);
   const seq = [];
   for (const m of beat.moves ?? []) {
     // {engine: true} = the "算力手": the move is COMPUTED at runtime by the
@@ -141,18 +145,115 @@ export function drawBoard(canvas, pos, opts = {}) {
     }
   }
 
-  // liberty ticks: tiny breath marks on empty liberties of every chain
+// liberty ticks: tiny breath marks on empty liberties of every chain
   if (opts.showLiberties) {
     ctx.strokeStyle = PALETTE.breath;
     ctx.lineWidth = 1.2;
     for (const c of chains) {
       for (const l of c.libertyPoints) {
         const [x, y] = px(...parse(l));
-        ctx.beginPath();
-        ctx.arc(x, y, cell * 0.09, 0, Math.PI * 2);
-        ctx.stroke();
+        ctx.beginPath(); ctx.arc(x, y, cell * 0.09, 0, Math.PI * 2); ctx.stroke();
       }
     }
   }
+
+  // one chain's breath (teaching: only the chain being taught)
+  if (opts.libertiesFor) {
+    const c = chains.find((ch) => ch.stones.includes(opts.libertiesFor));
+    if (c) {
+      ctx.strokeStyle = PALETTE.sage ?? PALETTE.breath;
+      ctx.lineWidth = 2;
+      for (const l of c.libertyPoints) {
+        const [x, y] = px(...parse(l));
+        ctx.beginPath(); ctx.arc(x, y, cell * 0.13, 0, Math.PI * 2); ctx.stroke();
+      }
+      ctx.strokeStyle = PALETTE.breath;
+      ctx.lineWidth = 1.4;
+      for (const s of c.stones) {
+        const [x, y] = px(...parse(s));
+        ctx.beginPath(); ctx.arc(x, y, cell * 0.56, 0, Math.PI * 2); ctx.stroke();
+      }
+    }
+  }
+
+  // markers: corridor (faint), refused (seal-red cross), last move (small dot)
+  for (const m of opts.markers ?? []) {
+    const [x, y] = px(...parse(m.at));
+    if (m.kind === "corridor") {
+      // a quiet breath mark, not a dashed UI ring
+      ctx.strokeStyle = PALETTE.sage;
+      ctx.globalAlpha = 0.55;
+      ctx.lineWidth = 1.1;
+      ctx.beginPath(); ctx.arc(x, y, cell * 0.17, 0, Math.PI * 2); ctx.stroke();
+      ctx.fillStyle = PALETTE.sage;
+      ctx.globalAlpha = 0.22;
+      ctx.beginPath(); ctx.arc(x, y, cell * 0.06, 0, Math.PI * 2); ctx.fill();
+      ctx.globalAlpha = 1;
+    } else if (m.kind === "refused") {
+      ctx.strokeStyle = PALETTE.sealRed;
+      ctx.lineWidth = 2.4;
+      const d = cell * 0.18;
+      ctx.beginPath();
+      ctx.moveTo(x - d, y - d); ctx.lineTo(x + d, y + d);
+      ctx.moveTo(x + d, y - d); ctx.lineTo(x - d, y + d);
+      ctx.stroke();
+    } else if (m.kind === "clicked") {
+      ctx.strokeStyle = PALETTE.sage;
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(x, y, cell * 0.2, 0, Math.PI * 2); ctx.stroke();
+      ctx.fillStyle = PALETTE.sage;
+      ctx.beginPath(); ctx.arc(x, y, cell * 0.08, 0, Math.PI * 2); ctx.fill();
+    } else if (m.kind === "last") {
+      ctx.fillStyle = PALETTE.sealRed;
+      ctx.beginPath(); ctx.arc(x, y, cell * 0.09, 0, Math.PI * 2); ctx.fill();
+    }
+  }
+
+  // ghosts: stones lifted earlier — dashed outlines (理事无碍's proof)
+  for (const g of opts.ghostPoints ?? []) {
+    const [x, y] = px(...parse(g));
+    ctx.strokeStyle = PALETTE.sealRed;
+    ctx.globalAlpha = 0.6;
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.globalAlpha = 1;
+  }
+
+  // role labels: a small vermilion chop beside the anchor stone
+  for (const [role, anchor] of Object.entries(opts.roles ?? {})) {
+    const [x, y] = px(...parse(anchor));
+    const label = role === "you" ? "你" : "他";
+    const s = cell * 0.44;
+    const bx = x + cell * 0.46;
+    const by = y - cell * 0.6;
+    ctx.fillStyle = PALETTE.sealRed;
+    ctx.fillRect(bx - s / 2, by - s / 2, s, s);
+    ctx.fillStyle = PALETTE.paper;
+    ctx.font = `${Math.max(11, cell * 0.32)}px "Noto Serif SC", serif`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(label, bx, by + 0.5);
+  }
+
   return { atariCount: atariChains.length, chainCount: chains.length };
 }
+
+// nearest intersection for a pointer event; returns [r,c] or null
+export function hitTest(canvas, clientX, clientY, size) {
+  const rect = canvas.getBoundingClientRect();
+  if (!rect.width || !rect.height) return null;
+  const x = (clientX - rect.left) * (canvas.width / rect.width);
+  const y = (clientY - rect.top) * (canvas.height / rect.height);
+  const pad = canvas.width * 0.09;
+  const cell = (canvas.width - pad * 2) / (size - 1);
+  const c = Math.round((x - pad) / cell) + 1;
+  const r = Math.round((y - pad) / cell) + 1;
+  if (r < 1 || r > size || c < 1 || c > size) return null;
+  const sx = pad + (c - 1) * cell;
+  const sy = pad + (r - 1) * cell;
+  if (Math.hypot(x - sx, y - sy) > cell * 0.55) return null;
+  return [r, c];
+}
+

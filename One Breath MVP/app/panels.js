@@ -206,6 +206,24 @@ function watchers(ctx, x, y, n, s) {
   }
 }
 
+function shopfront(ctx, x, y, w, h, { glow = false } = {}) {
+  ctx.fillStyle = "rgba(38,34,29,0.06)";
+  ctx.fillRect(x, y, w, h);
+  ctx.strokeStyle = INK;
+  ctx.lineWidth = 2;
+  ctx.strokeRect(x, y, w, h);
+  ctx.strokeStyle = SOFT;
+  ctx.lineWidth = 1.5;
+  ctx.strokeRect(x + w * 0.14, y + h * 0.2, w * 0.72, h * 0.46);
+  ctx.strokeRect(x + w * 0.2, y - h * 0.14, w * 0.6, h * 0.1);
+  if (glow) {
+    ctx.fillStyle = "rgba(217,168,108,0.35)";
+    ctx.beginPath();
+    ctx.arc(x + w * 0.5, y + h * 0.43, w * 0.26, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
 function openHandWithStone(ctx, x, y, s) {
   // 放下: an open palm, and the stone resting BESIDE it — not in it
   ctx.strokeStyle = INK;
@@ -475,6 +493,54 @@ export function drawPanel(canvas, panel, { time = 0, reducedMotion = false, warm
       ctx.lineWidth = 2;
       ctx.strokeRect(W * 0.3, H * 0.16, W * 0.4, W * 0.4);
       figure(ctx, W * 0.5, H * 0.86, H / 500, { pose: "reach" });
+      break;
+    }
+    case "corridor-narrow": {
+      // two shopfronts, one corridor; boxes on your side, a shelf on his
+      shopfront(ctx, W * 0.03, H * 0.28, W * 0.3, H * 0.58);
+      shopfront(ctx, W * 0.67, H * 0.28, W * 0.3, H * 0.58);
+      ctx.strokeStyle = FAINT;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(W * 0.33, H * 0.86); ctx.lineTo(W * 0.33, H * 0.28); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(W * 0.67, H * 0.86); ctx.lineTo(W * 0.67, H * 0.28); ctx.stroke();
+      // boxes
+      ctx.fillStyle = "rgba(38,34,29,0.2)";
+      ctx.fillRect(W * 0.36, H * 0.66, W * 0.12, H * 0.14);
+      ctx.fillRect(W * 0.37, H * 0.55, W * 0.1, H * 0.1);
+      // shelf
+      ctx.strokeStyle = INK;
+      ctx.lineWidth = 2.5;
+      ctx.strokeRect(W * 0.58, H * 0.5, W * 0.05, H * 0.3);
+      ctx.beginPath();
+      for (let i = 0; i < 3; i++) {
+        const yy = H * (0.58 + i * 0.08);
+        ctx.moveTo(W * 0.58, yy); ctx.lineTo(W * 0.63, yy);
+      }
+      ctx.stroke();
+      figure(ctx, W * 0.52, H * 0.34, H / 620, { pose: "stand", tone: "rgba(38,34,29,0.5)" });
+      break;
+    }
+    case "corridor-clear": {
+      shopfront(ctx, W * 0.03, H * 0.28, W * 0.3, H * 0.58);
+      shopfront(ctx, W * 0.67, H * 0.28, W * 0.3, H * 0.58);
+      ctx.strokeStyle = FAINT;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(W * 0.33, H * 0.86); ctx.lineTo(W * 0.33, H * 0.28); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(W * 0.67, H * 0.86); ctx.lineTo(W * 0.67, H * 0.28); ctx.stroke();
+      figure(ctx, W * 0.4, H * 0.84, H / 480, { pose: "stand" });
+      figure(ctx, W * 0.6, H * 0.84, H / 480, { pose: "stand", flip: true });
+      break;
+    }
+    case "corridor-dawn": {
+      shopfront(ctx, W * 0.03, H * 0.28, W * 0.3, H * 0.58, { glow: true });
+      shopfront(ctx, W * 0.67, H * 0.28, W * 0.3, H * 0.58, { glow: true });
+      ctx.fillStyle = "rgba(217,168,108,0.28)";
+      ctx.beginPath(); ctx.arc(W * 0.5, H * 0.2, H * 0.14, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = C.amber ?? C.sealRed;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.arc(W * 0.5, H * 0.2, H * 0.05, 0, Math.PI * 2); ctx.stroke();
+      figure(ctx, W * 0.42, H * 0.86, H / 500, { pose: "stand" });
+      figure(ctx, W * 0.58, H * 0.86, H / 500, { pose: "stand", flip: true });
       break;
     }
     case "breath":

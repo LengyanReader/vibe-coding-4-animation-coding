@@ -1,0 +1,126 @@
+{
+  "_note": "Working set for THIS task. `active` = held in context now; `evicted` = put back into the index, with the reason and the trigger that reloads it. Evict only at a phase boundary, never an always-on capability, never without a receipt (M1.10).",
+  "vector": {
+    "horizon": "multi_session",
+    "verifiability": "high",
+    "stakes": "medium",
+    "grounding": "required",
+    "artifact": "code",
+    "tool_surface": "read_write",
+    "collaboration": "human_review",
+    "domain": "arts-design",
+    "source": "flags",
+    "notes": [
+      "artifact overridden document->code at intake: the deliverable is a gated single-file build, not a document",
+      "domain arts-design: interaction-design artifact; education applies only to the soft comprehension gate"
+    ]
+  },
+  "matched": [
+    "baseline-discipline",
+    "verification-gate",
+    "resumable-memory",
+    "traceable-sources",
+    "self-improving-loop",
+    "tool-use",
+    "human-review-gate",
+    "frontier-standard",
+    "portable-skills",
+    "ambition-elevation",
+    "expert-instruments",
+    "bidirectional-capability-flow",
+    "context-budget-policy",
+    "untrusted-content-discipline",
+    "durable-execution",
+    "cost-budget-caps",
+    "eval-driven-development",
+    "loop-discipline",
+    "graph-orchestration",
+    "formal-verification",
+    "evidence-bounded-generation",
+    "gap-seeking",
+    "component-ablation"
+  ],
+  "active": [
+    "baseline-discipline",
+    "verification-gate",
+    "resumable-memory",
+    "traceable-sources",
+    "human-review-gate",
+    "bidirectional-capability-flow",
+    "context-budget-policy",
+    "expert-instruments",
+    "eval-driven-development"
+  ],
+  "evicted": [
+    {
+      "id": "ambition-elevation",
+      "reason": "R0-R5 complete; the reading was confirmed by the user on 2026-11-11 and locked in tasks/PLAN.md",
+      "reload_when": "the ask changes materially, or a new scope decision reopens"
+    },
+    {
+      "id": "self-improving-loop",
+      "reason": "no evolution loop runs during the build; this task only produces a distillation proposal at close",
+      "reload_when": "at task close, when the capability-flow distillation is written"
+    },
+    {
+      "id": "tool-use",
+      "reason": "tool surface is fixed and verified: Python 3.13 (+PyYAML), Node 24, the repo's build/test/verify scripts",
+      "reload_when": "a new renderer, engine or external tool is proposed"
+    },
+    {
+      "id": "frontier-standard",
+      "reason": "no apex-bar rubric is scored this round; the hard gates are the acceptance test",
+      "reload_when": "before mentor delivery, if the artifact is scored against a design rubric"
+    },
+    {
+      "id": "portable-skills",
+      "reason": "no Agent Skills artifact is emitted by this task; the harness's own skill file is generated, not authored here",
+      "reload_when": "if the teaching act is packaged as a reusable skill"
+    },
+    {
+      "id": "untrusted-content-discipline",
+      "reason": "all sources this round are local primary documents already in the repo; no external or retrieved content is processed",
+      "reload_when": "if web sources, third-party docs or tool output enter the evidence chain"
+    },
+    {
+      "id": "durable-execution",
+      "reason": "state is file checkpoints read by a human-scale session; no multi-hour side-effecting job to replay",
+      "reload_when": "if a long render/build must survive a crash and resume exactly"
+    },
+    {
+      "id": "cost-budget-caps",
+      "reason": "no unattended loop; each sprint is gated by a human and runs in minutes",
+      "reload_when": "if an autonomous or unattended loop is introduced"
+    },
+    {
+      "id": "loop-discipline",
+      "reason": "the work is a human-gated sprint sequence, not an agent ReAct loop",
+      "reload_when": "if an autonomous generate-validate-repair loop is added"
+    },
+    {
+      "id": "graph-orchestration",
+      "reason": "solo agent, no subagents, no fan-out/fan-in this round",
+      "reload_when": "if parallel authoring or a multi-agent build is used"
+    },
+    {
+      "id": "formal-verification",
+      "reason": "the 双活 claim is a finite exhaustive enumeration checked by two implementations, not a proof-assistant obligation",
+      "reload_when": "if a formal proof or model-checked claim is made"
+    },
+    {
+      "id": "evidence-bounded-generation",
+      "reason": "the task writes an interactive lesson, not answers over a corpus or knowledge base",
+      "reload_when": "if the mentor package starts answering questions about sources"
+    },
+    {
+      "id": "gap-seeking",
+      "reason": "gaps are already named in tasks/PLAN.md; no self-model round this session",
+      "reload_when": "at task close or the next capability round"
+    },
+    {
+      "id": "component-ablation",
+      "reason": "no module ablation this round; the module count is small and policy-only",
+      "reload_when": "when auditing whether a teaching beat earns its place"
+    }
+  ]
+}

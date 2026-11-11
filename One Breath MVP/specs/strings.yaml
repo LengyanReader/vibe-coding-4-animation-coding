@@ -73,3 +73,40 @@ ui:
   return_board:
     zh: 回到棋盘——夜还长
     en: Back to the board — the night is long
+  # Chapter 0 · 学棋 → 照见 → 觉悟人生 (chrome only; lesson text lives in lessons.yaml)
+  lesson:
+    chapter_label: {zh: 第零章 · 学棋, en: "Chapter 0 · Learning the board"}
+    step: {zh: "第 {n}/{total} 手", en: "Move {n} of {total}"}
+    core: {zh: 主线, en: Core}
+    optional: {zh: 加看, en: Extra}
+    continue: {zh: 继续, en: Continue}
+    reset: {zh: 重来, en: Reset}
+    pass: {zh: 虚着, en: Pass}
+    skip: {zh: 跳过教学, en: Skip the lesson}
+    board_caption: {zh: 教学棋盘 · 点交叉点落子, en: "Teaching board · click an intersection"}
+    msg:
+      not_liberty: {zh: 空着、并且挨着这块棋的点,才是它的气。, en: "A liberty is an empty point next to the chain."}
+      counted: {zh: "数对了:这块棋有 {n} 口气。", en: "Counted: this chain has {n} liberties."}
+      captured: {zh: "提子 {n} 颗。", en: "Captured {n} stones."}
+      no_capture: {zh: 这一手没有提子。再看一眼那块棋最后一口气在哪。, en: "No capture this time. Look again at where the chain's last liberty is."}
+      refused_reason: {zh: "这一手不能下({reason})。", en: "That move is refused ({reason})."}
+      wrong_point: {zh: 换一个点试试。, en: "Try another point."}
+      surprisingly_legal: {zh: 这一手居然能下——重来一次,换一个点。, en: "That move was legal — reset and try another point."}
+      one_eye: {zh: 填不进去。还有一个眼。, en: "It will not go in. One more eye to try."}
+      refused_suicide: {zh: 填不进去:这一点没有自己的气。, en: "It will not go in: the point has no breath of its own."}
+      both_eyes: {zh: 两个眼都填不进去:这块棋是活的。, en: "Both eyes refuse the move: this chain is alive."}
+      mutual_reply: {zh: "他也点了一口。走廊现在只剩 {n} 口共享的气。", en: "He filled one too. {n} shared breaths remain."}
+      mutual_lost: {zh: 数完了:先动手的那块棋,没了。重来,或者虚着。, en: "The count is done: the first mover's chain is gone. Reset, or pass."}
+      pass_kept: {zh: 虚着。走廊没有变;两块棋都还在。, en: "A pass. The corridor is unchanged; both chains remain."}
+      pass_lost: {zh: 先动手的那块已经没了。重来,再虚着。, en: "The first mover's chain is gone. Reset, then pass."}
+      reset: {zh: 回到这一步的开头。, en: "Back to the start of this step."}
+      occupied: {zh: 这一点已经有子了。, en: "That point already has a stone."}
+
+  compare:
+    title: {zh: "照见 · 同一个形状,两种读法", en: "Mirror · one shape, two readings"}
+    find_you: {zh: "先找你自己:哪一块棋,和你一样只有一条走廊?", en: "First find yourself: which chain has only this corridor, like you?"}
+    found_you: {zh: 这块。它和你一样,只有一条走廊。, en: "This one. It has only this corridor, like you."}
+    find_corridor: {zh: "再找你们共用的气:点一个走廊上的空点。", en: "Now find the breath you share: click an empty point in the corridor."}
+    found_corridor: {zh: "这 {n} 口,是你们共用的。谁先填,谁把最后一口留给对方。", en: "These {n} points are shared. Whoever fills first hands over the last breath."}
+    try_again: {zh: 再看看。气在空点上,不在子上。, en: "Look again. Breath is on empty points, not on stones."}
+    continue: {zh: 看清楚了,继续, en: Seen it — continue}

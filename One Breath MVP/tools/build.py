@@ -34,7 +34,13 @@ def build() -> dict:
         b = _load_yaml(p)
         boards[b["id"]] = b
 
-    content = {"strings": strings, "vignettes": vignettes, "boards": boards}
+    lessons = {}
+    for p in sorted((ROOT / "specs").glob("lessons*.yaml")):
+        lesson = _load_yaml(p)
+        lessons[lesson["id"]] = lesson
+
+    content = {"strings": strings, "vignettes": vignettes, "boards": boards,
+               "lessons": lessons}
     content_json = json.dumps(content, ensure_ascii=False,
                               sort_keys=True, separators=(",", ":"))
 
@@ -50,13 +56,15 @@ def build() -> dict:
     css = (ROOT / "app" / "styles.css").read_text(encoding="utf-8")
     template = (ROOT / "tools" / "index.template.html").read_text(encoding="utf-8")
 
-    # module assembly: i18n -> rules -> board-mirror -> vignette -> main,
-    # stripped of import/export statements (inlined, order = dependency order)
+    # module assembly: i18n -> rules -> board-mirror -> panels -> dharmadhatu
+    # -> vignette -> teaching -> main, stripped of import/export statements
     app_order = ["i18n.js", "rules.js", "board-mirror.js", "panels.js",
-                   "dharmadhatu.js", "vignette.js", "main.js"]
+                   "dharmadhatu.js", "vignette.js", "teaching.js", "main.js"]
     js_parts = []
     for name in app_order:
         src = (ROOT / "app" / name).read_text(encoding="utf-8")
+        # strip multi-line and single-line imports; the build inlines one scope
+        src = re.sub(r"^import\s*\{[^}]*\}\s*from\s*[\"'][^\"']+[\"'];\s*$", "", src, flags=re.M)
         src = re.sub(r"^import\s.+?;\s*$", "", src, flags=re.M)
         src = re.sub(r"^export\s+", "", src, flags=re.M)
         js_parts.append(f"// ---- {name} ----\n{src.strip()}")

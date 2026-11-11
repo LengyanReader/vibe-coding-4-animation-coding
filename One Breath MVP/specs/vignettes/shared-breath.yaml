@@ -1,0 +1,278 @@
+# 第零章:同气 · The Shared Corridor — 故事图(双语意群成对)
+#
+# 学(气/连/提/救命/眼/双活/虚着) → 照(同一棋形的两种读法) → 觉(四观) → 行(五种回应)。
+# 棋盘随故事演化:走廊→教气→提完→薄了一气→两眼活→回走廊→安放。
+# 回应结局不排序:每种回应只陈述它保护了什么,无 score、无正确答案变量。
+# 结局带条件段:released/rushed/completed 影响语气,不影响选项。
+id: shared-breath
+chapter: 0
+title:
+  zh: 同气
+  en: The Shared Corridor
+tagline:
+  zh: 一条走廊,两块棋:谁先动手,谁把最后一口留给对方。
+  en: One corridor, two chains — whoever moves first hands over the last breath.
+board: board-shared-breath
+start: n1
+
+nodes:
+  n1:
+    movement: encounter
+    board: mutual
+    panel: {scene: corridor-narrow}
+    text:
+      zh: >-
+        你和阿岚的店,开在同一条走廊的两侧。这条走廊,是两家唯一共用的入口。
+        今晚打烊前,你把两箱货推到走廊里,占了半边——你告诉自己,只放到明天。
+        阿岚出来看见,没说话,回身把自己那只旧木架也推了出来。
+        走廊现在只够一个人侧身过。你心里只剩一句:是他先推出来的。
+      en: >-
+        Your shop and Alan's face each other across one corridor — the only
+        entrance both shops share. Before closing you roll two boxes into it,
+        taking half. Just for tonight, you tell yourself. Alan comes out, says
+        nothing, and pushes out an old wooden shelf of his own. Now one person
+        can barely squeeze through. One sentence fills your head: he pushed his
+        out first.
+    choices:
+      - {label: {zh: 先数一数这条走廊有多宽, en: Count how wide the corridor is}, to: n2, icon: eye_mine}
+      - {label: {zh: 把箱子再往前推一点, en: Push the boxes further in}, to: n2, icon: reply_now, flag: rushed}
+
+  n2:
+    movement: encounter
+    board: breath
+    panel: {scene: corridor-dawn}
+    lesson: shared-breath
+    text:
+      zh: >-
+        要看懂走廊里发生了什么,得先看懂棋盘上的气。十手,一口一口气。
+        {rushed, y: 你把手按在箱子上,又停住了。先看清楚。} {rushed, n: 你没有动。先看清楚。}
+      en: >-
+        To see what happened in the corridor, first see how the board breathes.
+        Ten moves, one breath at a time.
+        {rushed, y: Your hand is on the box; you stop. Look first.} {rushed, n: You do not move. Look first.}
+    choices:
+      - {label: {zh: 我把学到的都试过了, en: I tried everything the board showed me}, to: n3, icon: seen_all}
+      - {label: {zh: 让我直接看后面, en: Just show me what comes next}, to: n3, icon: back_room}
+
+  n3:
+    movement: interrelate
+    board: capture_done
+    panel: {scene: corridor-narrow}
+    compare:
+      board: board-shared-breath
+      beat: mutual
+      roles: {you: "black@1,1", them: "white@4,1"}
+    text:
+      zh: >-
+        现在,把棋盘上的两块棋,和走廊里的两个人,对上看。
+        先找你自己——再找你们共用的那几口气。
+        {rushed, y: 你急过一次。急的时候,看不见共享的气。}
+        {rushed, n: 你慢慢走过来,现在慢下来看。}
+      en: >-
+        Now set the two chains on the board beside the two people in the
+        corridor. First find yourself — then find the breath you share.
+        {rushed, y: You rushed once. In a rush, the shared breath is invisible.}
+        {rushed, n: You walked here slowly; now slow down and look.}
+    choices:
+      - {label: {zh: 这个棋形就是我们的处境, en: This shape IS our situation}, to: n4, icon: eye_mine}
+      - {label: {zh: 棋盘帮不了我——回到故事, en: The board cannot help — back to the story}, to: n4, icon: back_room}
+
+  n4:
+    movement: release
+    board: mutual_after_one
+    panel: {scene: put-down}
+    text:
+      zh: >-
+        棋盘上,两块棋谁也动不了谁:谁先填一口,谁把最后一口留给对方。
+        走廊里也一样。现在有一个选项,不在任何账本里——
+        把"今晚必须赢回这半边"放下。
+        不是认输,也不是大度。只是,不再攥着。
+      en: >-
+        On the board neither chain can move the other: whoever fills first hands
+        the last breath over. The corridor is the same. Now there is an option
+        on no ledger — to put down "I must win back this half tonight."
+        Not surrender, and not generosity. Just: no longer gripping.
+    choices:
+      - {label: {zh: 放下它, en: Put it down}, to: n5, flag: released, icon: put_down}
+      - {label: {zh: 现在还放不下, en: I cannot put it down yet}, to: n5, icon: not_yet}
+
+  n5:
+    movement: release
+    board: eyes
+    panel: {scene: breath}
+    sit:
+      board: board-shared-breath
+      initial: capture_setup
+      final: capture_done
+    text:
+      zh: >-
+        坐一会儿。看你这一路学过的、提过的、放过的一切。
+        {completed, y: 你把十步都试了。棋盘上的每一口气,你都亲手点亮过。}
+        {completed, n: 你跳过了几步。没关系——气在棋盘上,随时可以回来点。}
+      en: >-
+        Sit a while. Look at everything you learned, lifted, and put down.
+        {completed, y: You tried all ten steps. Every liberty on this board, you
+        lit by hand.}
+        {completed, n: You skipped some steps. That is fine — the breath is on
+        the board, ready whenever you come back.}
+    choices:
+      - {label: {zh: 回到走廊, en: Back to the corridor}, to: n6, icon: back_room}
+      - {label: {zh: 让我静一会儿, en: Let me sit a while longer}, to: n5, icon: remember}
+
+  n6:
+    movement: respond
+    board: mutual
+    panel: {scene: corridor-clear}
+    text:
+      zh: >-
+        回到走廊。阿岚还站在那儿,木架还横在中间。
+        {released, y: 你放下过一次,所以手里的这句话,轻了一些。}
+        {released, n: 你还攥着——没关系,攥着也可以开口。}
+        {rushed, y: 你急过一次,现在慢了一步。}
+        {rushed, n: 你没有急——但走廊不管这些。}
+        此刻,你想怎么说?
+      en: >-
+        Back in the corridor. Alan is still there, the shelf still across the
+        middle. {released, y: You put it down once, so the sentence in your hands
+        is lighter.} {released, n: You are still gripping — that is fine;
+        gripping hands can still speak.} {rushed, y: You rushed once; now you
+        are one step slower.} {rushed, n: You did not rush — but the corridor
+        does not care.} What do you say?
+    choices:
+      - {label: {zh: 先把我这边的箱子挪开, en: Move my boxes back first}, to: e_clear, icon: solidify}
+      - {label: {zh: 问他为什么把木架推出来, en: Ask why the shelf came out}, to: e_ask, icon: evidence}
+      - {label: {zh: "说清楚:走廊是共用的", en: "Say it plainly: the corridor is shared"}, to: e_boundary, icon: boundary}
+      - {label: {zh: 先不动,明早再说, en: Leave it tonight; talk in the morning}, to: e_hold, icon: pause}
+      - {label: {zh: 一起量一次,定个两边都能用的摆法, en: Measure it together and agree on a layout}, to: e_joint, icon: human}
+
+  e_clear:
+    movement: ending
+    board: pass
+    panel: {scene: corridor-clear}
+    text:
+      zh: >-
+        你把两箱货挪回店里。走廊宽出半个人。阿岚看了你一眼,把木架往里收了收。
+        {released, y: 放下过一次,再让路就容易了。}
+        {released, n: 你没有放下过——但你还是让了。让路和放下,是两回事,你做到了一件。}
+        {rushed, y: 你急过一次。这一次,你慢了。}
+        {rushed, n: 你从没有急过——也许慢,本来就是你的方式。}
+        这一回应保护的是:通行。先把自己这一边的路让出来,不是认错,是让事情还能往前走。
+      en: >-
+        You move both boxes back inside. The corridor widens by half a person.
+        Alan glances at you and pulls the shelf in a little.
+        {released, y: Having put it down once, making room came easily.}
+        {released, n: You never put it down — but you made room anyway. Making
+        room and putting down are two different things; you did one.}
+        {rushed, y: You rushed once. This time, you slowed.}
+        {rushed, n: You never rushed — maybe slow was always your way.}
+        What this response protects: passage. Clearing your own side is not an
+        admission of fault — it lets the thing move again.
+
+  e_ask:
+    movement: ending
+    board: pass
+    panel: {scene: corridor-dawn}
+    text:
+      zh: >-
+        "这架子一定要放这儿吗?"你问。阿岚说,店里在等一个新货架,旧的没处放。
+        你才知道,他那半边也满了。
+        {released, y: 放下之后,你才有空位听见别人的原因。}
+        {released, n: 你还攥着,但你问了。问,比答案先到。}
+        {rushed, y: 你急过一次。这一次,你先问了。}
+        {rushed, n: 你从没有急——你只是没问过。问了,就不一样。}
+        这一回应保护的是:原因。先问一句,再判断。
+      en: >-
+        "Does the shelf have to be here?" you ask. Alan says a new rack is
+        coming and the old one has nowhere to go. His half is full too — you
+        did not know.
+        {released, y: Only after putting it down did you have room to hear his
+        reason.}
+        {released, n: You are still gripping, but you asked. The question came
+        before the answer.}
+        {rushed, y: You rushed once. This time, you asked first.}
+        {rushed, n: You never rushed — you just never asked. Asking changes
+        things.}
+        What this response protects: the reason. Ask once before judging.
+
+  e_boundary:
+    movement: ending
+    board: pass
+    panel: {scene: crossed-line}
+    text:
+      zh: >-
+        "走廊是两家共用的。货可以放,但不能放到别人过不去。"
+        你没有接他"你先推的"那句话,你给的是另一条规则。
+        {released, y: 放下"赢"之后,你才有空间立"规则"。}
+        {released, n: 你还攥着——但你立的不是墙,是一条两边都能用的线。}
+        {rushed, y: 你急过一次。这一次,你立的是规则,不是栅栏。}
+        {rushed, n: 你从没有急——你的边界,从来不是冲动的产物。}
+        这一回应保护的是:边界。
+      en: >-
+        "The corridor belongs to both shops. You can keep things here, but not
+        so far that nobody can pass." You decline his "you started it" frame
+        and offer another rule.
+        {released, y: Only after letting go of "winning" did you have room to
+        stand for "rules".}
+        {released, n: You are still gripping — but what you built is not a wall;
+        it is a line both sides can use.}
+        {rushed, y: You rushed once. This time, you built a rule, not a fence.}
+        {rushed, n: You never rushed — your boundary was never born of impulse.}
+        What this response protects: the boundary.
+
+  e_hold:
+    movement: ending
+    board: pass
+    panel: {scene: corridor-dawn}
+    text:
+      zh: >-
+        你把箱子留在原处,回身关了灯。第二天早上,走廊里有光,两个人都还没开门。
+        你们站在门口,谈了十分钟——比昨晚任何一句话都长。
+        {released, y: 放下过一次,你才知道"等一等"也是一种选择。}
+        {released, n: 你还攥着——但你选了等,而不是推。攥着的手,也可以打开门。}
+        {rushed, y: 你急过一次。这一次,你给了自己一个不挤的早上。}
+        {rushed, n: 你从没有急过——也许你一直知道,不挤的早上值得等。}
+        这一回应保护的是:时机。有些话,值得一个不挤的早上。
+      en: >-
+        You leave the boxes where they are and turn off the light. In the
+        morning the corridor is lit and neither shop is open yet. You stand at
+        the doors and talk for ten minutes — longer than anything said last
+        night.
+        {released, y: Having put it down once, you knew that "waiting" was also
+        a choice.}
+        {released, n: You are still gripping — but you chose to wait, not to
+        push. Gripping hands can still open a door.}
+        {rushed, y: You rushed once. This time, you gave yourself an uncrowded
+        morning.}
+        {rushed, n: You never rushed — maybe you always knew an uncrowded
+        morning was worth the wait.}
+        What this response protects: timing. Some sentences deserve an
+        uncrowded morning.
+
+  e_joint:
+    movement: ending
+    board: pass
+    panel: {scene: corridor-clear}
+    text:
+      zh: >-
+        你拿出卷尺,阿岚愣了一下,也蹲下来。你们量了走廊的宽,算了两次,
+        把货架和箱子各退一寸。走廊还是窄,但两个人都能过。
+        {released, y: 放下"必须赢"之后,你才有手拿卷尺。}
+        {released, n: 你还攥着——但你还是蹲下来了。蹲下来,不是放弃,是量。}
+        {rushed, y: 你急过一次。这一次,你量了两次。}
+        {rushed, n: 你从没有急过——量两次,本来就是你的习惯。}
+        这一回应保护的是:共同规则。不是谁让谁,是这条走廊终于有了说法。
+      en: >-
+        You bring out a tape measure. Alan pauses, then crouches down too. You
+        measure the width, check it twice, and each give an inch: the shelf and
+        the boxes. The corridor is still narrow, but both can pass.
+        {released, y: Only after putting down "must win" did you have a free
+        hand for the tape measure.}
+        {released, n: You are still gripping — but you crouched down anyway.
+        Crouching is not giving up; it is measuring.}
+        {rushed, y: You rushed once. This time, you measured twice.}
+        {rushed, n: You never rushed — measuring twice was always your way.}
+        What this response protects: a shared rule. Not one yielding to the
+        other — the corridor finally has a way of being used.
+
+# 五种回应并列,无一更"对":通行/原因/边界/时机/共同规则。
+# The five responses stand side by side; none is more right.

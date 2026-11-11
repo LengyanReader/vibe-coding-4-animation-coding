@@ -91,7 +91,8 @@ test("determinism: the same choice sequence always reaches the same ending", () 
 
 test("NO moral scoring: no score/points/rating variables or keys anywhere in the engine or specs", () => {
   const engine = readFileSync(new URL("../app/vignette.js", import.meta.url), "utf-8")
-    + readFileSync(new URL("../app/main.js", import.meta.url), "utf-8");
+    + readFileSync(new URL("../app/main.js", import.meta.url), "utf-8")
+    + readFileSync(new URL("../app/teaching.js", import.meta.url), "utf-8");
   // assignment-shaped tokens only: "points at" is an error-message verb, not a
   // scoring variable — the ban is on scoring STATE, not on English words
   for (const banned of [/\b(score|points|rating)\w*\s*[:=]/i, /harmony.?index/i]) {

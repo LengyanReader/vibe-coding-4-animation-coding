@@ -7,9 +7,16 @@
 | 中文 | English | 注 / Note |
 |---|---|---|
 | 气 | liberty (Go term) | 仅指围棋概念时用 liberty;作"呼吸之气"时用 breath。两义分开,不混译 |
-| 眼 | eye (Go term) | 围棋术语;推迟案例,术语表先占位 |
-| 双活 | mutual life (Go term) | 推迟案例,占位 |
+| 眼 | eye (Go term) | 第零章已用:真眼 = 被同一块棋完全围住的空点 |
+| 双活 | mutual life (Go term) | 第零章:四口气走廊的互相威慑;先填者失其棋,双方虚着则两块都留 |
 | 虚着 / 停一手 | pass | 围棋规则术语 |
+| 同气 | shared breath (同气) | 第零章案例名;两块棋的气接在同一处 |
+| 照见 | mirror-seeing (照见) | 比较层:同一棋形的两种读法;不作教义等价声明 |
+| 觉悟人生 | awakened life (觉悟人生) | 第零章第三幕标题;边界话术:不声称证悟,只研究互动体验能否支持去固着与反思 |
+| 活棋 | alive chain | 两眼齐全、对方填不进去的棋块 |
+| 禁入点 | suicide point | 落子后自身无气的点;规则拒绝,不是道德判断 |
+| 真眼 | real eye | 被同一块棋完全围住的空点;两个真眼即活 |
+| 共享的气 | shared liberties | 两块棋气集的交集;本演示的走廊 |
 | 劫 | ko | 围棋规则术语 |
 | 无住 | non-attachment | Sahdra et al. 2010 的操作化构念;不译作 detachment(临床联想) |
 | 去固着 | cognitive de-fixation | 项目自造 shorthand(博士计划附录 A 原文),非成熟构念,如实标注 |

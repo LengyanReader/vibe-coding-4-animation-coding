@@ -1,0 +1,26 @@
+{
+  "generated": "2026-11-11T07:20:36+00:00",
+  "version": "0.1.0",
+  "harness_factory": "C:\\DA_Practice\\research_foodie\\research_foodie\\harness_factory",
+  "skill_md": "C:\\DA_Practice\\research_foodie\\research_foodie\\harness_factory\\SKILL.md",
+  "entry_docs": {
+    "SKILL.md": "C:\\DA_Practice\\research_foodie\\research_foodie\\harness_factory\\SKILL.md",
+    "core/00-index.md": "C:\\DA_Practice\\research_foodie\\research_foodie\\harness_factory\\core\\00-index.md",
+    "HARNESS-MAP.md": "C:\\DA_Practice\\research_foodie\\research_foodie\\harness_factory\\HARNESS-MAP.md",
+    "reference/capability-router.md": "C:\\DA_Practice\\research_foodie\\research_foodie\\harness_factory\\reference\\capability-router.md",
+    "reference/derivation-rules.md": "C:\\DA_Practice\\research_foodie\\research_foodie\\harness_factory\\reference\\derivation-rules.md",
+    "reference/requirement-refinement.md": "C:\\DA_Practice\\research_foodie\\research_foodie\\harness_factory\\reference\\requirement-refinement.md",
+    "reference/capability-flow.md": "C:\\DA_Practice\\research_foodie\\research_foodie\\harness_factory\\reference\\capability-flow.md",
+    "reference/evidence-instruments.md": "C:\\DA_Practice\\research_foodie\\research_foodie\\harness_factory\\reference\\evidence-instruments.md",
+    "reference/methodology-map.md": "C:\\DA_Practice\\research_foodie\\research_foodie\\harness_factory\\reference\\methodology-map.md",
+    "reference/cross-language.md": "C:\\DA_Practice\\research_foodie\\research_foodie\\harness_factory\\reference\\cross-language.md",
+    "reference/outlet-map.md": "C:\\DA_Practice\\research_foodie\\research_foodie\\harness_factory\\reference\\outlet-map.md",
+    "reference/tool-router.md": "C:\\DA_Practice\\research_foodie\\research_foodie\\harness_factory\\reference\\tool-router.md",
+    "reference/capability-cycle.md": "C:\\DA_Practice\\research_foodie\\research_foodie\\harness_factory\\reference\\capability-cycle.md",
+    "CAPABILITIES.md": "C:\\DA_Practice\\research_foodie\\research_foodie\\harness_factory\\CAPABILITIES.md"
+  },
+  "capabilities_local": ".harness/capabilities.local.md",
+  "how_to_use": "Read skill_md first; route via entry_docs['reference/capability-router.md'] and load ONLY the files the matching row names; for a vague/under-aimed ask run entry_docs['reference/requirement-refinement.md'] (R0-R5) and wait for confirmation. The remaining entry_docs are the full loadable set (field->instrument->outlet maps, cross-language, derivation rules; same as `harness skill`).",
+  "revoke": "stop using harness_factory",
+  "note": "Absolute path to the harness_factory checkout that generated this harness (null if it was not reachable at generation time). Not a dependency: this project works without it; the pointer only locates the shared capability reference."
+}

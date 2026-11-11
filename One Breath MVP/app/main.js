@@ -1,19 +1,23 @@
-// main.js — scene machine: title → vignette → after-image → back.
+// main.js — scene machine: title → chapter (lesson → compare → sit → respond)
+// or case → after-image → back.
 //
-// WORDLESS-FIRST (the proposal's rule, §3.1: "the prototype itself can remain
-// wordless or minimally verbal"): story beats render as ink-minimal picture
-// panels, choices as picture tiles; the bilingual text layer exists behind a
-// "Words" toggle for mentors and for the completeness tests. No scoring
-// anywhere in this file; audio is opt-in and off by default.
+// WORDLESS-FIRST (the proposal's rule, §3.1): story beats render as ink-minimal
+// picture panels, choices as picture tiles; the bilingual text layer exists
+// behind a "Words" toggle for mentors and for the completeness tests. Chapter 0
+// is the exception: its rule lines are always visible, because a first-time
+// player cannot learn a rule from a picture alone. No scoring anywhere in this
+// file; audio is opt-in and off by default.
 
 import { makeT, loadLang, saveLang, resolveText } from "./i18n.js";
 import { newWalk, choose, renderNode, isEnding } from "./vignette.js";
-import { positionFromSpec, drawBoard, chainsAt, emptyPosition, play, key, BLACK, WHITE } from "./board-mirror.js";
+import { emptyPosition, play, key, groupAt, BLACK, WHITE } from "./rules.js";
+import { positionFromSpec, drawBoard, chainsAt, hitTest } from "./board-mirror.js";
 import { drawPanel, drawIcon } from "./panels.js";
 import { drawDharmadhatuView, VIEW_COUNT } from "./dharmadhatu.js";
+import { newLessonWalk, currentStep, clickPoint, pressPass, resetStep, advanceStep, isDone, roleAnchor, positionForStep } from "./teaching.js";
 
 const CONTENT = window.__ONE_BREATH__;         // embedded by tools/build.py
-const { strings, vignettes, boards } = CONTENT;
+const { strings, vignettes, boards, lessons } = CONTENT;
 
 const state = {
   lang: loadLang(),
@@ -22,8 +26,13 @@ const state = {
   wordsOn: false,          // wordless-first: the picture carries the meaning
   sitting: false,          // inside the 坐观 act
   sitView: 0,              // which of the four widening views is on screen
+  sitExit: "ending",       // "ending" (after a case) or "graph" (Chapter 0)
+  sitPositions: null,      // {finalPos, initialPos} for the current sit act
+  sitConfig: null,         // Chapter 0's sit config, reused by its ending tile
   vignetteId: null,
   walk: null,
+  lesson: null,            // teaching walk (Chapter 0, node.lesson)
+  compare: null,           // {nodeId, step, foundYou, messageKey, vars}
 };
 
 const $ = (sel) => document.querySelector(sel);
@@ -33,26 +42,42 @@ function t(key, vars) {
 }
 
 function escapeHtml(s) {
-  return s.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
+  return String(s).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
+}
+
+function langText(pair, vars) {
+  return resolveText(pair, state.lang, vars ?? {});
 }
 
 // --- title screen ------------------------------------------------------------
 
 function renderTitle() {
   const root = $("#screen");
-  const list = Object.values(vignettes).map((v) => {
+  const ordered = Object.values(vignettes)
+    .sort((a, b) => (a.chapter ?? 9) - (b.chapter ?? 9) || a.id.localeCompare(b.id));
+  const list = ordered.map((v) => {
     const ti = v.title[state.lang];
     const tg = (v.tagline?.[state.lang]) ?? "";
-    return `<button class="card" data-vignette="${v.id}" aria-label="${escapeHtml(ti)}">
+    const chapter = v.chapter === 0;
+    const min = chapter
+      ? (state.lang === "zh" ? "第零章 · 约 6 分钟" : "Chapter 0 · about 6 min")
+      : (state.lang === "zh" ? "约 3 分钟" : "about 3 minutes");
+    return `<button class="card ${chapter ? "card-chapter" : ""}" data-vignette="${v.id}" aria-label="${escapeHtml(ti)}">
+      ${chapter ? `<span class="card-badge">${state.lang === "zh" ? "先学一手" : "Start here"}</span>` : ""}
       <span class="card-title">${escapeHtml(ti)}</span>
       <span class="card-tag">${escapeHtml(tg)}</span>
-      <span class="card-min">${state.lang === "zh" ? "约 3 分钟" : "about 3 minutes"}</span>
+      <span class="card-min">${min}</span>
     </button>`;
   }).join("");
   root.innerHTML = `
     <section class="title-screen">
-      <h1 class="brush">${t("app_title")}</h1>
-      <p class="subtitle">${t("app_subtitle")}</p>
+      <div class="masthead">
+        <span class="seal-stamp">一息</span>
+        <div>
+          <h1 class="brush">${t("app_title")}</h1>
+          <p class="subtitle">${t("app_subtitle")}</p>
+        </div>
+      </div>
       <div class="row">
         <label class="toggle">${t("choose_language")}
           <button data-act="lang">${state.lang === "zh" ? "中文 → EN" : "EN → 中文"}</button>
@@ -122,9 +147,13 @@ function drawMirror(view) {
     : view.board === "engine" ? "mirror_hint_engine" : null;
   const cap = $("#mirror-caption");
   if (cap) {
-    const hint = hintKey ? `${t(hintKey)} · ` : "";
-    const tail = state.lang === "zh" ? "告急的棋链" : "chains in atari";
-    cap.textContent = `${hint}${atari} ${tail}`;
+    if (hintKey) {
+      const tail = state.lang === "zh" ? "告急的棋链" : "chains in atari";
+      cap.textContent = `${t(hintKey)} · ${atari} ${tail}`;
+    } else {
+      const tail = state.lang === "zh" ? "块棋" : "chains";
+      cap.textContent = `${t("mirror_caption")} · ${chainsAt(pos).length} ${tail}`;
+    }
   }
   if (view.board === "calm" && !state.reducedMotion) afterImage(canvas);
 }
@@ -147,8 +176,13 @@ function afterImage(canvas) {
 
 function renderScreen(walk) {
   const v = vignettes[state.vignetteId];
+  const node = v.nodes[walk.node];
+  if (node.lesson) return renderLesson(walk, v, node);
+  if (node.compare) return renderCompare(walk, v, node);
+  if (node.sit) return renderSitAct(walk, v, node);
+
   const view = renderNode(walk, state.lang);
-  const panel = v.nodes[walk.node]?.panel ?? { scene: "breath" };
+  const panel = node.panel ?? { scene: "breath" };
   const warm = v.style === "warm";
   const root = $("#screen");
   root.innerHTML = `
@@ -170,6 +204,223 @@ function renderScreen(walk) {
     drawIcon(cv, cv.dataset.icon);
   }
   drawMirror(view);
+}
+
+// --- Chapter 0 · the lesson screen ---------------------------------------------
+
+function lessonMessage() {
+  const m = state.lesson?.message;
+  return m ? t(m.key, m.vars) : "";
+}
+
+function drawLessonBoard() {
+  const canvas = $("#lesson-board");
+  if (!canvas || !state.lesson) return;
+  const lw = state.lesson;
+  const step = currentStep(lw);
+  const markers = [];
+  for (const k of lw.clicked) markers.push({ at: k, kind: "clicked" });
+  for (const k of lw.refused) markers.push({ at: k, kind: "refused" });
+  if (step.kind === "mutual") {
+    for (const [r, c] of step.corridor) {
+      const k = key(r, c);
+      if (!lw.pos.stones.has(k)) markers.push({ at: k, kind: "corridor" });
+    }
+  }
+  if (lw.lastMove) markers.push({ at: lw.lastMove, kind: "last" });
+  drawBoard(canvas, lw.pos, {
+    reducedMotion: state.reducedMotion,
+    time: performance.now(),
+    highlightPulse: true,
+    libertiesFor: step.chain ? key(...step.chain) : null,
+    markers,
+    ghostPoints: lw.ghosts,
+  });
+}
+
+function renderLesson(walk, v, node) {
+  const lesson = lessons[node.lesson];
+  if (!lesson) throw new Error(`lesson "${node.lesson}" is not in the build`);
+  if (!state.lesson || state.lesson.lesson.id !== lesson.id) {
+    state.lesson = newLessonWalk(lesson, boards[lesson.board]);
+  }
+  const lw = state.lesson;
+  const step = currentStep(lw);
+  const total = lesson.steps.length;
+  const done = isDone(lw);
+  const dots = lesson.steps.map((s, i) =>
+    `<span class="lesson-dot ${i === lw.stepIndex ? "on" : ""} ${s.core ? "core" : ""}"></span>`).join("");
+  const root = $("#screen");
+  root.innerHTML = `
+    <section class="lesson-screen ${state.reducedMotion ? "reduced" : ""}">
+      ${chrome(`
+        <div class="lesson-head">
+          <div class="masthead">
+            <span class="seal-stamp small">学</span>
+            <div>
+              <p class="lesson-chapter">${t("lesson.chapter_label")}</p>
+              <h2 class="lesson-title">${escapeHtml(lesson.title[state.lang])}</h2>
+            </div>
+          </div>
+          <div class="story-text">${escapeHtml(resolveText(node.text, state.lang, walk.flags)).replaceAll("\n\n", "</p><p class='story-text'>")}</div>
+        </div>
+        <div class="lesson-stage">
+          <canvas id="lesson-board" width="420" height="420"
+            aria-label="${t("lesson.board_caption")}"></canvas>
+          <div class="lesson-side">
+            <p class="lesson-step">${t("lesson.step", { n: lw.stepIndex + 1, total })} · ${step.core ? t("lesson.core") : t("lesson.optional")}</p>
+            <p class="lesson-rule">${escapeHtml(step.rule[state.lang])}</p>
+            <p class="lesson-prompt">${escapeHtml(step.prompt[state.lang])}</p>
+            <p class="lesson-message" role="status">${escapeHtml(lessonMessage())}</p>
+            <div class="row">
+              ${done ? `<button data-act="lesson_next">${t("lesson.continue")}</button>` : ""}
+              <button data-act="lesson_reset">${t("lesson.reset")}</button>
+              ${(step.kind === "pass" || step.kind === "mutual") ? `<button data-act="lesson_pass">${t("lesson.pass")}</button>` : ""}
+              <button class="ghost" data-act="lesson_skip">${t("lesson.skip")}</button>
+            </div>
+            <div class="lesson-dots">${dots}</div>
+          </div>
+        </div>`)}
+    </section>`;
+  drawLessonBoard();
+}
+
+// --- Chapter 0 · the comparison screen ------------------------------------------
+
+function compareMessage(st) {
+  return st.messageKey ? t(st.messageKey, st.vars) : "";
+}
+
+function drawCompareBoard(cfg, st) {
+  const canvas = $("#compare-board");
+  if (!canvas) return;
+  const boardSpec = boards[cfg.board];
+  const pos = positionFromSpec(boardSpec, cfg.beat);
+  const markers = [];
+  if (st.step > 1) {
+    for (const [r, c] of (boardSpec.lesson_checks?.corridor?.corridor ?? [])) {
+      markers.push({ at: key(r, c), kind: "corridor" });
+    }
+  }
+  drawBoard(canvas, pos, {
+    reducedMotion: state.reducedMotion,
+    time: performance.now(),
+    highlightPulse: true,
+    markers,
+    roles: st.step > 0
+      ? { you: roleAnchor(boardSpec, "you"), them: roleAnchor(boardSpec, "them") }
+      : null,
+  });
+}
+
+function renderCompare(walk, v, node) {
+  const cfg = node.compare;
+  if (!state.compare || state.compare.nodeId !== walk.node) {
+    state.compare = {
+      nodeId: walk.node,
+      step: 0,
+      foundCorridor: false,
+      messageKey: "compare.find_you",
+      vars: null,
+    };
+  }
+  const st = state.compare;
+  const root = $("#screen");
+  root.innerHTML = `
+    <section class="compare-screen ${state.reducedMotion ? "reduced" : ""}">
+      ${chrome(`
+        <div class="compare-copy">
+          <div class="masthead">
+            <span class="seal-stamp small">照</span>
+            <div><p class="lesson-chapter">${t("compare.title")}</p></div>
+          </div>
+          <div class="story-text">${escapeHtml(resolveText(node.text, state.lang, walk.flags)).replaceAll("\n\n", "</p><p class='story-text'>")}</div>
+          <p class="lesson-prompt" role="status">${escapeHtml(compareMessage(st))}</p>
+          <div class="row">
+            <button data-act="compare_continue" ${st.step > 1 ? "" : "disabled"}>${t("compare.continue")}</button>
+          </div>
+        </div>
+        <div class="compare-board">
+          <canvas id="compare-board" width="420" height="420"
+            aria-label="${t("mirror_caption")}"></canvas>
+        </div>`)}
+    </section>`;
+  drawCompareBoard(cfg, st);
+}
+
+// --- Chapter 0 · the 坐观 act ---------------------------------------------------
+
+function sitPositionsFrom(config) {
+  const boardSpec = boards[config.board];
+  return {
+    finalPos: positionFromSpec(boardSpec, config.final),
+    initialPos: positionForStep({ beat: config.initial }, boardSpec),
+  };
+}
+
+function finalAndInitialPositions() {
+  const v = vignettes[state.vignetteId];
+  const boardSpec = boards[v.board];
+  const finalPos = positionFromSpec(boardSpec, "engine");
+  const init = emptyPosition(boardSpec.size);
+  for (const [r, c] of boardSpec.stones.black) {
+    const res = play(init, key(r, c), BLACK);
+    if (res.ok) init.stones = res.pos.stones;
+  }
+  for (const [r, c] of boardSpec.stones.white) {
+    const res = play(init, key(r, c), WHITE);
+    if (res.ok) init.stones = res.pos.stones;
+  }
+  return { finalPos, initialPos: init };
+}
+
+function renderSitAct(walk, v, node) {
+  state.sitting = true;
+  state.sitView = 0;
+  state.sitExit = "sit_graph_exit";
+  state.sitPositions = sitPositionsFrom(node.sit);
+  renderSitScreen();
+}
+
+function renderSit() {
+  state.sitting = true;
+  state.sitExit = "sit_exit";
+  state.sitPositions = state.sitConfig
+    ? sitPositionsFrom(state.sitConfig)
+    : finalAndInitialPositions();
+  renderSitScreen();
+}
+
+function renderSitScreen() {
+  const viewNames = ["view_phenomena", "view_principle", "view_interwork", "view_indra"];
+  const dots = [0, 1, 2, 3].map((i) =>
+    `<span class="sit-dot ${i === state.sitView ? "on" : ""}"></span>`).join("");
+  const root = $("#screen");
+  root.innerHTML = `
+    <section class="sit-screen ${state.reducedMotion ? "reduced" : ""}">
+      <header class="row spread">
+        <button data-act="${state.sitExit}" aria-label="${t("return_board")}">×</button>
+        <button data-act="lang">${state.lang === "zh" ? "EN" : "中文"}</button>
+        <button data-act="words" aria-label="${t("words")}">${t("words")}</button>
+        <button data-act="motion" aria-label="${t("reduced_motion")}">${state.reducedMotion ? "◉" : "○"}</button>
+      </header>
+      <div class="sit-stage">
+        <canvas id="sit-canvas" width="560" height="560"
+          aria-label="${t(viewNames[state.sitView])}"></canvas>
+        <p class="sit-caption"><span class="seal-stamp small">观</span>${t(viewNames[state.sitView])}</p>
+        <div class="sit-nav row">
+          <button data-act="sit_prev" aria-label="${t("prev_view")}" ${state.sitView === 0 ? "disabled" : ""}>←</button>
+          <span class="sit-dots">${dots}</span>
+          <button data-act="sit_next" aria-label="${t("next_view")}" ${state.sitView === 3 ? "disabled" : ""}>→</button>
+        </div>
+        <p class="footer">${state.wordsOn ? t("ending_all_equal") : t("return_board")}</p>
+      </div>
+    </section>`;
+  const { finalPos, initialPos } = state.sitPositions;
+  drawDharmadhatuView($("#sit-canvas"), state.sitView, finalPos, initialPos, {
+    reducedMotion: state.reducedMotion,
+    time: performance.now(),
+  });
 }
 
 // --- ending screen: five seals, one inked ----------------------------------------
@@ -220,8 +471,6 @@ function renderEnding(walk) {
 }
 
 // --- audio: optional breath bed, off by default --------------------------------
-// Synthesized by the vcac additive engine (deterministic) and embedded as a
-// data URI at build time; the toggle only plays or pauses it.
 let breathAudio = null;
 function toggleAudio() {
   if (state.audioOn) {
@@ -238,62 +487,50 @@ function toggleAudio() {
   state.audioOn = true;
 }
 
-// --- the 坐观 act: four widening views of the final position ---------------------
-// Staged after the Huayan four-dharmadhatu contemplation (事 → 理 → 理事无碍 →
-// 事事无碍) — a design interpretation of the ladder, not doctrine. Entered
-// only via the sit tile on an ending screen, skippable at every step,
-// reduced-motion renders still frames.
+// --- canvas interaction (teaching + comparison) ---------------------------------
 
-function finalAndInitialPositions() {
-  const v = vignettes[state.vignetteId];
-  const boardSpec = boards[v.board];
-  // the contemplation sits with the ENGINE position — the game where the
-  // three stones were lifted: 观三's ghosts are the night's real events
-  const finalPos = positionFromSpec(boardSpec, "engine");
-  // initial position = setup stones before any beat moves — the source of ghosts
-  const init = emptyPosition(boardSpec.size);
-  for (const [r, c] of boardSpec.stones.black) {
-    const res = play(init, key(r, c), BLACK);
-    if (res.ok) init.stones = res.pos.stones;
+document.addEventListener("click", (e) => {
+  if (e.target.id === "lesson-board" && state.lesson) {
+    const lw = state.lesson;
+    const pt = hitTest(e.target, e.clientX, e.clientY, lw.pos.size);
+    if (!pt) return;
+    state.lesson = clickPoint(lw, pt).walk;
+    renderLesson(state.walk, vignettes[state.vignetteId], vignettes[state.vignetteId].nodes[state.walk.node]);
+    return;
   }
-  for (const [r, c] of boardSpec.stones.white) {
-    const res = play(init, key(r, c), WHITE);
-    if (res.ok) init.stones = res.pos.stones;
+  if (e.target.id === "compare-board" && state.compare) {
+    const st = state.compare;
+    const node = vignettes[state.vignetteId].nodes[state.walk.node];
+    const cfg = node.compare;
+    const boardSpec = boards[cfg.board];
+    const pt = hitTest(e.target, e.clientX, e.clientY, boardSpec.size);
+    if (!pt) return;
+    const k = key(...pt);
+    const pos = positionFromSpec(boardSpec, cfg.beat);
+    if (st.step === 0) {
+      const anchor = roleAnchor(boardSpec, "you");
+      if (anchor && groupAt(pos, anchor).stones.has(k)) {
+        st.step = 1;
+        st.messageKey = "compare.find_corridor";
+      } else {
+        st.messageKey = "compare.try_again";
+      }
+    } else if (st.step === 1) {
+      const corridor = boardSpec.lesson_checks?.corridor?.corridor ?? [];
+      if (corridor.some(([r, c]) => key(r, c) === k)) {
+        st.step = 2;
+        st.foundCorridor = true;
+        st.messageKey = "compare.found_corridor";
+        st.vars = { n: corridor.length };
+      } else {
+        st.messageKey = "compare.try_again";
+      }
+    }
+    renderCompare(state.walk, vignettes[state.vignetteId], node);
+    return;
   }
-  return { finalPos, initialPos: init };
-}
+});
 
-function renderSit() {
-  const viewNames = ["view_phenomena", "view_principle", "view_interwork", "view_indra"];
-  const dots = [0, 1, 2, 3].map((i) =>
-    `<span class="sit-dot ${i === state.sitView ? "on" : ""}"></span>`).join("");
-  const root = $("#screen");
-  root.innerHTML = `
-    <section class="sit-screen ${state.reducedMotion ? "reduced" : ""}">
-      <header class="row spread">
-        <button data-act="sit_exit" aria-label="${t("return_board")}">×</button>
-        <button data-act="lang">${state.lang === "zh" ? "EN" : "中文"}</button>
-        <button data-act="words" aria-label="${t("words")}">${t("words")}</button>
-        <button data-act="motion" aria-label="${t("reduced_motion")}">${state.reducedMotion ? "◉" : "○"}</button>
-      </header>
-      <div class="sit-stage">
-        <canvas id="sit-canvas" width="560" height="560"
-          aria-label="${t(viewNames[state.sitView])}"></canvas>
-        <p class="sit-caption">${t(viewNames[state.sitView])}</p>
-        <div class="sit-nav row">
-          <button data-act="sit_prev" aria-label="${t("prev_view")}" ${state.sitView === 0 ? "disabled" : ""}>←</button>
-          <span class="sit-dots">${dots}</span>
-          <button data-act="sit_next" aria-label="${t("next_view")}" ${state.sitView === 3 ? "disabled" : ""}>→</button>
-        </div>
-        <p class="footer">${state.wordsOn ? t("ending_all_equal") : t("return_board")}</p>
-      </div>
-    </section>`;
-  const { finalPos, initialPos } = finalAndInitialPositions();
-  drawDharmadhatuView($("#sit-canvas"), state.sitView, finalPos, initialPos, {
-    reducedMotion: state.reducedMotion,
-    time: performance.now(),
-  });
-}
 
 // --- event wiring ---------------------------------------------------------------
 
@@ -303,6 +540,12 @@ document.addEventListener("click", (e) => {
   if (el.dataset.vignette) {
     state.vignetteId = el.dataset.vignette;
     state.walk = newWalk(vignettes[state.vignetteId]);
+    state.lesson = null;
+    state.compare = null;
+    state.sitting = false;
+    const v = vignettes[state.vignetteId];
+    const sitNode = Object.values(v.nodes).find((n) => n.sit);
+    state.sitConfig = sitNode?.sit ?? null;
     renderScreen(state.walk);
     return;
   }
@@ -319,42 +562,82 @@ document.addEventListener("click", (e) => {
       break;
     case "motion":
       state.reducedMotion = !state.reducedMotion;
-      state.sitting ? renderSit() : render();
+      state.sitting ? renderSitScreen() : render();
       break;
     case "words":
       state.wordsOn = !state.wordsOn;
-      state.sitting ? renderSit() : render();
+      state.sitting ? renderSitScreen() : render();
       break;
-    case "audio": toggleAudio(); state.sitting ? renderSit() : render(); break;
+    case "audio": toggleAudio(); state.sitting ? renderSitScreen() : render(); break;
+    case "lesson_next": {
+      const r = advanceStep(state.lesson);
+      state.lesson = r.walk;
+      if (r.event === "lesson-done") {
+        state.lesson = null;
+        state.walk = choose(state.walk, 0);
+      }
+      render();
+      break;
+    }
+    case "lesson_reset":
+      state.lesson = resetStep(state.lesson);
+      render();
+      break;
+    case "lesson_pass":
+      state.lesson = pressPass(state.lesson).walk;
+      render();
+      break;
+    case "lesson_skip":
+      state.lesson = null;
+      state.walk = choose(state.walk, 0);
+      render();
+      break;
+    case "compare_continue":
+      state.compare = null;
+      state.walk = choose(state.walk, 0);
+      render();
+      break;
     case "sit":
       state.sitView = 0;
-      state.sitting = true;
       renderSit();
       break;
     case "sit_exit":
       state.sitting = false;
+      state.sitPositions = null;
+      render();
+      break;
+    case "sit_graph_exit":
+      state.sitting = false;
+      state.sitPositions = null;
+      state.walk = choose(state.walk, 0);
       render();
       break;
     case "sit_next":
       state.sitView = Math.min(VIEW_COUNT - 1, state.sitView + 1);
-      renderSit();
+      renderSitScreen();
       break;
     case "sit_prev":
       state.sitView = Math.max(0, state.sitView - 1);
-      renderSit();
+      renderSitScreen();
       break;
     case "title":
       state.audioOn = false;
       breathAudio?.pause();
       state.sitting = false;
+      state.lesson = null;
+      state.compare = null;
+      state.sitConfig = null;
+      state.sitPositions = null;
       state.walk = null;
       renderTitle();
       break;
     case "replay":
+      state.lesson = null;
+      state.compare = null;
       state.walk = newWalk(vignettes[state.vignetteId]);
       renderScreen(state.walk);
       break;
-    case "skip": { // the reflection is skippable — its presence is not a demand
+    case "skip": {
       const p = document.querySelector(".reflection");
       if (p) p.remove();
       break;

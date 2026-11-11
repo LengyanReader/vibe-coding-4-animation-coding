@@ -1,0 +1,191 @@
+{
+  "version": "0.1.0",
+  "created": "2026-11-11T07:20:36+00:00",
+  "task": {
+    "text": "One Breath MVP Chapter 0: an interactive Go teaching act carried by one life case (同气/The Shared Corridor), then the same position read as the case (照见), then 觉悟人生 (four views) ending in a concrete response (行); bilingual, deterministic, no scoring, no AI",
+    "domain": "arts-design",
+    "goal": null,
+    "notes": null
+  },
+  "features": {
+    "horizon": "multi_session",
+    "verifiability": "high",
+    "stakes": "medium",
+    "grounding": "required",
+    "artifact": "code",
+    "tool_surface": "read_write",
+    "collaboration": "human_review",
+    "domain": "arts-design",
+    "source": "flags",
+    "notes": []
+  },
+  "capabilities": [
+    "baseline-discipline",
+    "verification-gate",
+    "resumable-memory",
+    "traceable-sources",
+    "self-improving-loop",
+    "tool-use",
+    "human-review-gate",
+    "frontier-standard",
+    "portable-skills",
+    "ambition-elevation",
+    "expert-instruments",
+    "bidirectional-capability-flow",
+    "context-budget-policy",
+    "untrusted-content-discipline",
+    "durable-execution",
+    "cost-budget-caps",
+    "eval-driven-development",
+    "loop-discipline",
+    "graph-orchestration",
+    "formal-verification",
+    "evidence-bounded-generation",
+    "gap-seeking",
+    "component-ablation"
+  ],
+  "modules": [
+    {
+      "module_id": "M0",
+      "title_en": "Meta-principles",
+      "title_zh": "元原则",
+      "rule_en": "Truth and traceability outrank speed; automate only observe/record/rank",
+      "enabled": true,
+      "params": {},
+      "reasons": [
+        "always: load-bearing invariants (M0)",
+        "capability: baseline-discipline, ambition-elevation, bidirectional-capability-flow"
+      ]
+    },
+    {
+      "module_id": "M1",
+      "title_en": "Context engineering",
+      "title_zh": "上下文工程",
+      "rule_en": "Context is a finite, scarce resource - curate, don't dump",
+      "enabled": true,
+      "params": {
+        "context_policy": "index-first; minimal high-signal set"
+      },
+      "reasons": [
+        "always: context is consumed by every step (M0.6)",
+        "capability: baseline-discipline, context-budget-policy"
+      ]
+    },
+    {
+      "module_id": "M2",
+      "title_en": "Long-running agents",
+      "title_zh": "长时程 agent",
+      "rule_en": "Externalize memory; advance incrementally; make every run resumable",
+      "enabled": true,
+      "params": {
+        "memory_depth": "durable"
+      },
+      "reasons": [
+        "horizon=multi_session >= session",
+        "capability: resumable-memory, context-budget-policy, durable-execution, loop-discipline, graph-orchestration"
+      ]
+    },
+    {
+      "module_id": "M3",
+      "title_en": "Verification & gates",
+      "title_zh": "验证与门禁",
+      "rule_en": "Define done before work; verify the verifier; hard vs soft gates",
+      "enabled": true,
+      "params": {
+        "gate_strictness": "standard"
+      },
+      "reasons": [
+        "always: verify before done (M0.3)",
+        "strictness from verifiability=high, stakes=medium",
+        "capability: verification-gate, frontier-standard, ambition-elevation, expert-instruments, durable-execution, cost-budget-caps, eval-driven-development, loop-discipline, formal-verification, evidence-bounded-generation, component-ablation"
+      ]
+    },
+    {
+      "module_id": "M4",
+      "title_en": "Provenance & integrity",
+      "title_zh": "来源与完整性",
+      "rule_en": "Every fact traceable to a primary source; uncertain means uncertain",
+      "enabled": true,
+      "params": {
+        "provenance": "required"
+      },
+      "reasons": [
+        "grounding=required, artifact=code",
+        "capability: traceable-sources, expert-instruments, untrusted-content-discipline, formal-verification, evidence-bounded-generation"
+      ]
+    },
+    {
+      "module_id": "M5",
+      "title_en": "Self-evolution",
+      "title_zh": "自演化",
+      "rule_en": "signal -> audit -> mutation -> journal, human-gated",
+      "enabled": true,
+      "params": {
+        "evolution_cadence": "per_session"
+      },
+      "reasons": [
+        "horizon=multi_session >= multi_session",
+        "capability: self-improving-loop, frontier-standard, bidirectional-capability-flow, eval-driven-development, gap-seeking, component-ablation"
+      ]
+    },
+    {
+      "module_id": "M6",
+      "title_en": "Tools & skills",
+      "title_zh": "工具与技能",
+      "rule_en": "Minimal toolset; biased errors; skills load progressively",
+      "enabled": true,
+      "params": {
+        "tool_surface": "read_write"
+      },
+      "reasons": [
+        "tool_surface=read_write",
+        "capability: tool-use, portable-skills, expert-instruments, untrusted-content-discipline, loop-discipline, formal-verification"
+      ]
+    },
+    {
+      "module_id": "M7",
+      "title_en": "Change governance",
+      "title_zh": "变更治理",
+      "rule_en": "Single source of truth; reviewable diffs; no unsolicited destructive acts",
+      "enabled": true,
+      "params": {
+        "commit_policy": "conventional commits; commit ok; never auto-push"
+      },
+      "reasons": [
+        "always: single source of truth + reviewable diffs (M0.5/M0.9)",
+        "capability: baseline-discipline, bidirectional-capability-flow, untrusted-content-discipline, cost-budget-caps"
+      ]
+    },
+    {
+      "module_id": "M8",
+      "title_en": "Collaboration & sessions",
+      "title_zh": "协作与会话",
+      "rule_en": "Explicit contracts; escalate decisions; hand off with state",
+      "enabled": true,
+      "params": {
+        "collaboration": "human_review",
+        "autonomy": "medium"
+      },
+      "reasons": [
+        "collaboration=human_review, stakes=medium",
+        "capability: human-review-gate, frontier-standard, ambition-elevation, graph-orchestration"
+      ]
+    }
+  ],
+  "files": [
+    ".harness/PROVENANCE.md",
+    ".harness/capabilities.local.md",
+    ".harness/check.py",
+    ".harness/decisions.md",
+    ".harness/gates.md",
+    ".harness/ledger.md",
+    ".harness/manifest.json",
+    ".harness/pointer.json",
+    ".harness/skills/README.md",
+    ".harness/skills/harness-arts-design/SKILL.md",
+    ".harness/working-set.json",
+    "AGENTS.md",
+    "tasks/PLAN.md",
+    "tasks/PROGRESS.md"
+  ]
+}

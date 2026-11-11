@@ -93,7 +93,36 @@ export function play(pos, k, color) {
   if (own.liberties.size === 0) return { ok: false, reason: "suicide" };
 
   next.koPoint = koPoint;
-  return { ok: true, pos: next, capturedCount: seen.size };
+  return { ok: true, pos: next, capturedCount: seen.size, capturedPoints: [...seen] };
+}
+
+// eyesFor — the empty points enclosed by one chain (each neighbour is one of
+// its stones). Used by the two-eye lesson; it is a query, not a rule.
+export function eyesFor(pos, anchorKey) {
+  const g = groupAt(pos, anchorKey);
+  if (!g.stones.size) return [];
+  const out = [];
+  for (const lib of g.liberties) {
+    const [r, c] = parse(lib);
+    if (neighbors(pos.size, r, c).every((n) => g.stones.has(n))) out.push(lib);
+  }
+  return out;
+}
+
+// allLegalMoves — enumerate every point `color` may legally play. The teaching
+// claim "no white move exists inside the eyes" and the corridor check both use
+// this; the Python verifier re-derives the same enumeration independently.
+export function allLegalMoves(pos, color) {
+  const out = [];
+  for (let r = 1; r <= pos.size; r++) {
+    for (let c = 1; c <= pos.size; c++) {
+      const k = key(r, c);
+      if (pos.stones.has(k)) continue;
+      const res = play(pos, k, color);
+      if (res.ok) out.push({ at: [r, c], key: k, captured: res.capturedCount ?? 0 });
+    }
+  }
+  return out;
 }
 
 export function hashPosition(pos) {

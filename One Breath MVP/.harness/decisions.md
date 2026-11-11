@@ -1,0 +1,17 @@
+# Decisions
+
+> Collaboration: **human_review**. Resolve conflicts by the M0 priority chain; log the decision and its rationale here.
+
+| # | decision | options considered | rationale | date |
+|---|---|---|---|---|
+| 1 | **New teaching case 同气 / The Shared Corridor** | new case · reuse The Two Sides · reuse The Two Ways · pure Go position | The Two Sides is the independent transfer proof (`docs/MVP-BUILD-PLAN.md:16-17`); using it as the lesson would weaken the research claim. The Two Ways already assumes the rules. A pure position has no stake. **Confirmed by the user.** | 2026-11-11 |
+| 2 | **觉悟人生 is the third stage, ending in 行** | third stage (Release → Respond) · new fifth movement · rename only · sketch only | The four-movement grammar is a hard constraint and Respond is mandatory (`docs/MVP-BUILD-PLAN.md:15`); a fifth certificate stage would contradict the project's own doctrine. 坐观 is the instrument, not a replacement. **Confirmed by the user.** | 2026-11-11 |
+| 3 | **Elevated scope: interactive ladder** | scripted insert · interactive Elevated · case→position compiler | The brief's comprehension gate needs observed interaction, not captions; a compiler is premature before one case works. **Confirmed by the user.** | 2026-11-11 |
+| 4 | **Chapter 0 placement** | before the cases · optional first act per case · standalone card | One entry point keeps the 6–10 min budget and makes 学 → 照 → 觉 → 行 a single arc; the existing cases stay untouched. **Confirmed by the user.** | 2026-11-11 |
+| 5 | **Artifact feature overridden `document → code`; domain kept `arts-design`** | trust the CLI classifier · override with reasons | The CLI read "MVP plan" and classed it as a document; the actual deliverable is a gated single-file build. The record of the override is in `PROVENANCE.md` and `working-set.json` (M0.4: classify, do not fabricate). | 2026-11-11 |
+| 6 | **Two-eye board size deferred to evidence** | force 5×5 · allow 7×7 teaching board · drop two eyes | A legible two-eye shape on 5×5 is unproven; "one board size" is a soft constraint. Measure in S0 and bring the numbers to the user before choosing. | 2026-11-11 |
+| 7 | **Design/plan only; no commit, no push** | — | The user asked for design and planning. Scaffold files are new and reversible; nothing else was touched. | 2026-11-11 |
+| 8 | **Corridor geometry changed by measurement** | one shared liberty · four-point corridor · abandon the shared-corridor metaphor | A 5×5 search found no two-chain / two-liberty-each / one-shared-liberty position within the tested space. The shipped position is a four-point corridor with `libs(you) == libs(them) == corridor`; its computed invariant is "every first move loses" (8 branches). The metaphor stays computed; the number changed. Evidence in `tasks/PLAN.md` and `tests/teaching.test.js`. | 2026-11-11 |
+| 9 | **Classical Chinese visual surface** | ink-wash UI · classical Chinese surface · leave the old style | The user asked for 清雅的文化古典中国风格: rice paper, vermilion seal, hairline rules, single board frame, vertical chapter chop. CSS-only; no new assets, no network. | 2026-11-11 |
+| 10 | **Two eyes on 5×5 confirmed, no 7×7 fallback** | 5×5 · 7×7 teaching board | The 5×5 corner group has exactly two eyes, `(2,2)` and `(3,3)`, and no legal enemy move inside; both engines agree. The soft "one board size" constraint is kept. | 2026-11-11 |
+| 11 | **Product code written; still no commit / no push** | — | The user said "先按照你的路线做出一版". Code is local and reversible; a commit waits for an explicit request. | 2026-11-11 |

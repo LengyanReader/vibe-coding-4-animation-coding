@@ -97,18 +97,23 @@ def best_capture_move(r: Rules, color: int):
     return best[1] if best else None
 
 
-def build_position(board_spec, beat_name):
-    r = Rules(board_spec["size"])
-    for p in board_spec["stones"]["black"]:
+def place_setup(r: Rules, setup: dict) -> None:
+    for p in setup.get("black") or []:
         ok, why = r.play(tuple(p), 1)
         if not ok:
-            raise SystemExit(f"verify: illegal setup stone {p}: {why}")
-    for p in board_spec["stones"]["white"]:
+            raise SystemExit(f"verify: illegal black setup stone {p}: {why}")
+    for p in setup.get("white") or []:
         ok, why = r.play(tuple(p), 2)
         if not ok:
-            raise SystemExit(f"verify: illegal setup stone {p}: {why}")
+            raise SystemExit(f"verify: illegal white setup stone {p}: {why}")
+
+
+def build_position(board_spec, beat_name):
+    r = Rules(board_spec["size"])
     beat = board_spec["beats"][beat_name]
+    place_setup(r, beat.get("setup") or board_spec["stones"])
     seq = list(beat.get("moves") or []) + ([beat["reply"]] if beat.get("reply") else [])
+    last_captured = 0
     for m in seq:
         if m.get("engine"):
             at = best_capture_move(r, 1 if m["color"] == "black" else 2)
@@ -118,7 +123,89 @@ def build_position(board_spec, beat_name):
         ok, why = r.play(tuple(m["at"]), 1 if m["color"] == "black" else 2)
         if not ok:
             raise SystemExit(f"verify: beat '{beat_name}' scripted move illegal: {why}")
-    return r
+        last_captured = why if isinstance(why, int) else 0
+    return r, last_captured
+
+
+def clone(r: Rules) -> Rules:
+    c = Rules(r.size)
+    c.stones = dict(r.stones)
+    c.ko = r.ko
+    return c
+
+
+def legal_moves(r: Rules, color: int):
+    out = []
+    for rr in range(1, r.size + 1):
+        for cc in range(1, r.size + 1):
+            p = (rr, cc)
+            if p in r.stones:
+                continue
+            probe = clone(r)
+            ok, n = probe.play(p, color)
+            if ok:
+                out.append((p, n))
+    return out
+
+
+def farthest(corridor, pos, player):
+    pr, pc = player
+    rest = [p for p in corridor if p not in pos.stones]
+    if not rest:
+        return None
+    return sorted(rest, key=lambda p: (-(abs(p[0] - pr) + abs(p[1] - pc)), p))[0]
+
+
+def check_lesson_checks(board) -> None:
+    """The teaching claims, re-derived independently (M3.12)."""
+    size = board["size"]
+    for name, chk in (board.get("lesson_checks") or {}).items():
+        r = Rules(size)
+        place_setup(r, chk["setup"])
+        if name == "two_eyes":
+            pts = [tuple(p) for p in chk["points"]]
+            setup = chk["setup"]
+            anchor = tuple((setup.get("black") or setup.get("white"))[0])
+            stones, libs = r.chain(anchor)
+            color = r.stones[anchor]
+            eyes = [p for p in libs
+                    if all(r.stones.get(n) == color for n in r.neighbors(p))]
+            assert set(eyes) == set(pts), f"{name}: eyes {eyes} != {pts}"
+            legal = legal_moves(r, 3 - color)
+            inside = [p for p, _ in legal if p in pts]
+            assert not inside, f"{name}: a move exists inside the eyes: {inside}"
+            print(f"  [LESSON] {name:<9} eyes={sorted(eyes)} legal-enemy-inside=0 ok")
+        elif name == "corridor":
+            you, them = tuple(chk["you"]), tuple(chk["them"])
+            corridor = [tuple(p) for p in chk["corridor"]]
+            _, ly = r.chain(you)
+            _, lw = r.chain(them)
+            assert set(ly) == set(corridor), f"{name}: your liberties {sorted(ly)}"
+            assert set(lw) == set(corridor), f"{name}: their liberties {sorted(lw)}"
+            branches = 0
+            for first in corridor:
+                p1 = clone(r)
+                ok, _ = p1.play(first, 1)
+                assert ok, f"{name}: first move {first} illegal"
+                reply = farthest(corridor, p1, first)
+                ok, _ = p1.play(reply, 2)
+                assert ok, f"{name}: reply {reply} illegal"
+                _, a = p1.chain(you)
+                _, b = p1.chain(them)
+                assert set(a) & set(b) == {k for k in corridor if k not in p1.stones}, \
+                    f"{name}: first exchange did not leave the two shared points"
+                remain = [p for p in corridor if p not in p1.stones]
+                for second in remain:
+                    p2 = clone(p1)
+                    ok, _ = p2.play(second, 1)
+                    assert ok, f"{name}: second move {second} illegal"
+                    last = [p for p in corridor if p not in p2.stones]
+                    assert len(last) == 1, f"{name}: corridor count {last}"
+                    ok, _ = p2.play(last[0], 2)
+                    assert ok, f"{name}: last reply illegal"
+                    assert you not in p2.stones, f"{name}: first mover survived {first}/{second}"
+                    branches += 1
+            print(f"  [LESSON] {name:<9} shared=4 branches={branches} first-mover-lost ok")
 
 
 def chains(r: Rules):
@@ -132,8 +219,11 @@ def chains(r: Rules):
     return out
 
 
-def check_assert(r: Rules, spec_assert: dict, where: str) -> None:
+def check_assert(r: Rules, spec_assert: dict, where: str, last_captured: int = 0) -> None:
     cs = chains(r)
+    if "captured" in spec_assert:
+        want = spec_assert["captured"]
+        assert last_captured == want, f"{where}: captured {last_captured} != {want}"
     if "all_chains_liberties" in spec_assert:
         want = spec_assert["all_chains_liberties"]
         assert all(c["libs"] == want for c in cs), f"{where}: chain liberties {[(c['color'], c['libs']) for c in cs]}"
@@ -154,9 +244,10 @@ def main() -> int:
     for board_path in sorted((ROOT / "specs").glob("board-*.yaml")):
         board = yaml.safe_load(board_path.read_text(encoding="utf-8"))
         for beat_name in board["beats"]:
-            r = build_position(board, beat_name)
-            check_assert(r, board["beats"][beat_name].get("assert") or {}, beat_name)
+            r, last = build_position(board, beat_name)
+            check_assert(r, board["beats"][beat_name].get("assert") or {}, beat_name, last)
             print(f"  [VERIFY] {board['id']:<18} {beat_name:<8} chains={len(chains(r))} ok")
+        check_lesson_checks(board)
     print("verify.py: all mirror-board assertions hold under the independent Python rules")
     return 0
 

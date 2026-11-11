@@ -1,0 +1,173 @@
+# Mirror/teaching board for 同气 / The Shared Corridor — every claim here is
+# proven by BOTH implementations (app/rules.js and tools/verify.py).
+#
+# The corridor position is a computed standoff, not a drawn metaphor:
+#   black = rows 1-2 plus (3,1)  (your side, 11 stones)
+#   white = rows 4-5             (their side, 10 stones)
+#   the only empty points are the four corridor points row 3, cols 2-5
+#   both chains have exactly those four liberties, all shared.
+# A four-point corridor is a zugzwang: whoever fills first hands the last breath
+# to the other. The lesson check enumerates it; the UI only shows the count.
+id: board-shared-breath
+title:
+  zh: 同气的棋形
+  en: The shape of a shared breath
+size: 5
+
+# each beat carries its own setup; the base stones are empty
+stones:
+  black: []
+  white: []
+
+beats:
+  breath:
+    setup:
+      black: [[3, 3]]
+      white: []
+    assert: {chain_liberties: {"black@3,3": 4}}
+
+  chain:
+    setup:
+      black: [[3, 2], [3, 3]]
+      white: []
+    assert: {chain_liberties: {"black@3,2": 6}}
+
+  capture_setup:
+    setup:
+      black: [[2, 2], [2, 3], [4, 2], [4, 3], [3, 4]]
+      white: [[3, 2], [3, 3]]
+    assert: {chain_liberties: {"white@3,2": 1}}
+
+  capture_done:
+    setup:
+      black: [[2, 2], [2, 3], [4, 2], [4, 3], [3, 4]]
+      white: [[3, 2], [3, 3]]
+    moves: [{color: black, at: [3, 1]}]
+    assert:
+      chain_liberties: {"black@2,2": 6}
+      captured: 2
+
+  suicide:
+    setup:
+      black: [[1, 2], [2, 1], [3, 2], [2, 3]]
+      white: []
+    assert: {chain_liberties: {"black@1,2": 3}}
+
+  eyes:
+    setup:
+      black: [[1, 1], [1, 2], [1, 3], [1, 4], [2, 1], [2, 4],
+              [3, 1], [3, 4], [4, 1], [4, 2], [4, 3], [4, 4],
+              [2, 3], [3, 2]]
+      white: []
+    assert: {chain_liberties: {"black@1,1": 10}}
+
+  mutual:
+    setup:
+      black: [[1, 1], [1, 2], [1, 3], [1, 4], [1, 5],
+              [2, 1], [2, 2], [2, 3], [2, 4], [2, 5],
+              [3, 1]]
+      white: [[4, 1], [4, 2], [4, 3], [4, 4], [4, 5],
+              [5, 1], [5, 2], [5, 3], [5, 4], [5, 5]]
+    assert:
+      chain_liberties: {"black@1,1": 4, "white@4,1": 4}
+
+  mutual_after_one:
+    setup:
+      black: [[1, 1], [1, 2], [1, 3], [1, 4], [1, 5],
+              [2, 1], [2, 2], [2, 3], [2, 4], [2, 5],
+              [3, 1]]
+      white: [[4, 1], [4, 2], [4, 3], [4, 4], [4, 5],
+              [5, 1], [5, 2], [5, 3], [5, 4], [5, 5]]
+    moves: [{color: black, at: [3, 2]}, {color: white, at: [3, 5]}]
+    assert:
+      chain_liberties: {"black@1,1": 2, "white@4,1": 2}
+
+  pass:
+    setup:
+      black: [[1, 1], [1, 2], [1, 3], [1, 4], [1, 5],
+              [2, 1], [2, 2], [2, 3], [2, 4], [2, 5],
+              [3, 1]]
+      white: [[4, 1], [4, 2], [4, 3], [4, 4], [4, 5],
+              [5, 1], [5, 2], [5, 3], [5, 4], [5, 5]]
+    moves: [{color: black, at: null}]
+    assert:
+      chain_liberties: {"black@1,1": 4, "white@4,1": 4}
+
+  # --- Chapter 0 enrichment: ko + save-by-capture ------------------------------
+
+  ko_setup:
+    # classic ko shape: black (1,1) captures white (1,2); ko point = (1,2)
+    setup:
+      black: [[1, 3], [2, 2], [2, 3], [2, 4], [3, 1], [3, 2], [3, 3]]
+      white: [[1, 2], [3, 4]]
+    assert: {chain_liberties: {"white@1,2": 1}}
+
+  ko_captured:
+    setup:
+      black: [[1, 3], [2, 2], [2, 3], [2, 4], [3, 1], [3, 2], [3, 3]]
+      white: [[1, 2], [3, 4]]
+    moves: [{color: black, at: [1, 1]}]
+    assert:
+      captured: 1
+
+  save_setup:
+    # black at (2,1) looks like suicide (surrounded by white (1,1),(2,2) and
+    # black (3,1)) BUT captures white (1,1),(1,2),(2,2) — capture takes priority
+    setup:
+      black: [[1, 3], [2, 3], [3, 1], [3, 2], [3, 3]]
+      white: [[1, 1], [1, 2], [2, 2]]
+    assert: {chain_liberties: {"white@1,1": 1}}
+
+  save_done:
+    setup:
+      black: [[1, 3], [2, 3], [3, 1], [3, 2], [3, 3]]
+      white: [[1, 1], [1, 2], [2, 2]]
+    moves: [{color: black, at: [2, 1]}]
+    assert:
+      captured: 3
+
+  atari_escape:
+    # black pair (3,2),(3,3) surrounded: liberties = {(3,4)} only (atari).
+    # black extends at (3,4): chain (3,2),(3,3),(3,4) now has (4,4),(3,5),(5,4)
+    setup:
+      black: [[3, 2], [3, 3]]
+      white: [[2, 2], [2, 3], [3, 1], [4, 2], [4, 3], [2, 4]]
+    moves: [{color: black, at: [3, 4]}]
+    assert:
+      chain_liberties: {"black@3,2": 2}
+
+# --- the comparison layer -----------------------------------------------------
+# roles are anchors into the two named chains; the same position is read twice
+roles:
+  you: "black@1,1"
+  them: "white@4,1"
+
+# referential integrity: the case's compare node must point at this board+beat
+same_as:
+  vignette: shared-breath
+  beat: mutual
+
+# --- teaching claims checked by both engines ---------------------------------
+lesson_checks:
+  two_eyes:
+    setup:
+      black: [[1, 1], [1, 2], [1, 3], [1, 4], [2, 1], [2, 4],
+              [3, 1], [3, 4], [4, 1], [4, 2], [4, 3], [4, 4],
+              [2, 3], [3, 2]]
+      white: []
+    color: white
+    points: [[2, 2], [3, 3]]
+
+  corridor:
+    setup:
+      black: [[1, 1], [1, 2], [1, 3], [1, 4], [1, 5],
+              [2, 1], [2, 2], [2, 3], [2, 4], [2, 5],
+              [3, 1]]
+      white: [[4, 1], [4, 2], [4, 3], [4, 4], [4, 5],
+              [5, 1], [5, 2], [5, 3], [5, 4], [5, 5]]
+    you: [1, 1]
+    them: [4, 1]
+    corridor: [[3, 2], [3, 3], [3, 4], [3, 5]]
+    # after the first exchange both chains keep exactly two liberties; a second
+    # attack by the first mover is answered at the last point and captures it
+    reply: farthest

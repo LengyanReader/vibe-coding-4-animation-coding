@@ -1,0 +1,190 @@
+# 第零章 · 一口一口气 — the teaching ladder (bilingual meaning-unit pairs)
+#
+# Every step is a task over a real 5x5 position. The engine confirms or refuses;
+# there is no score and no "correct path" variable. Core path = breath, capture,
+# mutual, pass; chain / suicide / eyes are optional depth.
+id: shared-breath
+title:
+  zh: 一口一口气
+  en: One Breath at a Time
+board: board-shared-breath
+core: 4
+
+steps:
+  - id: l1_breath
+    beat: breath
+    kind: liberties
+    chain: [3, 3]
+    core: true
+    prompt:
+      zh: 点亮它上下左右的气
+      en: Light up the empty points around it
+    rule:
+      zh: >-
+        一颗子有几口气,就看它上下左右还剩下几个空点。气在,子就在;
+        气没了,子就离开棋盘。
+      en: >-
+        A stone breathes through the empty points above, below, left and right.
+        While it has a breath it stays; when the last one is filled it leaves.
+
+  - id: l2_chain
+    beat: chain
+    kind: liberties
+    chain: [3, 2]
+    core: false
+    prompt:
+      zh: 点亮这一整块棋的气
+      en: Light up this whole chain's breath
+    rule:
+      zh: >-
+        连在一起的两颗子,是一块棋:气一起算,一块亡,两颗一起下。
+      en: >-
+        Two connected stones are one chain: they share their breath, and they
+        leave the board together.
+
+  - id: l3_capture
+    beat: capture_setup
+    kind: play
+    color: black
+    expect_captured: 2
+    solution: [3, 1]
+    core: true
+    prompt:
+      zh: 填上那块白棋最后的一口气
+      en: Fill that white chain's last breath
+    rule:
+      zh: >-
+        把一块棋的最后一口气填上,它就离开棋盘——这叫提子。
+        提子不是消灭,是它没有气了。
+      en: >-
+        Fill a chain's last liberty and it leaves the board: that is a capture.
+        Not destruction — it simply has no breath left.
+
+  - id: l4_suicide
+    beat: suicide
+    kind: refuse
+    color: white
+    point: [2, 2]
+    reason: suicide
+    count: 1
+    core: false
+    prompt:
+      zh: 试着下在中间那个点
+      en: Try to play the middle point
+    rule:
+      zh: >-
+        四周都是对方的子,落下去自己一口气也没有——这一点不能下。
+        规矩在这里不是惩罚,是它真的活不了。
+      en: >-
+        Surrounded on every side, a stone placed there has no breath of its own:
+        the point is refused. The rule is not a punishment — the stone truly
+        cannot live there.
+
+  - id: l5_eyes
+    beat: eyes
+    kind: refuse
+    color: white
+    points: [[2, 2], [3, 3]]
+    reason: suicide
+    count: 2
+    core: false
+    prompt:
+      zh: 试着填它的两只眼
+      en: Try to fill both of its eyes
+    rule:
+      zh: >-
+        一块棋有两个真眼,对方就永远填不完它的气——这块棋活了。
+        活棋不是分数,是它还有气。
+      en: >-
+        With two real eyes, an opponent can never fill its breath: the chain is
+        alive. Alive is not a score — it simply still has breath.
+
+  - id: l6_mutual
+    beat: mutual
+    kind: mutual
+    color: black
+    corridor: [[3, 2], [3, 3], [3, 4], [3, 5]]
+    reply: farthest
+    core: true
+    prompt:
+      zh: 点掉走廊的一口,看他怎么回
+      en: Fill one corridor point and watch the reply
+    rule:
+      zh: >-
+        两块棋的气接在同一处:谁先填,谁把最后一口留给对方。
+        四口气点完,先动手的那块棋没了——所以这里,不动是一手棋。
+      en: >-
+        Two chains breathe through the same corridor: whoever fills first hands
+        the last breath to the other. Fill all four and the first mover's chain
+        is gone — so here, not moving is a move.
+
+  - id: l7_pass
+    beat: mutual
+    kind: pass
+    core: true
+    prompt:
+      zh: 虚着,让走廊留着
+      en: Pass, and leave the corridor as it is
+    rule:
+      zh: >-
+        虚着不是认输。它把这一手交给对方,也让这条走廊保持原样。
+        有些局面,不动才是回应。
+      en: >-
+        A pass is not surrender. It hands the turn over and leaves the corridor
+        as it is. In some positions, not moving is the response.
+  - id: l8_ko
+    beat: ko_setup
+    kind: play
+    solution: [1, 1]
+    expect_captured: 1
+    core: false
+    prompt:
+      zh: 黑提了一子。白想立即回提——试试看
+      en: Black just captured. White tries to take back immediately — try it
+    rule:
+      zh: >-
+        打劫规则:刚被提一颗子后,对方不能在同一手立即回提。
+        必须先在别处落一子(找劫材),然后才能回提。
+        这条规则让"永远的来回"变成了一场交易。
+      en: >-
+        The ko rule: after a single-stone capture, the opponent cannot
+        recapture on the same point immediately. They must play elsewhere
+        first (a ko threat). This rule turns an eternal back-and-forth
+        into a negotiation.
+
+  - id: l9_save
+    beat: save_setup
+    kind: play
+    solution: [2, 1]
+    expect_captured: 3
+    core: false
+    prompt:
+      zh: 这一手看起来会死——但先提掉对方就活了
+      en: This move looks like suicide — but capture first and it lives
+    rule:
+      zh: >-
+        提子优先于自杀禁则:如果这一手先提掉对方的子,
+        即使看起来没有气,也是合法的。
+        先提后算,不是先算后提。
+      en: >-
+        Capture takes priority over the suicide rule: if a move captures
+        enemy stones first, it is legal even if it looks like it has no
+        liberties. Capture first, count second.
+
+  - id: l10_escape
+    beat: atari_escape
+    kind: play
+    solution: [3, 4]
+    expect_captured: 0
+    core: false
+    prompt:
+      zh: 这块棋只剩一口气了——把它延长
+      en: This chain is in atari — extend it to save it
+    rule:
+      zh: >-
+        只剩一口气的棋叫"叫吃"。延长它,让它多出几口气,
+        就不会被立刻提掉。知道何时逃、何时弃,是棋的一部分。
+      en: >-
+        A chain with one liberty is in atari. Extending it gives more
+        breathing room so it cannot be captured immediately. Knowing when
+        to run and when to sacrifice is part of the game.
