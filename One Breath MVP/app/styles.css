@@ -68,3 +68,19 @@ button.ghost { background: none; border: none; color: var(--ink-soft); text-deco
 
 .reduced * { animation: none !important; transition: none !important; }
 .reduced #board { transform: none !important; }
+
+/* wordless-first additions */
+.icon-row { flex-direction: row; flex-wrap: wrap; gap: 0.7rem; }
+.icon-tile {
+  display: flex; flex-direction: column; align-items: center; gap: 0.25rem;
+  padding: 0.5rem; background: var(--paper-deep);
+}
+.icon-tile:hover { border-color: var(--ink-soft); }
+.tile-label { font-size: 0.78rem; color: var(--ink-soft); max-width: 130px; }
+.wordless .story-text, .wordless .tile-label, .wordless .ending-note,
+.wordless .reflection { display: none; }
+#panel { border: 1px solid var(--ink-faint); max-width: 100%; }
+.seal-strip { display: flex; gap: 0.6rem; margin: 0.8rem 0; }
+.seal-tile.chosen { opacity: 1; border: 2px solid var(--seal); border-radius: 4px; }
+.seal-tile.faded { opacity: 0.28; }
+.choices { margin: 0.8rem 0 0; }

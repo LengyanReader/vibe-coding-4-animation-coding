@@ -5,7 +5,7 @@
 // chains at one liberty pulse in seal-red — the visible signature of "两块棋
 // 同时告急". All colors come from the ink palette; no scores anywhere.
 
-import { emptyPosition, play, BLACK, WHITE, groupAt, key, parse, hashPosition } from "./rules.js";
+import { emptyPosition, play, BLACK, WHITE, groupAt, key, parse, hashPosition, bestCaptureMove } from "./rules.js";
 
 export const PALETTE = {
   paper: "#F5F1E6",
@@ -33,7 +33,19 @@ export function positionFromSpec(boardSpec, beatName) {
   }
   const beat = boardSpec.beats[beatName];
   if (!beat) throw new Error(`mirror: unknown beat "${beatName}"`);
-  const seq = [...(beat.moves ?? []), ...(beat.reply ? [beat.reply] : [])];
+  const seq = [];
+  for (const m of beat.moves ?? []) {
+    // {engine: true} = the "算力手": the move is COMPUTED at runtime by the
+    // tiny deterministic calculator — the case's theme lives in the mechanics
+    if (m.engine) {
+      const best = bestCaptureMove(pos, m.color === "black" ? BLACK : WHITE);
+      if (!best) throw new Error(`mirror: beat "${beatName}" engine found no legal move`);
+      seq.push({ color: m.color, at: best.at, computed: best });
+    } else {
+      seq.push(m);
+    }
+  }
+  if (beat.reply) seq.push(beat.reply);
   for (const m of seq) {                // a beat may be setup-only (assertions, no moves)
     if (m.at === null) continue; // 虚着
     const res = play(pos, key(...m.at), m.color === "black" ? BLACK : WHITE);

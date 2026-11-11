@@ -1,0 +1,45 @@
+# Mirror board for The Two Ways — the two ledgers.
+#
+# White = the machine's stones (the three it always takes). Black = yours and
+# grandpa's. Two scripted ways to answer the same position:
+#
+#   engine  the "算力手" — chosen AT RUNTIME by bestCaptureMove (real
+#           enumeration, no hardcoding): it fills (1,5) and lifts three white
+#           stones. The scoreboard lights up +3 — and your thin pair (4,1),(4,2)
+#           quietly drops to one liberty (薄).
+#   calm    the "全盘手" — authored, not computed: (4,3) takes nothing, but the
+#           pair breathes from two liberties to four, and the whole wall stands.
+#
+# The two ledgers (captures vs breath) are both real numbers from the engine.
+# Nothing here decides which ledger is the right one — that is the player's work.
+id: board-two-ways
+title: {zh: 两种赢法的棋形, en: The shape of two ways to win}
+size: 5
+
+stones:
+  black: [[1, 1], [2, 2], [2, 3], [2, 4], [4, 1], [4, 2]]
+  white: [[1, 2], [1, 3], [1, 4], [3, 1], [3, 2]]
+
+beats:
+  initial:
+    # the machine's three stones hang at one liberty — the ten losses, waiting
+    assert: {chain_liberties: {"white@1,2": 1, "black@4,1": 3}}
+
+  engine:
+    moves: [{color: black, engine: true}]   # computed at runtime
+    reply: {color: white, at: [5, 1]}
+    assert: {chain_liberties: {"black@4,1": 2}}
+    # +3 on the scoreboard; your other chain lost a breath (3 -> 2). Thin.
+
+  calm:
+    moves: [{color: black, at: [4, 3]}]     # zero captures
+    reply: {color: white, at: [3, 3]}
+    assert: {chain_liberties: {"black@4,1": 4, "black@2,2": 3}}
+    # nothing captured; the pair gained a breath (3 -> 4) and kept all four
+    # even after his answer. The other ledger.
+
+  pass:
+    moves: [{color: black, at: null}]
+    reply: {color: white, at: null}
+    assert: {chain_liberties: {"white@1,2": 1}}
+    # the three stones still hang. They will wait.

@@ -15,6 +15,7 @@ start: n1              # explicit entry — node order is irrelevant by design
 
 nodes:
   n1:
+    panel: {scene: meeting-criticism}
     movement: encounter
     board: initial
     text:
@@ -30,10 +31,11 @@ nodes:
         The air pauses for two seconds. Everyone looks at you.
         Right now one sentence fills your head: I am right, they are wrong.
     choices:
-      - {label: {zh: 当场回应, en: Respond right now}, to: n2}
-      - {label: {zh: 先不说话,把这一刻记住, en: Say nothing yet — remember this moment}, to: n2}
+      - {label: {zh: 当场回应, en: Respond right now}, to: n2, icon: reply_now}
+      - {label: {zh: 先不说话,把这一刻记住, en: Say nothing yet — remember this moment}, to: n2, icon: remember}
 
   n2:
+    panel: {scene: three-things}
     movement: interrelate
     board: initial
     text:
@@ -44,12 +46,13 @@ nodes:
         Before you speak, three things you could not see a moment ago come into view.
         They are not comforts, and not excuses — they were simply always there.
     choices:
-      - {label: {zh: 看看他这边, en: Look at his side}, to: n_r1}
-      - {label: {zh: 看看自己这边, en: Look at your side}, to: n_r2}
-      - {label: {zh: 看看那句话本身, en: Look at the sentence itself}, to: n_r3}
-      - {label: {zh: 都看过了,继续, en: Seen enough — continue}, to: n4}
+      - {label: {zh: 看看他这边, en: Look at his side}, to: n_r1, icon: eye_his}
+      - {label: {zh: 看看自己这边, en: Look at your side}, to: n_r2, icon: eye_mine}
+      - {label: {zh: 看看那句话本身, en: Look at the sentence itself}, to: n_r3, icon: eye_line}
+      - {label: {zh: 都看过了,继续, en: Seen enough — continue}, to: n4, icon: seen_all}
 
   n_r1:
+    panel: {scene: his-pressure}
     movement: interrelate
     board: initial
     highlight: his_pressure
@@ -63,9 +66,10 @@ nodes:
         The resource promised to him last week is exactly the resource your plan
         needs. His criticism is not only about you — his own difficulty is in it.
     choices:
-      - {label: {zh: 回到三件事, en: Back to the three things}, to: n2}
+      - {label: {zh: 回到三件事, en: Back to the three things}, to: n2, icon: seen_all}
 
   n_r2:
+    panel: {scene: my-flaw}
     movement: interrelate
     board: initial
     highlight: my_flaw
@@ -79,9 +83,10 @@ nodes:
         He did not strike an empty spot — that point is real.
         A truth can be said badly; it remains true.
     choices:
-      - {label: {zh: 回到三件事, en: Back to the three things}, to: n2}
+      - {label: {zh: 回到三件事, en: Back to the three things}, to: n2, icon: seen_all}
 
   n_r3:
+    panel: {scene: crossed-line}
     movement: interrelate
     board: initial
     highlight: manner
@@ -95,9 +100,10 @@ nodes:
         of everyone. A plan may be questioned; pinning a label on *you* is a
         different move. By any counting, that line crossed a boundary.
     choices:
-      - {label: {zh: 回到三件事, en: Back to the three things}, to: n2}
+      - {label: {zh: 回到三件事, en: Back to the three things}, to: n2, icon: seen_all}
 
   n4:
+    panel: {scene: put-down}
     movement: release
     board: initial
     text:
@@ -112,10 +118,11 @@ nodes:
         to put down the need to win this back on the spot.
         It is not surrender, and not generosity. Just: no longer gripping.
     choices:
-      - {label: {zh: 放下它, en: Put it down}, to: n5, flag: released}
-      - {label: {zh: 现在还放不下, en: I cannot put it down yet}, to: n5}
+      - {label: {zh: 放下它, en: Put it down}, to: n5, flag: released, icon: put_down}
+      - {label: {zh: 现在还放不下, en: I cannot put it down yet}, to: n5, icon: not_yet}
 
   n5:
+    panel: {scene: mirror-hub}
     movement: release
     board: mirror_try
     text:
@@ -125,12 +132,13 @@ nodes:
         The board offers two hands. Try them freely — everything here is safe;
         consequences land on the board only.
     choices:
-      - {label: {zh: '试「那一手」:点在他的气上', en: 'Try the obvious move: fill his liberty'}, to: n5_attack}
-      - {label: {zh: '守自己的气,不碰他', en: 'Solidify your own breath, leave him be'}, to: n5_calm}
-      - {label: {zh: '虚着——什么都不做', en: 'Pass — do nothing at all'}, to: n5_pass}
-      - {label: {zh: 回到会议室, en: Back to the meeting room}, to: n6}
+      - {label: {zh: '试「那一手」:点在他的气上', en: 'Try the obvious move: fill his liberty'}, to: n5_attack, icon: try_attack}
+      - {label: {zh: '守自己的气,不碰他', en: 'Solidify your own breath, leave him be'}, to: n5_calm, icon: solidify}
+      - {label: {zh: '虚着——什么都不做', en: 'Pass — do nothing at all'}, to: n5_pass, icon: pass}
+      - {label: {zh: 回到会议室, en: Back to the meeting room}, to: n6, icon: back_room}
 
   n5_attack:
+    panel: {scene: still-holding}
     movement: release
     board: attack
     text:
@@ -145,10 +153,11 @@ nodes:
         breath too. Two chains, both in danger. Yours, and his.
         The killing move has never killed only the other side.
     choices:
-      - {label: {zh: 试别的, en: Try another}, to: n5}
-      - {label: {zh: 回到会议室, en: Back to the meeting room}, to: n6}
+      - {label: {zh: 试别的, en: Try another}, to: n5, icon: replay}
+      - {label: {zh: 回到会议室, en: Back to the meeting room}, to: n6, icon: back_room}
 
   n5_calm:
+    panel: {scene: put-down}
     movement: release
     board: calm
     text:
@@ -161,10 +170,11 @@ nodes:
         His stones lose nothing; yours lose nothing.
         The board quiets — nothing taken, nothing given up.
     choices:
-      - {label: {zh: 试别的, en: Try another}, to: n5}
-      - {label: {zh: 回到会议室, en: Back to the meeting room}, to: n6}
+      - {label: {zh: 试别的, en: Try another}, to: n5, icon: replay}
+      - {label: {zh: 回到会议室, en: Back to the meeting room}, to: n6, icon: back_room}
 
   n5_pass:
+    panel: {scene: breath}
     movement: release
     board: pass
     text:
@@ -175,10 +185,11 @@ nodes:
         You pass. Nothing on the board changes.
         And nothing needed to.
     choices:
-      - {label: {zh: 试别的, en: Try another}, to: n5}
-      - {label: {zh: 回到会议室, en: Back to the meeting room}, to: n6}
+      - {label: {zh: 试别的, en: Try another}, to: n5, icon: replay}
+      - {label: {zh: 回到会议室, en: Back to the meeting room}, to: n6, icon: back_room}
 
   n6:
+    panel: {scene: meeting-return}
     movement: respond
     board: calm
     text:
@@ -193,13 +204,14 @@ nodes:
         {released, n: You are still gripping — that is fine; gripping hands can still speak.}
         What do you say?
     choices:
-      - {label: {zh: 承认那个真实的漏洞, en: Acknowledge the real flaw}, to: e_ack}
-      - {label: {zh: 请求证据, en: Ask for evidence}, to: e_evidence}
-      - {label: {zh: 给方式设边界, en: Set a boundary on the manner}, to: e_boundary}
-      - {label: {zh: 直接表达异议, en: Disagree, plainly}, to: e_disagree}
-      - {label: {zh: 约会后单独谈, en: Take it offline}, to: e_pause}
+      - {label: {zh: 承认那个真实的漏洞, en: Acknowledge the real flaw}, to: e_ack, icon: ack}
+      - {label: {zh: 请求证据, en: Ask for evidence}, to: e_evidence, icon: evidence}
+      - {label: {zh: 给方式设边界, en: Set a boundary on the manner}, to: e_boundary, icon: boundary}
+      - {label: {zh: 直接表达异议, en: Disagree, plainly}, to: e_disagree, icon: disagree}
+      - {label: {zh: 约会后单独谈, en: Take it offline}, to: e_pause, icon: pause}
 
   e_ack:
+    panel: {scene: my-flaw}
     movement: ending
     board: calm
     text:
@@ -213,6 +225,7 @@ nodes:
         What this response protects: the facts. The room's attention moves from
         winning back to the work.
   e_evidence:
+    panel: {scene: his-pressure}
     movement: ending
     board: calm
     text:
@@ -226,6 +239,7 @@ nodes:
         What this response protects: evidence. Judgment stays with the facts,
         not with the louder voice.
   e_boundary:
+    panel: {scene: crossed-line}
     movement: ending
     board: calm
     text:
@@ -240,6 +254,7 @@ nodes:
         What this response protects: the boundary. This time, the cost of
         crossing it is said out loud.
   e_disagree:
+    panel: {scene: meeting-return}
     movement: ending
     board: calm
     text:
@@ -253,6 +268,7 @@ nodes:
         What this response protects: the position. Some disagreements belong to
         outcomes alone.
   e_pause:
+    panel: {scene: corridor}
     movement: ending
     board: calm
     text:

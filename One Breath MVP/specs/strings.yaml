@@ -7,6 +7,7 @@ ui:
     en: "Four movements: Encounter — Interrelate — Release — Respond. The board is a mirror, not a judge."
   choose_language: {zh: 语言 / Language, en: 语言 / Language}
   reduced_motion: {zh: 减弱动效, en: Reduced motion}
+  words: {zh: "文字", en: "Words"}
   audio: {zh: 声音, en: Sound}
   "on": {zh: "开", en: "on"}
   "off": {zh: "关", en: "off"}
@@ -29,6 +30,9 @@ ui:
   mirror_hint_calm:
     zh: 没有人的气被点掉——相安
     en: Nobody lost a liberty — coexistence
+  mirror_hint_engine:
+    zh: "算力提了三子;你的另一块棋薄了一气"
+    en: "The engine takes three; your other chain thins by one breath"
   mirror_hint_pass:
     zh: 虚着之后,一切如常
     en: After the pass, everything as it was

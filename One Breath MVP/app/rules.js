@@ -110,3 +110,26 @@ export function hashPosition(pos) {
   }
   return ("00000000" + h.toString(16)).slice(-8);
 }
+
+// bestCaptureMove — the "算力手": a tiny deterministic calculator that
+// enumerates every legal move for `color` and returns the one maximizing
+// (captured stones, then resulting liberties of the placed chain, then
+// lowest coordinate for stability). This IS the case-two opponent's brain:
+// real computation, no LLM, no hardcoding — and honestly small.
+export function bestCaptureMove(pos, color) {
+  let best = null;
+  for (let r = 1; r <= pos.size; r++) {
+    for (let c = 1; c <= pos.size; c++) {
+      const k = key(r, c);
+      if (pos.stones.has(k)) continue;
+      const res = play(pos, k, color);
+      if (!res.ok) continue;
+      const chain = groupAt(res.pos, k);
+      const score = [res.capturedCount ?? 0, chain.liberties.size, -r, -c];
+      if (!best || score > best.score) {
+        best = { at: [r, c], captured: res.capturedCount ?? 0, libs: chain.liberties.size, score };
+      }
+    }
+  }
+  return best;
+}

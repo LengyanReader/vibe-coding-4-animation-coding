@@ -52,7 +52,8 @@ def build() -> dict:
 
     # module assembly: i18n -> rules -> board-mirror -> vignette -> main,
     # stripped of import/export statements (inlined, order = dependency order)
-    app_order = ["i18n.js", "rules.js", "board-mirror.js", "vignette.js", "main.js"]
+    app_order = ["i18n.js", "rules.js", "board-mirror.js", "panels.js",
+                   "vignette.js", "main.js"]
     js_parts = []
     for name in app_order:
         src = (ROOT / "app" / name).read_text(encoding="utf-8")

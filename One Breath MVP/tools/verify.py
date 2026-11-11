@@ -77,6 +77,26 @@ class Rules:
         return True, len(seen)
 
 
+def best_capture_move(r: Rules, color: int):
+    """The same tiny calculator the JS engine runs — independently implemented
+    here, so the two brains must agree on what the "算力手" is."""
+    best = None
+    for rr in range(1, r.size + 1):
+        for cc in range(1, r.size + 1):
+            probe = Rules(r.size)
+            probe.stones = dict(r.stones)
+            probe.ko = r.ko
+            ok, why = probe.play((rr, cc), color)
+            if not ok:
+                continue
+            stones, libs = probe.chain((rr, cc))
+            captured_n = sum(1 for s in list(r.stones) if s not in probe.stones)
+            score = (captured_n, len(libs), -rr, -cc)
+            if best is None or score > best[0]:
+                best = (score, (rr, cc), captured_n)
+    return best[1] if best else None
+
+
 def build_position(board_spec, beat_name):
     r = Rules(board_spec["size"])
     for p in board_spec["stones"]["black"]:
@@ -90,6 +110,9 @@ def build_position(board_spec, beat_name):
     beat = board_spec["beats"][beat_name]
     seq = list(beat.get("moves") or []) + ([beat["reply"]] if beat.get("reply") else [])
     for m in seq:
+        if m.get("engine"):
+            at = best_capture_move(r, 1 if m["color"] == "black" else 2)
+            m = dict(m, at=list(at))
         if m["at"] is None:
             continue
         ok, why = r.play(tuple(m["at"]), 1 if m["color"] == "black" else 2)
@@ -128,16 +151,12 @@ def check_assert(r: Rules, spec_assert: dict, where: str) -> None:
 
 
 def main() -> int:
-    board = yaml.safe_load((ROOT / "specs" / "board-two-sides.yaml").read_text(encoding="utf-8"))
-    for beat_name in board["beats"]:
-        r = build_position(board, beat_name)
-        check_assert(r, board["beats"][beat_name].get("assert") or {}, beat_name)
-        print(f"  [VERIFY] {beat_name:<8} chains={len(chains(r))} assertions ok")
-    # cross-check the chain count the JS tests pin (B W B W B => 5 chains)
-    r = build_position(board, "initial")
-    cs = chains(r)
-    assert len(cs) == 5 and sum(1 for c in cs if c["color"] == 1) == 3 \
-        and sum(1 for c in cs if c["color"] == 2) == 2, "chain composition drifted"
+    for board_path in sorted((ROOT / "specs").glob("board-*.yaml")):
+        board = yaml.safe_load(board_path.read_text(encoding="utf-8"))
+        for beat_name in board["beats"]:
+            r = build_position(board, beat_name)
+            check_assert(r, board["beats"][beat_name].get("assert") or {}, beat_name)
+            print(f"  [VERIFY] {board['id']:<18} {beat_name:<8} chains={len(chains(r))} ok")
     print("verify.py: all mirror-board assertions hold under the independent Python rules")
     return 0
 

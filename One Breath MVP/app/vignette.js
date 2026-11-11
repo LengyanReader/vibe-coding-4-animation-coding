@@ -53,6 +53,7 @@ export function renderNode(walk, lang) {
       index: i,
       label: resolveText(c.label, lang, walk.flags),
       flag: c.flag ?? null,
+      icon: c.icon ?? null,     // the picture tile — dropped once, caught live in the browser
     })),
   };
 }

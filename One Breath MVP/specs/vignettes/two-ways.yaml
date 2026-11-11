@@ -1,0 +1,325 @@
+# 情景二:两种赢法 · The Two Ways — 故事图(双语意群成对,M4.10)
+#
+# 算力下棋 vs 下棋参悟。棋局层的自指设计:"算力手"由微引擎运行时真实计算
+# (specs/board-two-ways.yaml 的 engine 节拍),不是硬编码——主题活在机制里。
+# 风格:清雅温馨(warm 画格),参照治愈系 2D 的形状语言。
+# 回应结局照例不排序;每种结局陈述它保护的东西。
+
+id: two-ways
+title: {zh: 两种赢法, en: "The Two Ways"}
+tagline:
+  zh: 机器赢了十盘,爷爷教的棋还算数吗?
+  en: The machine won ten games — does the Go grandpa taught still count?
+style: warm                   # 清雅温馨画格
+board: board-two-ways
+start: n1
+
+nodes:
+  n1:
+    movement: encounter
+    board: initial
+    panel: {scene: night-desk}
+    text:
+      zh: >-
+        爷爷走后的第一百天。你打开他教过你开局的那台旧电脑,
+        和一个围棋程序连下了十盘。十盘全输。
+        屏幕弹出一行字:"下一局,你的胜率是 3.2%。"
+      en: >-
+        One hundred days after grandpa left. You opened the old computer where
+        he first taught you an opening, and played ten games against a Go
+        program. Ten losses. The screen offers a line: "Next game — your winning
+        chance is 3.2%."
+    choices:
+      - {label: {zh: 再来一局, en: One more game}, to: n2a, icon: replay}
+      - {label: {zh: 合上电脑, en: Close the lid}, to: n2b, icon: lid}
+
+  n2a:
+    movement: encounter
+    board: engine
+    panel: {scene: machine-move}
+    text:
+      zh: >-
+        第十一盘,中盘。算力的手落在角上——你的三颗子被提。
+        记分牌亮起:+3。它没有犹豫,也不会犹豫。
+        而你的另一块棋,悄悄薄了一气。
+      en: >-
+        Game eleven, middle game. The hand of computation lands in the corner —
+        three of your stones are lifted. The scoreboard lights: +3.
+        It never hesitates; it cannot. And your other chain quietly
+        lost a breath.
+    choices:
+      - {label: {zh: 盯着那块变薄的棋, en: Stare at the thinning chain}, to: n2c, icon: eye_mine}
+      - {label: {zh: 合上电脑, en: Close the lid}, to: n2b, icon: lid}
+
+  n2b:
+    movement: encounter
+    board: pass
+    panel: {scene: dark-screen}
+    text:
+      zh: >-
+        屏幕暗下去。黑屏里有一张脸,和一点从窗帘缝里漏进来的天光。
+        明天还上班。可你坐着,没动。
+      en: >-
+        The screen goes dark. In it, a face — and a little daylight leaking
+        through the curtain gap. Work tomorrow. Yet you sit, unmoving.
+    choices:
+      - {label: {zh: 再想想那十盘, en: Think about the ten games again}, to: n2a, icon: replay}
+      - {label: {zh: 关灯,坐一会儿, en: Lights off — sit a while}, to: n3, icon: pause}
+
+  n2c:
+    movement: interrelate
+    board: engine
+    panel: {scene: thin-chain}
+    text:
+      zh: >-
+        薄,围棋里叫薄——一块棋看着还在,气却在一点点漏掉。
+        你盯着它,像盯着这些年自己过日子的方式。
+      en: >-
+        Thin — that is the Go word for it: a chain that still stands while its
+        breath leaks away. You stare at it the way you stare at the way you
+        have been living.
+    choices:
+      - {label: {zh: 回到桌前, en: Back to the desk}, to: n3, icon: back_room}
+
+  n3:
+    movement: interrelate
+    board: pass
+    panel: {scene: three-things}
+    text:
+      zh: >-
+        夜里,有三件事慢慢浮上来。它们不替你下棋,
+        但每一件,都往那 3.2% 之外看了一眼。
+      en: >-
+        Three things surface in the night. None of them plays Go for you —
+        but each one looks past the 3.2%.
+    choices:
+      - {label: {zh: 机器的那一边, en: The machine's side}, to: n_r1, icon: machine_eye}
+      - {label: {zh: 爷爷的那一边, en: Grandpa's side}, to: n_r2, icon: grandpa_lamp}
+      - {label: {zh: 第三条路, en: A third road}, to: n_r3, icon: third_road}
+      - {label: {zh: 都看过了,继续, en: Seen enough — continue}, to: n4, icon: seen_all}
+
+  n_r1:
+    movement: interrelate
+    board: pass
+    panel: {scene: machine-side}
+    text:
+      zh: >-
+        它每一步都在计算,没有一步在过日子。
+        赢,对它什么都不是——它甚至不知道自己在下棋。
+        你输给它的是胜负;它没有赢走任何你在乎的东西。
+      en: >-
+        Every one of its moves is calculation; not one of them is a life being
+        lived. Winning is nothing to it — it does not even know it is playing.
+        What you lost to it is the game; nothing you care about went with it.
+    choices:
+      - {label: {zh: 回到三件事, en: Back to the three things}, to: n3, icon: seen_all}
+
+  n_r2:
+    movement: interrelate
+    board: pass
+    panel: {scene: grandpa-room}
+    text:
+      zh: >-
+        爷爷说过:"棋下的是日子,不是胜负。"
+        你输掉的是十盘棋。那三千个安静的傍晚——
+        他陪你摆过的每一颗子——谁也拿不走。
+      en: >-
+        Grandpa said: "What you play is your days, not the wins."
+        You lost ten games. The three thousand quiet evenings — every stone he
+        placed beside yours — nobody takes those.
+    choices:
+      - {label: {zh: 回到三件事, en: Back to the three things}, to: n3, icon: seen_all}
+
+  n_r3:
+    movement: interrelate
+    board: pass
+    panel: {scene: third-road}
+    text:
+      zh: >-
+        那台机器赢了之后,人们拿它研究棋——
+        新的定式层出不穷,像雨后的菌子。
+        机器没有杀死围棋。它换了一种照亮它的方式。
+      en: >-
+        After that machine won, people started studying Go with it — new josekis
+        keep appearing like mushrooms after rain.
+        The machine did not kill Go. It found another way to light it.
+    choices:
+      - {label: {zh: 回到三件事, en: Back to the three things}, to: n3, icon: seen_all}
+
+  n4:
+    movement: release
+    board: pass
+    panel: {scene: put-down}
+    text:
+      zh: >-
+        现在有一个选项,不在任何排行榜里——
+        把"必须赢过机器,爷爷教的东西才算数"放下。
+        爷爷的棋,从来不是为赢机器而存在的。
+      en: >-
+        Now there is an option on no leaderboard —
+        to put down "I must beat the machine for grandpa's Go to count."
+        Grandpa's Go never existed to beat machines.
+    choices:
+      - {label: {zh: 放下它, en: Put it down}, to: n5, flag: released}
+      - {label: {zh: 还放不下, en: I cannot put it down yet}, to: n5}
+
+  n5:
+    movement: release
+    board: initial
+    panel: {scene: mirror-hub}
+    text:
+      zh: >-
+        棋盘给你两手,都安全——一手是算力的,它会自己算;
+        一手是爷爷的,不提子,让每块棋都喘气。
+        两手都落完,你自己看两本账。
+      en: >-
+        The board offers two hands, both safe — one belongs to computation and
+        computes itself; one is grandpa's: it captures nothing and lets every
+        chain breathe. Play both, then read the two ledgers yourself.
+    choices:
+      - {label: {zh: 落下算力的手, en: Play the hand of computation}, to: n5_engine, icon: try_attack}
+      - {label: {zh: 落下爷爷的手, en: Play grandpa's hand}, to: n5_calm, icon: solidify}
+      - {label: {zh: 虚着, en: Pass}, to: n5_pass, icon: pass}
+      - {label: {zh: 合上这一夜, en: Close this night}, to: n6, icon: back_room}
+
+  n5_engine:
+    movement: release
+    board: engine
+    panel: {scene: machine-move}
+    text:
+      zh: >-
+        算力的手提了三子。记分牌:+3。
+        同一时刻,你的另一块棋薄了一气——
+        算力的账本上没有这一栏。
+      en: >-
+        The hand of computation lifts three stones. Scoreboard: +3.
+        In the same moment your other chain thins by one breath —
+        that column does not exist on the computational ledger.
+    choices:
+      - {label: {zh: 再试一手, en: Try another hand}, to: n5, icon: replay}
+      - {label: {zh: 合上这一夜, en: Close this night}, to: n6, icon: back_room}
+
+  n5_calm:
+    movement: release
+    board: calm
+    panel: {scene: grandpa-room}
+    text:
+      zh: >-
+        这一手一颗子都没提。可你的棋从两口气喘成了四口,
+        整面墙都站住了。爷爷的账本上,这才叫得手。
+      en: >-
+        This hand captures nothing. Yet your chain breathes from two liberties
+        to four, and the whole wall stands firm. On grandpa's ledger,
+        *this* is the move that came off.
+    choices:
+      - {label: {zh: 再试一手, en: Try another hand}, to: n5, icon: replay}
+      - {label: {zh: 合上这一夜, en: Close this night}, to: n6, icon: back_room}
+
+  n5_pass:
+    movement: release
+    board: pass
+    panel: {scene: breath}
+    text:
+      zh: >-
+        你虚着。那三颗子还悬在原处。
+        它们会一直等——悬着的东西最不着急。
+      en: >-
+        You pass. The three stones hang where they hung.
+        They will keep waiting — hanging things are in no hurry.
+    choices:
+      - {label: {zh: 再试一手, en: Try another hand}, to: n5, icon: replay}
+      - {label: {zh: 合上这一夜, en: Close this night}, to: n6, icon: back_room}
+
+  n6:
+    movement: respond
+    board: calm
+    panel: {scene: grandpa-room}
+    text:
+      zh: >-
+        {released, y: 你放下过一次。夜更深了,棋盘上那 3.2% 还亮着,但它只是众多数字里的一个。}
+        {released, n: 你还攥着那 3.2%——没关系,攥着的人也可以选一条路。}
+        此后,你与棋,怎么继续?
+      en: >-
+        {released, y: You put it down once. The night deepens; the 3.2% still glows on the board, but it is one number among many now.}
+        {released, n: You are still gripping the 3.2% — fine; gripping hands can still choose a road.}
+        From here, how do you and Go continue?
+    choices:
+      - {label: {zh: 用引擎研究开局,再去找人对弈, en: Study openings with the engine, then find a human to play}, to: e_study, icon: study}
+      - {label: {zh: 只跟人下——棋要面对人, en: Only play people — Go is face to face}, to: e_human, icon: human}
+      - {label: {zh: 教一个孩子,像爷爷教你, en: Teach a child, the way grandpa taught you}, to: e_teach, icon: teach}
+      - {label: {zh: 把棋盘收进柜子,等想它的时候, en: Shelf the board until you miss it}, to: e_shelve, icon: shelve}
+      - {label: {zh: 继续跟引擎下,为了看清它怎么想, en: Keep playing the engine — to see how it thinks}, to: e_curious, icon: curiosity}
+
+  e_study:
+    movement: ending
+    board: calm
+    panel: {scene: study-night}
+    text:
+      zh: >-
+        你开始用引擎复盘,像用一本答案上有错的习题册。
+        三个月后,你去找了人对弈——胜率不重要了,
+        开局里那些新的形状,是你和机器一起看过的风景。
+      en: >-
+        You start reviewing games with the engine, like a workbook with wrong
+        answers in it. Three months later you find a human opponent — the win
+        rate no longer matters; the new shapes in the opening are scenery you
+        and the machine looked at together.
+  e_human:
+    movement: ending
+    board: calm
+    panel: {scene: two-figures}
+    text:
+      zh: >-
+        你把引擎留在书架上,去棋室找人对弈。
+        对面的人会皱眉、会笑、会后悔——棋是要面对人的,
+        这正是机器赢不走的那一部分。
+      en: >-
+        You leave the engine on the shelf and find faces to play across a board
+        from. They frown, laugh, regret — Go is face to face,
+        and that is exactly the part the machine cannot win away.
+  e_teach:
+    movement: ending
+    board: calm
+    panel: {scene: teaching}
+    text:
+      zh: >-
+        周末,你把一颗黑子放在一个孩子手心。
+        "先不急着赢,"你说,"先看它落在棋盘上的样子。"
+        爷爷教的不是棋,是落子的方式——现在轮到你说了。
+      en: >-
+        On the weekend you put a black stone into a child's palm.
+        "No rush to win," you say. "First watch how it lands on the board."
+        Grandpa was not teaching Go — he was teaching a way of placing things.
+        Now it is your line to say.
+  e_shelve:
+    movement: ending
+    board: pass
+    panel: {scene: on-the-shelf}
+    text:
+      zh: >-
+        棋盘进了柜子。你没有告别,只是暂时不看。
+        几个星期后的一个晚上,你会突然想它——
+        到那时,它还在,3.2% 也在,而你不在它的账本里。
+      en: >-
+        The board goes into the cabinet. No farewell — just not looking, for
+        now. Some weeks later, on an ordinary night, you will suddenly miss it —
+        and it will be there, and the 3.2% too, and you will not be inside its
+        ledger.
+  e_curious:
+    movement: ending
+    board: engine
+    panel: {scene: leaning-in}
+    text:
+      zh: >-
+        你继续和它下,输,然后复盘。
+        慢慢地你看出它的"性格":它贪图实地,厌恶浪费,从不回头看。
+        你没有参悟它——你在观察一个不会回头的对手。
+        这也是一种下棋。
+      en: >-
+        You keep playing it, losing, reviewing. Slowly you learn its "temper":
+        greedy for territory, allergic to waste, never looking back.
+        You are not enlightening it — you are studying an opponent that cannot
+        turn around. That, too, is playing Go.
+
+# 五种继续并列,无一更"对":好奇/温度/接续/时机/理解。
+# The five continuations stand side by side; none is more right.
