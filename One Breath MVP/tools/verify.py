@@ -54,6 +54,9 @@ class Rules:
             return False, "occupied"
         if self.ko == p:
             return False, "ko"
+        # snapshot for undo on refusal — a refused move must leave the board
+        # UNCHANGED (the differential fuzz caught this brain leaving the stone)
+        saved, saved_ko = dict(self.stones), self.ko
         self.stones[p] = color
         enemy = 3 - color
         captured = []
@@ -73,6 +76,7 @@ class Rules:
             self.ko = next(iter(captured[0][0]))
         stones, libs = self.chain(p)
         if not libs:
+            self.stones, self.ko = saved, saved_ko
             return False, "suicide"
         return True, len(seen)
 
@@ -240,6 +244,90 @@ def check_assert(r: Rules, spec_assert: dict, where: str, last_captured: int = 0
             assert len(libs) == want, f"{where}: {key_} libs {len(libs)} != {want}"
 
 
+def area_score(r: Rules):
+    """Chinese area scoring, re-derived independently: stones on board + empty
+    regions bordered by only one colour. Returns (black, white, neutral)."""
+    stones = {1: 0, 2: 0}
+    for v in r.stones.values():
+        stones[v] += 1
+    seen, terr = set(), {1: 0, 2: 0, 0: 0}
+    for rr in range(1, r.size + 1):
+        for cc in range(1, r.size + 1):
+            p = (rr, cc)
+            if p in r.stones or p in seen:
+                continue
+            reg, st, borders = {p}, [p], set()
+            while st:
+                cur = st.pop()
+                seen.add(cur)
+                for n in r.neighbors(cur):
+                    v = r.stones.get(n)
+                    if v is None:
+                        if n not in reg:
+                            reg.add(n)
+                            st.append(n)
+                    else:
+                        borders.add(v)
+            if len(borders) == 1:
+                terr[list(borders)[0]] += len(reg)
+            else:
+                terr[0] += len(reg)
+    return stones[1] + terr[1], stones[2] + terr[2], terr[0]
+
+
+def eyes_for(r: Rules, anchor):
+    """Empty points whose every neighbour is one of the anchor chain's stones —
+    the same query as eyesFor() in app/rules.js."""
+    stones, libs = r.chain(anchor)
+    color = r.stones[anchor]
+    return sorted(p for p in libs
+                  if all(r.stones.get(n) == color for n in r.neighbors(p)))
+
+
+def check_game_record() -> None:
+    """The guided mini-game: replay the curated record move by move under the
+    independent Python rules and assert every `expect` claim is board-true."""
+    rec = yaml.safe_load((ROOT / "specs" / "game-record.yaml").read_text(encoding="utf-8"))
+    r = Rules(rec["size"])
+    caps = {1: 0, 2: 0}
+    last = 0
+    for m in rec["moves"]:
+        num, color_s = m["num"], m["color"]
+        col = 1 if color_s == "black" else 2
+        if m["at"] is None:
+            r.ko = None  # a pass lifts simple ko (matches GameState.gamePass)
+        else:
+            ok, why = r.play(tuple(m["at"]), col)
+            assert ok, f"game-record M{num}: {color_s} {m['at']} illegal ({why})"
+            caps[col] += why
+            last = why
+        exp = m.get("expect") or {}
+        if "captures" in exp:
+            got = last if m["at"] is not None else 0
+            assert got == exp["captures"], \
+                f"M{num}: captured {got} != {exp['captures']}"
+        for chk in exp.get("libs") or []:
+            p = tuple(chk["at"])
+            assert p in r.stones, f"M{num}: anchor {p} not on board"
+            _, libs = r.chain(p)
+            assert len(libs) == chk["count"], \
+                f"M{num}: libs at {p} = {len(libs)} != {chk['count']}"
+        eye_exp = exp.get("eyes")
+        if eye_exp:
+            anchor = tuple(eye_exp["at"])
+            got = eyes_for(r, anchor)
+            assert got == sorted(tuple(e) for e in eye_exp["eyes"]), \
+                f"M{num}: eyes {got} != {eye_exp['eyes']}"
+        if "score" in exp:
+            b, w, _ = area_score(r)
+            assert (b, w) == (exp["score"]["black"], exp["score"]["white"]), \
+                f"M{num}: score {b}/{w} != {exp['score']}"
+        print(f"  [GAME] M{num:<3} {color_s:<5} {str(m['at']):<8} ok")
+    b, w, n = area_score(r)
+    print(f"  [GAME] final: black {b}, white {w}, neutral {n}; "
+          f"captures black {caps[1]}, white {caps[2]}")
+
+
 def main() -> int:
     for board_path in sorted((ROOT / "specs").glob("board-*.yaml")):
         board = yaml.safe_load(board_path.read_text(encoding="utf-8"))
@@ -248,6 +336,7 @@ def main() -> int:
             check_assert(r, board["beats"][beat_name].get("assert") or {}, beat_name, last)
             print(f"  [VERIFY] {board['id']:<18} {beat_name:<8} chains={len(chains(r))} ok")
         check_lesson_checks(board)
+    check_game_record()
     print("verify.py: all mirror-board assertions hold under the independent Python rules")
     return 0
 

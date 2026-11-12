@@ -9,7 +9,7 @@
 // The comparison and contemplation acts live in main.js; this module only owns
 // the ladder (show -> try -> confirm/refuse) and the checks tests reuse.
 
-import { emptyPosition, play, groupAt, key, parse, hashPosition, BLACK, WHITE } from "./rules.js";
+import { emptyPosition, play, groupAt, key, parse, hashPosition, BLACK, WHITE, GameState } from "./rules.js";
 
 const COLOR = (name) => (name === "black" ? BLACK : WHITE);
 
@@ -31,6 +31,9 @@ export function buildPosition(size, setup) {
 }
 
 export function positionForStep(step, boardSpec) {
+  // a game step's board is built by the game runtime (GameState replays the
+  // record's authored opening), not from a beat setup
+  if (step.kind === "game") return emptyPosition(boardSpec.size);
   const beat = boardSpec.beats[step.beat];
   if (!beat) throw new Error(`lesson: unknown beat "${step.beat}"`);
   // SETUP only — the player's click IS the move. The beat.moves field is
@@ -38,10 +41,10 @@ export function positionForStep(step, boardSpec) {
   return buildPosition(boardSpec.size, beat.setup ?? boardSpec.stones);
 }
 
-export function newLessonWalk(lesson, boardSpec) {
+export function newLessonWalk(lesson, boardSpec, games = {}) {
   const first = lesson.steps[0];
-  return {
-    lesson, boardSpec,
+  const walk = {
+    lesson, boardSpec, games,
     stepIndex: 0,
     phase: 0,
     pos: positionForStep(first, boardSpec),
@@ -53,6 +56,112 @@ export function newLessonWalk(lesson, boardSpec) {
     message: null,
     trail: [],
   };
+  return first.kind === "game" ? initGameStep(walk) : walk;
+}
+
+// --- the guided mini-game (kind: "game") ---------------------------------------
+//
+// A curated full game against grandpa. The learner plays the authored black
+// points; each wrong legal click gets a gentle redirect (and, after that, a
+// soft hint ring); illegal clicks get the engine's own refusal reason. Grandpa
+// replies instantly with the authored white move. The record's `expect`
+// claims are board-true — verify.py and tests/game.test.js re-derive them;
+// this runtime only replays and teaches.
+
+export function initGameStep(walk) {
+  const record = walk.games[walk.lesson.steps[walk.stepIndex].game];
+  if (!record) throw new Error(`game "${walk.lesson.steps[walk.stepIndex].game}" is not in the build`);
+  const w = {
+    ...walk,
+    record,
+    gs: new GameState(record.size, null),
+    gameIdx: 0,
+    gameBubble: null,
+    gameResult: null,
+    hint: false,
+    awaitingPass: false,
+  };
+  // replay the authored opening instantly; grandpa's replies (and the white
+  // pass) fire from autoReplies as each learner move lands
+  return autoReplies(w).walk;
+}
+
+function autoReplies(w) {
+  // auto moves (grandpa's authored replies, the white pass) fire immediately;
+  // stop when the next authored move belongs to the learner
+  while (w.gameIdx < w.record.moves.length) {
+    const m = w.record.moves[w.gameIdx];
+    if (m.learner) break;
+    if (m.at === null) {
+      w.gs.gamePass();
+      w.lastMove = null;
+    } else {
+      const res = w.gs.gameMove(m.at);
+      if (!res.ok) throw new Error(`game: authored move ${m.num} illegal (${res.reason})`);
+      w.lastMove = key(...m.at);
+      w.ghosts = res.capturedPoints ?? [];
+    }
+    w.gameBubble = { main: m.teach, prev: w.gameBubble?.main ?? null, captures: { ...w.gs.captures } };
+    w.gameIdx += 1;
+  }
+  w.pos = w.gs.pos;
+  const next = w.record.moves[w.gameIdx];
+  w.awaitingPass = Boolean(next && next.learner && next.at === null);
+  if (!next) w.done = true; // record exhausted without the closing pass
+  return { walk: w, event: "reply" };
+}
+
+function gameClick(w, k) {
+  const m = w.record.moves[w.gameIdx];
+  if (w.done || !m) return { walk: w, event: "noop" };
+  if (m.at === null) {
+    w.message = { key: "lesson.msg.game_use_pass" };
+    return { walk: w, event: "wrong" };
+  }
+  if (!m.learner) {
+    w.message = { key: "lesson.msg.game_your_turn" };
+    return { walk: w, event: "wrong" };
+  }
+  // probe first: a legal but off-script click must NOT reach the board
+  const probe = play(w.gs.pos, k, BLACK);
+  if (!probe.ok) {
+    w.message = { key: "lesson.msg.refused_reason", vars: { reason: probe.reason } };
+    return { walk: w, event: "refused", reason: probe.reason };
+  }
+  if (k !== key(...m.at)) {
+    w.hint = true;
+    w.message = { key: "lesson.msg.game_redirect" };
+    return { walk: w, event: "wrong" };
+  }
+  const res = w.gs.gameMove(parse(k));
+  w.hint = false;
+  w.lastMove = k;
+  w.ghosts = res.capturedPoints ?? [];
+  w.gameBubble = { main: m.teach, prev: null, captures: { ...w.gs.captures } };
+  w.gameIdx += 1;
+  return autoReplies(w);
+}
+
+function gamePassPress(w) {
+  if (!w.awaitingPass) {
+    w.message = { key: "lesson.msg.game_your_turn" };
+    return { walk: w, event: "noop" };
+  }
+  w.gs.gamePass();
+  w.gameIdx += 1;
+  w.awaitingPass = false;
+  w.done = true;
+  w.pos = w.gs.pos;
+  const s = w.gs.score();
+  w.gameResult = {
+    black: s.black, white: s.white,
+    captures: { ...w.gs.captures },
+    note: w.record.count_note,
+  };
+  const closing = w.record.moves[w.gameIdx - 1];
+  w.gameBubble = { main: closing.teach, prev: null, captures: { ...w.gs.captures } };
+  w.message = { key: "lesson.msg.game_result", vars: { b: s.black, w: s.white } };
+  return { walk: w, event: "game-over" };
 }
 
 export function currentStep(walk) {
@@ -175,6 +284,7 @@ export function clickPoint(walk, point) {
   }
 
   if (step.kind === "mutual") return mutualClick(w, step, k);
+  if (step.kind === "game") return gameClick(w, k);
 
   return { walk: w, event: "noop" };
 }
@@ -227,6 +337,7 @@ function mutualClick(w, step, k) {
 export function pressPass(walk) {
   const step = currentStep(walk);
   const w = { ...walk, message: null };
+  if (step.kind === "game") return gamePassPress(w);
   if (step.kind === "pass") {
     w.trail = [...w.trail, { step: step.id, action: "pass" }];
     w.done = true;
@@ -248,16 +359,22 @@ export function pressPass(walk) {
 
 export function resetStep(walk) {
   const step = currentStep(walk);
-  return {
+  const base = {
     ...walk,
     phase: 0,
-    pos: positionForStep(step, walk.boardSpec),
     clicked: [],
     refused: [],
     ghosts: [],
     lastMove: null,
     done: false,
     message: { key: "lesson.msg.reset" },
+  };
+  if (step.kind === "game") {
+    return { ...initGameStep(base), message: { key: "lesson.msg.reset" } };
+  }
+  return {
+    ...base,
+    pos: positionForStep(step, walk.boardSpec),
   };
 }
 
@@ -268,19 +385,19 @@ export function advanceStep(walk) {
   }
   const nextIndex = walk.stepIndex + 1;
   const next = walk.lesson.steps[nextIndex];
+  const w = {
+    ...walk,
+    stepIndex: nextIndex,
+    phase: 0,
+    clicked: [],
+    refused: [],
+    ghosts: [],
+    lastMove: null,
+    done: false,
+    message: null,
+  };
   return {
-    walk: {
-      ...walk,
-      stepIndex: nextIndex,
-      phase: 0,
-      pos: positionForStep(next, walk.boardSpec),
-      clicked: [],
-      refused: [],
-      ghosts: [],
-      lastMove: null,
-      done: false,
-      message: null,
-    },
+    walk: next.kind === "game" ? initGameStep(w) : { ...w, pos: positionForStep(next, walk.boardSpec) },
     event: "step",
   };
 }

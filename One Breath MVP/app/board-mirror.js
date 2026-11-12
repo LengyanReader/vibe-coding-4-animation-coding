@@ -206,6 +206,16 @@ export function drawBoard(canvas, pos, opts = {}) {
     } else if (m.kind === "last") {
       ctx.fillStyle = PALETTE.sealRed;
       ctx.beginPath(); ctx.arc(x, y, cell * 0.09, 0, Math.PI * 2); ctx.fill();
+    } else if (m.kind === "hint") {
+      // the guided game's gentle nudge: a soft ring on the point grandpa means
+      ctx.strokeStyle = PALETTE.sage;
+      ctx.globalAlpha = 0.8;
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(x, y, cell * 0.3, 0, Math.PI * 2); ctx.stroke();
+      ctx.globalAlpha = 0.2;
+      ctx.fillStyle = PALETTE.sage;
+      ctx.beginPath(); ctx.arc(x, y, cell * 0.3, 0, Math.PI * 2); ctx.fill();
+      ctx.globalAlpha = 1;
     }
   }
 

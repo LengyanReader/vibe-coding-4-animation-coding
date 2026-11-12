@@ -101,6 +101,13 @@ ui:
       pass_lost: {zh: 先动手的那块已经没了。重来,再虚着。, en: "The first mover's chain is gone. Reset, then pass."}
       reset: {zh: 回到这一步的开头。, en: "Back to the start of this step."}
       occupied: {zh: 这一点已经有子了。, en: "That point already has a stone."}
+      # guided mini-game (kind: game)
+      game_redirect: {zh: "爷爷轻轻按住你的手:\"好想法,先跟我走这一手。\"", en: "Grandpa rests a hand on yours: \"A good thought — try this one with me first.\""}
+      game_your_turn: {zh: 该你落子了。, en: "Your move."}
+      game_use_pass: {zh: 两口气都歇了——用虚着结束这盘棋吧。, en: "Both sides have rested — end the game with a pass."}
+      game_result: {zh: "棋下完了。数地:黑 {b} · 白 {w}。", en: "The game is over. Count the land: black {b} · white {w}."}
+      game_captures: {zh: "提子:你 {b} · 白 {w}", en: "Captured: you {b} · white {w}"}
+      game_move: {zh: "第 {n} 手 · {phase}", en: "Move {n} · {phase}"}
 
   compare:
     title: {zh: "照见 · 同一个形状,两种读法", en: "Mirror · one shape, two readings"}

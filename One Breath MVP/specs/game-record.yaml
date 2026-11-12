@@ -1,0 +1,98 @@
+# Guided mini-game — a curated 5×5 game between the learner (black) and
+# grandpa (white, curated). Board-true by design: every teach claim below is
+# re-derived and checked by tests/game.test.js (JS) and tools/verify.py
+# (Python) — both replay the record move by move and assert each `expect`.
+#
+# The arc, measured on the board:
+#   opening  (M1-4)  corners and the side; white squeezes into a one-breath gap
+#   contact  (M5-13) first capture, black atari saved, the chase down the left
+#                    edge (each black chase stone is also an eye-shape stone),
+#                    second capture of FOUR stones
+#   life     (M14-17) the two doors: eyesFor(chain) == [(3,1),(5,1)], and white
+#                    has NO legal move inside either eye (suicide-refused)
+#   endgame  (M18-21) shape completion, two passes, Chinese area count
+#
+# Learner moves (black, `learner: true`) are: M5, M7, M9, M11, M13, M15, M17,
+# M19 — eight moves, each with exactly one accepted point. Auto moves (grandpa
+# and the four opening stones) replay instantly at game start.
+id: guided-game
+title:
+  zh: 跟爷爷学棋
+  en: Learning Go with Grandpa
+size: 5
+learner_color: black
+total_moves: 21
+phases:
+  opening: {zh: 开局, en: Opening}
+  contact: {zh: 接触战, en: Contact}
+  life: {zh: 做活, en: Making life}
+  endgame: {zh: 收官, en: Endgame}
+
+# moves[i] = the i-th move. color alternates black→white. at: null = pass.
+# auto: replayed instantly at game start (grandpa + the shared opening).
+# learner: the learner must find this point themselves (click on the board).
+# expect: board-true claims checked after this move by both verifiers.
+#   captures: stones captured BY the mover on this move
+#   libs:     [{at: anchor, count: n}] — chain liberties at anchor
+#   eyes:     {at: anchor, eyes: [...]} — eyesFor(anchor) equals exactly these
+#   score:    final area count (checked after the closing pass)
+moves:
+  - {num: 1, color: black, at: [1, 1], auto: true, phase: opening,
+     teach: {zh: "先占角。角是金角——两条边帮你一起守住。", en: "Corner first. A corner is gold — two edges help you hold it."}}
+  - {num: 2, color: white, at: [5, 5], auto: true, phase: opening,
+     teach: {zh: "白棋也占了角。棋是两个人下的。", en: "White takes a corner too. Go is a game for two."}}
+  - {num: 3, color: black, at: [1, 3], auto: true, phase: opening,
+     teach: {zh: "沿边拆二:和角上的棋留一口气,手就牵上了。", en: "Extend along the side: one gap, and your stones still hold hands."}}
+  - {num: 4, color: white, at: [1, 2], auto: true, phase: opening,
+     expect: {libs: [{at: [1, 2], count: 1}]},
+     teach: {zh: "白棋挤进你们中间。数一数——它只剩一口气了。", en: "White squeezes between them. Count its breaths — just one left."}}
+  - {num: 5, color: black, at: [2, 2], learner: true, phase: contact,
+     expect: {captures: 1},
+     teach: {zh: "堵上最后一口气——提子!你的第一颗战利品。", en: "Seal its last breath — captured! Your first prize."}}
+  - {num: 6, color: white, at: [2, 1], auto: true, phase: contact,
+     expect: {libs: [{at: [1, 1], count: 1}]},
+     teach: {zh: "白棋不甘心,也挤了进来。小心——你的角只剩一口气了。", en: "White squeezes back. Careful — your corner has one breath left."}}
+  - {num: 7, color: black, at: [1, 2], learner: true, phase: contact,
+     expect: {libs: [{at: [1, 1], count: 3}]},
+     teach: {zh: "把自己的气接上。棋连成一片,气就回来了。", en: "Connect your own breath. Stones joined are one body — breath returns."}}
+  - {num: 8, color: white, at: [3, 1], auto: true, phase: contact,
+     teach: {zh: "白棋在逃。逃,是因为只剩一口气了。", en: "White runs. It runs because one breath is all it has."}}
+  - {num: 9, color: black, at: [3, 2], learner: true, phase: contact,
+     expect: {libs: [{at: [2, 1], count: 1}]},
+     teach: {zh: "追。把它逼回只剩一口气。", en: "Chase. Press it back down to one breath."}}
+  - {num: 10, color: white, at: [4, 1], auto: true, phase: contact,
+     teach: {zh: "又延了一口气。棋局就是这样,一追一逃。", en: "It extends again. The game breathes: chase, escape, chase."}}
+  - {num: 11, color: black, at: [4, 2], learner: true, phase: contact,
+     expect: {libs: [{at: [2, 1], count: 1}]},
+     teach: {zh: "再堵。现在,它的气数得清了。", en: "Seal again. Now its breaths can be counted."}}
+  - {num: 12, color: white, at: [5, 1], auto: true, phase: contact,
+     teach: {zh: "白棋还在延。爷爷说:有时,逃本身就是错。", en: "White still runs. Sometimes, says Grandpa, running is itself the mistake."}}
+  - {num: 13, color: black, at: [5, 2], learner: true, phase: contact,
+     expect: {captures: 4},
+     teach: {zh: "提子!四颗一起离开了棋盘。", en: "Captured! Four stones leave the board at once."}}
+  - {num: 14, color: white, at: [4, 4], auto: true, phase: life,
+     teach: {zh: "白棋换了地方,经营自己的角。一盘棋里有好多次接触。", en: "White moves on to build its own corner. A game holds many fights."}}
+  - {num: 15, color: black, at: [4, 1], learner: true, phase: life,
+     teach: {zh: "做眼:给活棋留门。这是第一扇。", en: "Make eyes: doors for living. This is the first."}}
+  - {num: 16, color: white, at: [5, 4], auto: true, phase: life,
+     teach: {zh: "白棋把自己的角连紧了。你的棋,你也要守好。", en: "White tightens its corner. Guard your own home too."}}
+  - {num: 17, color: black, at: [2, 1], learner: true, phase: life,
+     expect: {eyes: {at: [2, 2], eyes: [[3, 1], [5, 1]]}},
+     teach: {zh: "两只眼都做好了。白棋进不了你的门——进去就是自杀。", en: "Both eyes are done. White cannot enter your doors — entering means suicide."}}
+  - {num: 18, color: white, at: [4, 5], auto: true, phase: endgame,
+     teach: {zh: "大地方下完了,该收官了。", en: "The big points are done. The endgame begins."}}
+  - {num: 19, color: black, at: [2, 3], learner: true, phase: endgame,
+     teach: {zh: "收官:把棋形连完整。每一手都变小,但每一手都算数。", en: "Endgame: complete your shape. Each move is smaller, each one still counts."}}
+  - {num: 20, color: white, at: null, auto: true, phase: endgame,
+     teach: {zh: "白棋停了手。棋,下完了吗?", en: "White stops. Is the game over?"}}
+  - {num: 21, color: black, at: null, learner: true, closing: true, phase: endgame,
+     expect: {score: {black: 12, white: 4}},
+     teach: {zh: "你也停手。两口气都歇了,棋就下完了。数一数地。", en: "You stop too. When both rest, the game is over. Count the land."}}
+
+# measured final position (verified, not decorative):
+#   black 10 stones + 2 territory = 12;  white 4 stones + 0 territory = 4;
+#   9 contested points left uncounted;  captures: black 5, white 0.
+#   the count bubble says honestly: capturing was fun, LAND decided the game.
+count_note:
+  zh: "你提了五颗,白棋一颗也没提到。但决定胜负的是地:黑 12,白 4。"
+  en: "You captured five and lost none. But land decided the game: black 12, white 4."

@@ -135,12 +135,13 @@ steps:
   - id: l8_ko
     beat: ko_setup
     kind: play
+    color: black
     solution: [1, 1]
     expect_captured: 1
     core: false
     prompt:
-      zh: 黑提了一子。白想立即回提——试试看
-      en: Black just captured. White tries to take back immediately — try it
+      zh: 黑棋提掉这颗只剩一口气的白子——提完一子,对方不能立刻回提
+      en: Black captures the white stone with one breath left — after a single-stone capture, white cannot take back at once
     rule:
       zh: >-
         打劫规则:刚被提一颗子后,对方不能在同一手立即回提。
@@ -155,6 +156,7 @@ steps:
   - id: l9_save
     beat: save_setup
     kind: play
+    color: black
     solution: [2, 1]
     expect_captured: 3
     core: false
@@ -174,6 +176,7 @@ steps:
   - id: l10_escape
     beat: atari_escape
     kind: play
+    color: black
     solution: [3, 4]
     expect_captured: 0
     core: false
@@ -188,3 +191,24 @@ steps:
         A chain with one liberty is in atari. Extending it gives more
         breathing room so it cannot be captured immediately. Knowing when
         to run and when to sacrifice is part of the game.
+
+  # the payoff: a complete curated game against grandpa. The record lives in
+  # specs/game-record.yaml; every teach claim there is board-true (verify.py
+  # and tests/game.test.js replay it move by move).
+  - id: l11_game
+    kind: game
+    game: guided-game
+    core: true
+    prompt:
+      zh: 开局四手已下——你的角、你的边、他的角,和他挤进来的一颗只剩一口气的白子。轮到你了。
+      en: "Four opening moves are on the board: your corner, your side, their corner — and a white stone with one breath left. Your move."
+    rule:
+      zh: >-
+        这是一次完整的对弈:八手由你来下,爷爷执白接招。
+        提子、救子、追气、做眼、收官,都在你亲手落下的棋里发生。
+        下完了不数输赢,数地——地,才是棋的语言。
+      en: >-
+        A complete game: eight moves are yours, grandpa answers as white.
+        Capture, save, chase, make eyes, close the endgame — all happen in
+        stones you place yourself. Then we do not count winners; we count land.
+        Land is the language of Go.

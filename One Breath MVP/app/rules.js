@@ -162,3 +162,143 @@ export function bestCaptureMove(pos, color) {
   }
   return best;
 }
+
+// --- GameState: a thin game-state wrapper for guided mini-games ---------------
+//
+// rules.js deliberately does NOT implement a Go engine (header, lines 1-11).
+// GameState is the minimum wrapper needed to run a curated mini-game:
+// alternating turns, pass tracking, two-pass end, and Chinese area scoring.
+// It is NOT a full engine — no handicap, no move history/undo, no AI beyond
+// the calling code's choice of reply policy.
+
+export class GameState {
+  constructor(size, setup) {
+    this.size = size;
+    const base = emptyPosition(size);
+    if (setup) {
+      for (const [r, c] of setup.black ?? []) {
+        const res = play(base, key(r, c), BLACK);
+        if (!res.ok) throw new Error(`GameState: illegal setup ${r},${c} (${res.reason})`);
+        base.stones = res.pos.stones;
+      }
+      for (const [r, c] of setup.white ?? []) {
+        const res = play(base, key(r, c), WHITE);
+        if (!res.ok) throw new Error(`GameState: illegal setup ${r},${c} (${res.reason})`);
+        base.stones = res.pos.stones;
+      }
+    }
+    this.pos = base;
+    this.toPlay = BLACK;
+    this.passes = 0;
+    this.moveCount = 0;
+    this.done = false;
+    this.captures = { black: 0, white: 0 }; // stones captured BY each side
+  }
+
+  gameMove(at) {
+    if (this.done) return { ok: false, reason: "game-over" };
+    const color = this.toPlay;
+    const res = play(this.pos, key(...at), color);
+    if (!res.ok) return res;
+    this.pos = res.pos;
+    if (color === BLACK) this.captures.black += res.capturedCount ?? 0;
+    else this.captures.white += res.capturedCount ?? 0;
+    this.toPlay = color === BLACK ? WHITE : BLACK;
+    this.passes = 0;
+    this.moveCount++;
+    return { ...res, ok: true };
+  }
+
+  gamePass() {
+    if (this.done) return;
+    this.passes++;
+    this.toPlay = this.toPlay === BLACK ? WHITE : BLACK;
+    if (this.passes >= 2) this.done = true;
+  }
+
+  /** Chinese area scoring: stones on board + empty regions bordered by only
+      one colour. Returns {black, white, neutral}. */
+  score() {
+    const size = this.size;
+    const visited = new Set();
+    const scores = { black: 0, white: 0, neutral: 0 };
+    for (const [k, v] of this.pos.stones) {
+      if (v === BLACK) scores.black++;
+      else scores.white++;
+    }
+    for (let r = 1; r <= size; r++) {
+      for (let c = 1; c <= size; c++) {
+        const k = key(r, c);
+        if (this.pos.stones.has(k) || visited.has(k)) continue;
+        // flood-fill empty region
+        const region = new Set([k]);
+        const stack = [k];
+        const borders = new Set();
+        while (stack.length) {
+          const cur = stack.pop();
+          visited.add(cur);
+          const [cr, cc] = parse(cur);
+          for (const n of neighbors(size, cr, cc)) {
+            const v = this.pos.stones.get(n);
+            if (v === undefined) {
+              if (!region.has(n)) { region.add(n); stack.push(n); }
+            } else borders.add(v);
+          }
+        }
+        const area = region.size;
+        if (borders.size === 1) {
+          if (borders.has(BLACK)) scores.black += area;
+          else scores.white += area;
+        } else scores.neutral += area;
+      }
+    }
+    return scores;
+  }
+}
+
+// --- a teaching-strength opponent (deterministic, no AI) ----------------------
+// Priority: extend own atari > capture > any legal move (farthest from last
+// enemy move for variety). This is NOT a Go engine — just enough to give the
+// learner a responsive opponent for a guided mini-game.
+
+export function teachingReply(gs, lastEnemyMove) {
+  const legal = [];
+  for (let r = 1; r <= gs.size; r++) {
+    for (let c = 1; c <= gs.size; c++) {
+      const k = key(r, c);
+      if (gs.pos.stones.has(k)) continue;
+      const res = play(gs.pos, k, WHITE);
+      if (res.ok) legal.push({ at: [r, c], captured: res.capturedCount ?? 0, libs: groupAt(res.pos, k).liberties.size });
+    }
+  }
+  if (!legal.length) return null;
+  // 1. capture: max captured
+  const caps = legal.filter((m) => m.captured > 0);
+  if (caps.length) return caps.sort((a, b) => b.captured - a.captured)[0].at;
+  // 2. extend own atari: find own chains with 1 lib, play their liberty —
+  // but ONLY if that liberty is actually legal (filling your own last
+  // liberty can be suicide, and the differential gate would catch it)
+  const ownChains = [];
+  const seen = new Set();
+  for (const [k, v] of gs.pos.stones) {
+    if (v !== WHITE || seen.has(k)) continue;
+    const g = groupAt(gs.pos, k);
+    for (const s of g.stones) seen.add(s);
+    if (g.liberties.size === 1) {
+      ownChains.push([...g.liberties][0]);
+    }
+  }
+  const saves = ownChains.filter((k) => play(gs.pos, k, WHITE).ok);
+  if (saves.length) return saves[0].split(",").map(Number);
+  // 3. any legal move farthest from last enemy move
+  if (lastEnemyMove) {
+    const [er, ec] = lastEnemyMove;
+    legal.sort((a, b) => {
+      const da = Math.abs(a.at[0] - er) + Math.abs(a.at[1] - ec);
+      const db = Math.abs(b.at[0] - er) + Math.abs(b.at[1] - ec);
+      return db - da;
+    });
+    return legal[0].at;
+  }
+  return legal[0].at;
+}

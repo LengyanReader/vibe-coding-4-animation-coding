@@ -17,7 +17,7 @@ import { drawDharmadhatuView, VIEW_COUNT } from "./dharmadhatu.js";
 import { newLessonWalk, currentStep, clickPoint, pressPass, resetStep, advanceStep, isDone, roleAnchor, positionForStep } from "./teaching.js";
 
 const CONTENT = window.__ONE_BREATH__;         // embedded by tools/build.py
-const { strings, vignettes, boards, lessons } = CONTENT;
+const { strings, vignettes, boards, lessons, games } = CONTENT;
 
 const state = {
   lang: loadLang(),
@@ -227,6 +227,10 @@ function drawLessonBoard() {
       if (!lw.pos.stones.has(k)) markers.push({ at: k, kind: "corridor" });
     }
   }
+  if (step.kind === "game" && lw.hint) {
+    const tgt = lw.record.moves[lw.gameIdx]?.at;
+    if (tgt) markers.push({ at: key(...tgt), kind: "hint" });
+  }
   if (lw.lastMove) markers.push({ at: lw.lastMove, kind: "last" });
   drawBoard(canvas, lw.pos, {
     reducedMotion: state.reducedMotion,
@@ -242,7 +246,7 @@ function renderLesson(walk, v, node) {
   const lesson = lessons[node.lesson];
   if (!lesson) throw new Error(`lesson "${node.lesson}" is not in the build`);
   if (!state.lesson || state.lesson.lesson.id !== lesson.id) {
-    state.lesson = newLessonWalk(lesson, boards[lesson.board]);
+    state.lesson = newLessonWalk(lesson, boards[lesson.board], games);
   }
   const lw = state.lesson;
   const step = currentStep(lw);
@@ -250,6 +254,25 @@ function renderLesson(walk, v, node) {
   const done = isDone(lw);
   const dots = lesson.steps.map((s, i) =>
     `<span class="lesson-dot ${i === lw.stepIndex ? "on" : ""} ${s.core ? "core" : ""}"></span>`).join("");
+  // the guided game's live sidebar: move counter, phase, grandpa's bubble,
+  // captures — plus the final count once both sides have rested
+  const isGame = step.kind === "game";
+  let gameSide = "";
+  if (isGame) {
+    const m = lw.record.moves[Math.min(lw.gameIdx, lw.record.moves.length - 1)];
+    const phase = lw.record.phases[m.phase] ?? { zh: m.phase, en: m.phase };
+    const moveLabel = t("lesson.msg.game_move", { n: m.num, phase: phase[state.lang] });
+    const bubble = lw.gameBubble;
+    const caps = bubble?.captures ?? lw.gs.captures;
+    gameSide = `
+      <p class="lesson-step">${escapeHtml(moveLabel)}</p>
+      <p class="lesson-rule">${escapeHtml(bubble?.main?.[state.lang] ?? step.prompt[state.lang])}</p>
+      ${bubble?.prev ? `<p class="lesson-prompt">${escapeHtml(bubble.prev[state.lang])}</p>` : ""}
+      <p class="lesson-message" role="status">${escapeHtml(lessonMessage())}</p>
+      <p class="lesson-captions">${escapeHtml(t("lesson.msg.game_captures", { b: caps.black, w: caps.white }))}</p>
+      ${lw.gameResult ? `
+        <p class="lesson-result">${escapeHtml(lw.gameResult.note[state.lang])}</p>` : ""}`;
+  }
   const root = $("#screen");
   root.innerHTML = `
     <section class="lesson-screen ${state.reducedMotion ? "reduced" : ""}">
@@ -268,14 +291,15 @@ function renderLesson(walk, v, node) {
           <canvas id="lesson-board" width="420" height="420"
             aria-label="${t("lesson.board_caption")}"></canvas>
           <div class="lesson-side">
-            <p class="lesson-step">${t("lesson.step", { n: lw.stepIndex + 1, total })} · ${step.core ? t("lesson.core") : t("lesson.optional")}</p>
-            <p class="lesson-rule">${escapeHtml(step.rule[state.lang])}</p>
-            <p class="lesson-prompt">${escapeHtml(step.prompt[state.lang])}</p>
-            <p class="lesson-message" role="status">${escapeHtml(lessonMessage())}</p>
+            ${isGame ? gameSide : `
+              <p class="lesson-step">${t("lesson.step", { n: lw.stepIndex + 1, total })} · ${step.core ? t("lesson.core") : t("lesson.optional")}</p>
+              <p class="lesson-rule">${escapeHtml(step.rule[state.lang])}</p>
+              <p class="lesson-prompt">${escapeHtml(step.prompt[state.lang])}</p>
+              <p class="lesson-message" role="status">${escapeHtml(lessonMessage())}</p>`}
             <div class="row">
               ${done ? `<button data-act="lesson_next">${t("lesson.continue")}</button>` : ""}
               <button data-act="lesson_reset">${t("lesson.reset")}</button>
-              ${(step.kind === "pass" || step.kind === "mutual") ? `<button data-act="lesson_pass">${t("lesson.pass")}</button>` : ""}
+              ${(step.kind === "pass" || step.kind === "mutual" || (isGame && lw.awaitingPass)) ? `<button data-act="lesson_pass">${t("lesson.pass")}</button>` : ""}
               <button class="ghost" data-act="lesson_skip">${t("lesson.skip")}</button>
             </div>
             <div class="lesson-dots">${dots}</div>

@@ -45,6 +45,16 @@ function solveCurrent(w) {
     return pressPass(out).walk;
   }
   if (step.kind === "pass") return pressPass(w).walk;
+  if (step.kind === "game") {
+    // the golden path: every authored learner point, then the closing pass
+    while (!w.done && w.gameIdx < w.record.moves.length) {
+      const m = w.record.moves[w.gameIdx];
+      if (!m.learner) break; // auto replies fire inside clickPoint
+      if (m.at === null) return pressPass(w).walk;
+      w = clickPoint(w, m.at).walk;
+    }
+    return w;
+  }
   return w;
 }
 
@@ -54,15 +64,19 @@ function walkTo(index) {
   return w;
 }
 
-test("lesson data: ten steps, four on the core path, every rule and prompt bilingual", () => {
-  assert.equal(lesson.steps.length, 10);
-  assert.equal(lesson.steps.filter((s) => s.core).length, 4);
+test("lesson data: eleven steps, five on the core path, every rule and prompt bilingual", () => {
+  assert.equal(lesson.steps.length, 11);
+  assert.equal(lesson.steps.filter((s) => s.core).length, 5);
   for (const s of lesson.steps) {
     for (const field of ["rule", "prompt"]) {
       assert.ok(s[field]?.zh?.trim(), `${s.id}: missing zh ${field}`);
       assert.ok(s[field]?.en?.trim(), `${s.id}: missing en ${field}`);
     }
   }
+  // the payoff step is the curated game and the build carries its record
+  const game = lesson.steps.find((s) => s.kind === "game");
+  assert.ok(game, "the ladder ends with a guided game");
+  assert.ok(content.games[game.game], `record "${game.game}" is in the build`);
 });
 
 test("every lesson step starts from a legal position", () => {
@@ -180,7 +194,7 @@ test("虚着: the pass step completes without touching the position", () => {
 
 test("determinism: the same click script yields the same final hash and trail", () => {
   const run = () => {
-    let w = newLessonWalk(lesson, board);
+    let w = newLessonWalk(lesson, board, content.games);
     for (let i = 0; i < lesson.steps.length; i++) w = advanceStep(solveCurrent(w)).walk;
     return { hash: hashPosition(w.pos), trail: JSON.stringify(w.trail) };
   };

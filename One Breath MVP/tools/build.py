@@ -39,8 +39,13 @@ def build() -> dict:
         lesson = _load_yaml(p)
         lessons[lesson["id"]] = lesson
 
+    games = {}
+    for p in sorted((ROOT / "specs").glob("game-*.yaml")):
+        g = _load_yaml(p)
+        games[g["id"]] = g
+
     content = {"strings": strings, "vignettes": vignettes, "boards": boards,
-               "lessons": lessons}
+               "lessons": lessons, "games": games}
     content_json = json.dumps(content, ensure_ascii=False,
                               sort_keys=True, separators=(",", ":"))
 
