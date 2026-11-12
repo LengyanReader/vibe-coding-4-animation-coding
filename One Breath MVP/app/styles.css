@@ -2,18 +2,18 @@
    宣纸底、墨字层次、朱砂印、石青与赭石点缀；细线、留白、无重装饰。 */
 
 :root {
-  --paper: #F3EDDF;
-  --paper-deep: #E9E0CD;
-  --paper-wash: #FAF6EC;
-  --ink: #2A2621;
-  --ink-soft: #595247;
-  --ink-faint: #B9AE99;
+  --paper: #F8F5ED;            /* tokens: PAPER.plain (act script shifts it) */
+  --paper-deep: #F1E9D7;       /* tokens: PAPER.cardBottom */
+  --paper-wash: #FBF7EC;       /* tokens: PAPER.cardTop */
+  --ink: #2E2A24;              /* tokens: INK.nong */
+  --ink-soft: #5C5449;         /* tokens: INK.zhong */
+  --ink-faint: #BDB49F;        /* tokens: INK.qing */
   --cinnabar: #A33B2B;
   --cinnabar-soft: rgba(163, 59, 43, 0.10);
-  --mineral: #3F5D6B;
+  --mineral: #46586B;          /* tokens: DAI */
   --ochre: #8A5A3B;
-  --gold: #C49A52;
-  --dai: #3B4046;
+  --gold: #C9A227;             /* tokens: GOLD (觉光金) */
+  --dai: #46586B;              /* tokens: DAI */
   --hairline: rgba(89, 82, 71, 0.28);
 }
 
@@ -43,7 +43,7 @@ h1.brush {
 h2 {
   font-size: 1.02rem;
   font-weight: 600;
-  color: #7A4A2E;
+  color: var(--ochre);
   letter-spacing: 0.14em;
   margin-top: 2em;
 }

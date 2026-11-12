@@ -19,20 +19,10 @@
 // randomness, so the contemplation is as reproducible as the game.
 
 import { PALETTE } from "./board-mirror.js";
+import { DHARMA as DHARMA_T, WARM as WARM_T, STONE as STONE_T, PAPER as PAPER_T } from "./tokens.js";
 import { key, parse, groupAt } from "./rules.js";
 
-const DHARMA = {
-  paper: "#FBF6EA",
-  ink: "#4A4038",
-  inkSoft: "#7A6E60",
-  inkFaint: "#D8CBB4",
-  stone: "#3E3831",
-  whiteStone: "#FDF9EF",
-  sealRed: "#C2704E",
-  sage: "#8A9B8E",
-  amber: "#D9A86C",
-  dusk: "#A8B8C8",
-};
+const DHARMA = { ...WARM_T, ...DHARMA_T };  // warm reading; tokens override where defined
 
 // square canvas: the contemplation canvas is drawn square (S x S)
 function pt(r, c, size, pad, cell) {
@@ -65,15 +55,15 @@ function stoneAt(ctx, x, y, r, color, C, alpha = 1) {
   // the dome: radial gradient — slate heart for black, shell sheen for white
   const g = ctx.createRadialGradient(x - r * 0.36, y - r * 0.4, r * 0.14, x, y, r * 1.1);
   if (color === 1) {
-    g.addColorStop(0, "#5D564C");
+    g.addColorStop(0, STONE_T.blackHi);
     g.addColorStop(0.55, C.stone);
-    g.addColorStop(1, "#29251F");
+    g.addColorStop(1, STONE_T.blackLo);
     ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2);
     ctx.fillStyle = g; ctx.fill();
   } else {
-    g.addColorStop(0, "#FFFDF4");
+    g.addColorStop(0, STONE_T.whiteHi);
     g.addColorStop(0.55, C.whiteStone);
-    g.addColorStop(1, "#E2D8BE");
+    g.addColorStop(1, STONE_T.whiteLo);
     ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2);
     ctx.fillStyle = g; ctx.fill();
     ctx.strokeStyle = C.inkSoft; ctx.lineWidth = 1.2; ctx.stroke();
@@ -89,7 +79,7 @@ export function drawDharmadhatuView(canvas, viewIndex, finalPos, initialPos,
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   const paper = ctx.createRadialGradient(S * 0.5, S * 0.42, S * 0.12, S * 0.5, S * 0.5, S * 0.72);
   paper.addColorStop(0, C.paper);
-  paper.addColorStop(1, "#EFE3C8");
+  paper.addColorStop(1, PAPER_T.deep);
   ctx.fillStyle = paper;
   ctx.fillRect(0, 0, S, canvas.height);
 

@@ -61,10 +61,11 @@ def build() -> dict:
     css = (ROOT / "app" / "styles.css").read_text(encoding="utf-8")
     template = (ROOT / "tools" / "index.template.html").read_text(encoding="utf-8")
 
-    # module assembly: i18n -> rules -> board-mirror -> panels -> dharmadhatu
-    # -> vignette -> teaching -> main, stripped of import/export statements
-    app_order = ["i18n.js", "rules.js", "board-mirror.js", "panels.js",
-                   "dharmadhatu.js", "vignette.js", "teaching.js", "main.js"]
+    # module assembly: i18n -> tokens -> rules -> board-mirror -> panels
+    # -> dharmadhatu -> vignette -> teaching -> main, stripped of import/export
+    app_order = ["i18n.js", "tokens.js", "rules.js", "board-mirror.js",
+                   "panels.js", "dharmadhatu.js", "vignette.js", "teaching.js",
+                   "main.js"]
     js_parts = []
     for name in app_order:
         src = (ROOT / "app" / name).read_text(encoding="utf-8")

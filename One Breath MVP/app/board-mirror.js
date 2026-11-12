@@ -3,22 +3,16 @@
 // The mirror is a *model*, not a game to win: stones are drawn in ink-wash
 // language (warm paper, ink stones, paper-white stones with an ink rim), and
 // chains at one liberty pulse in seal-red — the visible signature of "两块棋
-// 同时告急". All colors come from the ink palette; no scores anywhere.
+// 同时告急". All colors come from app/tokens.js (the visual single source);
+// no scores anywhere.
 
 import { emptyPosition, play, BLACK, WHITE, groupAt, key, parse, hashPosition, bestCaptureMove } from "./rules.js";
+import { PALETTE as TONES_PALETTE, INK, PAPER, STONE, SEAL, MOSS } from "./tokens.js";
 
-export const PALETTE = {
-  paper: "#F5F1E6",
-  paperDeep: "#EFE9DC",
-  ink: "#26221D",
-  inkSoft: "#5C554D",
-  inkFaint: "#B7AEA1",
-  blackStone: "#211D19",
-  whiteStone: "#F1EDE3",
-  sealRed: "#B03A2E",
-  breath: "#7B736B",
-  sage: "#8A9B8E",
-};
+// PALETTE keeps its public name for every importer; the values live in
+// app/tokens.js (the visual single source — docs/art-bible.md §2).
+export const PALETTE = TONES_PALETTE;
+export const TONES = { INK, PAPER, STONE, SEAL, MOSS };
 
 export function positionFromSpec(boardSpec, beatName) {
   const beat = boardSpec.beats[beatName];
@@ -90,8 +84,8 @@ export function drawBoard(canvas, pos, opts = {}) {
   ctx.clearRect(0, 0, W, H);
   // the board is a wooden wash, not a flat fill: warm heart, cooler rim
   const paper = ctx.createRadialGradient(W * 0.5, H * 0.42, H * 0.12, W * 0.5, H * 0.5, Math.max(W, H) * 0.72);
-  paper.addColorStop(0, "#FBF4E4");
-  paper.addColorStop(1, "#EFE3C8");
+  paper.addColorStop(0, PAPER.lamp);
+  paper.addColorStop(1, PAPER.deep);
   ctx.fillStyle = paper;
   ctx.fillRect(0, 0, W, H);
   // a fine double frame, like the board's own edge
@@ -139,23 +133,23 @@ export function drawBoard(canvas, pos, opts = {}) {
     // the shadow beneath
     ctx.beginPath();
     ctx.ellipse(x + r * 0.18, y + r * 0.3, r * 1.02, r * 0.62, 0, 0, Math.PI * 2);
-    ctx.fillStyle = "rgba(58,50,38,0.2)";
+    ctx.fillStyle = STONE.shadow;
     ctx.fill();
     const g = ctx.createRadialGradient(x - r * 0.38, y - r * 0.42, r * 0.12, x, y, r * 1.12);
     if (v === BLACK) {
-      g.addColorStop(0, "#5D564C");
+      g.addColorStop(0, STONE.blackHi);
       g.addColorStop(0.5, PALETTE.blackStone);
-      g.addColorStop(1, "#29251F");
+      g.addColorStop(1, STONE.blackLo);
     } else {
-      g.addColorStop(0, "#FFFDF4");
+      g.addColorStop(0, STONE.whiteHi);
       g.addColorStop(0.55, PALETTE.whiteStone);
-      g.addColorStop(1, "#E2D8BE");
+      g.addColorStop(1, STONE.whiteLo);
     }
     ctx.beginPath();
     ctx.arc(x, y, r, 0, Math.PI * 2);
     ctx.fillStyle = g;
     ctx.fill();
-    ctx.strokeStyle = v === BLACK ? "rgba(30,26,21,0.5)" : "rgba(118,108,88,0.55)";
+    ctx.strokeStyle = v === BLACK ? STONE.blackEdge : STONE.whiteEdge;
     ctx.lineWidth = Math.max(0.8, r * 0.07);
     ctx.stroke();
     // a faint ink wash inside the dome: a brush-loaded edge, not a flat UI
@@ -167,7 +161,7 @@ export function drawBoard(canvas, pos, opts = {}) {
     ctx.arc(x, y, r * 0.96, 0, Math.PI * 2);
     ctx.clip();
     ctx.globalAlpha = v === BLACK ? 0.16 : 0.12;
-    ctx.strokeStyle = v === BLACK ? "#8C8377" : "#B9AE99";
+    ctx.strokeStyle = v === BLACK ? STONE.bleedDark : STONE.bleedLight;
     ctx.lineWidth = Math.max(1, r * 0.075);
     ctx.beginPath();
     ctx.arc(x - r * 0.16 + phase * r * 0.05, y - r * 0.1,

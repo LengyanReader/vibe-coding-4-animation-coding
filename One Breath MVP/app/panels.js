@@ -8,33 +8,17 @@
 // are deterministic and zoom-clean.
 
 import { PALETTE } from "./board-mirror.js";
+import { WARM as WARM_TOKENS, INK as INK_TONES, PAPER as PAPER_T, STONE as STONE_T, AMBER as AMBER_T } from "./tokens.js";
 
 // 清雅温馨 palette for the warm panels (case two): cream paper, soft brown
 // ink, sage and amber accents — 治愈系 shape language instead of stark ink.
-export const WARM = {
-  paper: "#FBF6EA",
-  ink: "#4A4038",
-  inkSoft: "#7A6E60",
-  inkFaint: "#D8CBB4",
-  blackStone: "#3E3831",
-  whiteStone: "#FDF9EF",
-  sealRed: "#C2704E",
-  sage: "#8A9B8E",
-  amber: "#D9A86C",
-  dusk: "#A8B8C8",
-};
+export const WARM = WARM_TOKENS;
 
 let C = { ...PALETTE };   // active palette, set per draw call (ink or warm)
 let INK = C.ink, SOFT = C.inkSoft, FAINT = C.inkFaint, RED = C.sealRed;
 
 // 五级墨色: 焦浓重淡清 — the classical ink scale every primitive draws from.
-const INK_SCALE = {
-  jiao: "#221D17",   // 焦 — driest, darkest
-  nong: "#3E3831",   // 浓 — the standard ink
-  zhong: "#5C5449",  // 重 — mid
-  dan: "#8C8477",    // 淡 — receding
-  qing: "#BDB49F",   // 清 — faintest
-};
+const INK_SCALE = INK_TONES;
 
 function ctxSetup(canvas, warm = false) {
   C = warm ? { ...PALETTE, ...WARM } : PALETTE;
@@ -46,7 +30,7 @@ function ctxSetup(canvas, warm = false) {
   // not a flat fill. Deterministic, so the build stays reproducible.
   const g = ctx.createRadialGradient(W * 0.5, H * 0.42, H * 0.1, W * 0.5, H * 0.5, Math.max(W, H) * 0.75);
   g.addColorStop(0, C.paper);
-  g.addColorStop(1, warm ? "#F2E7CF" : "#EFE6D2");
+  g.addColorStop(1, warm ? PAPER_T.warmRim : PAPER_T.deep);
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, W, H);
   // 册页 border: a fine double frame with a heavier outer stroke
@@ -213,13 +197,13 @@ function panelStone(ctx, x, y, r, which = "black") {
   const base = which === "black" ? C.blackStone : C.whiteStone;
   const g = ctx.createRadialGradient(x - r * 0.35, y - r * 0.4, r * 0.15, x, y, r * 1.15);
   if (which === "black") {
-    g.addColorStop(0, "#5A544B");
+    g.addColorStop(0, STONE_T.blackHi);
     g.addColorStop(0.55, base);
-    g.addColorStop(1, "#2A2620");
+    g.addColorStop(1, STONE_T.blackLo);
   } else {
-    g.addColorStop(0, "#FFFDF6");
+    g.addColorStop(0, STONE_T.whiteHi);
     g.addColorStop(0.6, base);
-    g.addColorStop(1, "#E4DAC2");
+    g.addColorStop(1, STONE_T.whiteLo);
   }
   ctx.fillStyle = g;
   ctx.beginPath();
@@ -437,7 +421,7 @@ function shopfront(ctx, x, y, w, h, { glow = false } = {}) {
   // the awning above the shop window: a small eave
   eave(ctx, x + w * 0.18, y - h * 0.14, w * 0.64, h * 0.07, SOFT);
   if (glow) {
-    inkWash(ctx, x + w * 0.5, y + h * 0.43, w * 0.3, "#D9A86C", 0.4);
+    inkWash(ctx, x + w * 0.5, y + h * 0.43, w * 0.3, AMBER_T, 0.4);
   }
 }
 
@@ -561,7 +545,7 @@ export function drawPanel(canvas, panel, { time = 0, reducedMotion = false, warm
     }
     case "grandpa-room": {
       // warm lamp glow + two figures across a board, under an eave, by bamboo
-      inkWash(ctx, W * 0.5, H * 0.24, H * 0.2, "#D9A86C", 0.35);
+      inkWash(ctx, W * 0.5, H * 0.24, H * 0.2, AMBER_T, 0.35);
       ctx.strokeStyle = C.amber; ctx.lineWidth = 2;
       ctx.beginPath(); ctx.arc(W * 0.5, H * 0.24, H * 0.05, 0, Math.PI * 2); ctx.stroke();
       eave(ctx, W * 0.16, H * 0.12, W * 0.68, H * 0.05, SOFT);
@@ -781,7 +765,7 @@ export function drawPanel(canvas, panel, { time = 0, reducedMotion = false, warm
       shopfront(ctx, W * 0.03, H * 0.28, W * 0.3, H * 0.58, { glow: true });
       shopfront(ctx, W * 0.67, H * 0.28, W * 0.3, H * 0.58, { glow: true });
       // dawn: a rising amber sun with its wash, between the two roofs
-      inkWash(ctx, W * 0.5, H * 0.2, H * 0.16, "#D9A86C", 0.4);
+      inkWash(ctx, W * 0.5, H * 0.2, H * 0.16, AMBER_T, 0.4);
       brushArc(ctx, W * 0.5, H * 0.2, H * 0.05, 2.2, C.amber ?? C.sealRed);
       figure(ctx, W * 0.42, H * 0.86, H / 500, { pose: "stand" });
       figure(ctx, W * 0.58, H * 0.86, H / 500, { pose: "stand", flip: true });
