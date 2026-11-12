@@ -247,6 +247,7 @@ function renderLesson(walk, v, node) {
   if (!lesson) throw new Error(`lesson "${node.lesson}" is not in the build`);
   if (!state.lesson || state.lesson.lesson.id !== lesson.id) {
     state.lesson = newLessonWalk(lesson, boards[lesson.board], games);
+    state.lesson.storyNode = walk.node;   // the board-click handler re-renders with this node
   }
   const lw = state.lesson;
   const step = currentStep(lw);
@@ -519,7 +520,12 @@ document.addEventListener("click", (e) => {
     const pt = hitTest(e.target, e.clientX, e.clientY, lw.pos.size);
     if (!pt) return;
     state.lesson = clickPoint(lw, pt).walk;
-    renderLesson(state.walk, vignettes[state.vignetteId], vignettes[state.vignetteId].nodes[state.walk.node]);
+    const v = vignettes[state.vignetteId];
+    const remembered = v.nodes[state.lesson.storyNode ?? state.walk.node];
+    const node = remembered?.lesson === lw.lesson.id
+      ? remembered
+      : Object.values(v.nodes).find((n) => n.lesson === lw.lesson.id);
+    renderLesson(state.walk, v, node);
     return;
   }
   if (e.target.id === "compare-board" && state.compare) {

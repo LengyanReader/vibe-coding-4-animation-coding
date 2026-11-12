@@ -42,14 +42,14 @@ function pt(r, c, size, pad, cell) {
 function grid(ctx, size, S, C) {
   const pad = S * 0.09;
   const cell = (S - pad * 2) / (size - 1);
-  ctx.strokeStyle = C.inkFaint;
-  ctx.lineWidth = 1;
   for (let i = 1; i <= size; i++) {
     const [x1, y1] = pt(i, 1, size, pad, cell);
     const [x2, y2] = pt(i, size, size, pad, cell);
-    ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
     const [x3, y3] = pt(1, i, size, pad, cell);
     const [x4, y4] = pt(size, i, size, pad, cell);
+    ctx.strokeStyle = (i === 1 || i === size) ? "rgba(62,56,49,0.5)" : "rgba(62,56,49,0.3)";
+    ctx.lineWidth = (i === 1 || i === size) ? Math.max(1, cell * 0.045) : Math.max(0.7, cell * 0.03);
+    ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(x3, y3); ctx.lineTo(x4, y4); ctx.stroke();
   }
   return { pad, cell };
@@ -57,16 +57,26 @@ function grid(ctx, size, S, C) {
 
 function stoneAt(ctx, x, y, r, color, C, alpha = 1) {
   ctx.globalAlpha = alpha;
+  // the shadow beneath
   ctx.beginPath();
-  ctx.arc(x + 0.8, y + 1, r * 1.04, 0, Math.PI * 2);
-  ctx.fillStyle = "rgba(38,34,29,0.14)";
+  ctx.ellipse(x + r * 0.16, y + r * 0.3, r * 1.02, r * 0.6, 0, 0, Math.PI * 2);
+  ctx.fillStyle = "rgba(58,50,38,0.18)";
   ctx.fill();
-  ctx.beginPath();
-  ctx.arc(x, y, r, 0, Math.PI * 2);
-  if (color === 1) { ctx.fillStyle = C.stone; ctx.fill(); }
-  else {
-    ctx.fillStyle = C.whiteStone; ctx.fill();
-    ctx.strokeStyle = C.inkSoft; ctx.lineWidth = 1.4; ctx.stroke();
+  // the dome: radial gradient — slate heart for black, shell sheen for white
+  const g = ctx.createRadialGradient(x - r * 0.36, y - r * 0.4, r * 0.14, x, y, r * 1.1);
+  if (color === 1) {
+    g.addColorStop(0, "#5D564C");
+    g.addColorStop(0.55, C.stone);
+    g.addColorStop(1, "#29251F");
+    ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fillStyle = g; ctx.fill();
+  } else {
+    g.addColorStop(0, "#FFFDF4");
+    g.addColorStop(0.55, C.whiteStone);
+    g.addColorStop(1, "#E2D8BE");
+    ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fillStyle = g; ctx.fill();
+    ctx.strokeStyle = C.inkSoft; ctx.lineWidth = 1.2; ctx.stroke();
   }
   ctx.globalAlpha = 1;
 }
@@ -77,7 +87,10 @@ export function drawDharmadhatuView(canvas, viewIndex, finalPos, initialPos,
   const ctx = canvas.getContext("2d");
   const S = canvas.width;
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-  ctx.fillStyle = C.paper;
+  const paper = ctx.createRadialGradient(S * 0.5, S * 0.42, S * 0.12, S * 0.5, S * 0.5, S * 0.72);
+  paper.addColorStop(0, C.paper);
+  paper.addColorStop(1, "#EFE3C8");
+  ctx.fillStyle = paper;
   ctx.fillRect(0, 0, S, canvas.height);
 
   const size = finalPos.size;

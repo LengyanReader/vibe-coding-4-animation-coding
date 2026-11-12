@@ -99,7 +99,9 @@ function autoReplies(w) {
       const res = w.gs.gameMove(m.at);
       if (!res.ok) throw new Error(`game: authored move ${m.num} illegal (${res.reason})`);
       w.lastMove = key(...m.at);
-      w.ghosts = res.capturedPoints ?? [];
+      // grandpa's own captures replace the ghosts; a quiet reply keeps the
+      // learner's just-lifted stones visible (the capture's proof)
+      if (res.capturedPoints?.length) w.ghosts = res.capturedPoints;
     }
     w.gameBubble = { main: m.teach, prev: w.gameBubble?.main ?? null, captures: { ...w.gs.captures } };
     w.gameIdx += 1;

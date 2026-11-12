@@ -26,7 +26,7 @@ WORD_MODES = [False, True]
 
 def board_click(page, selector, r, c, size=5, width=420):
     box = page.locator(selector).bounding_box()
-    pad = width * 0.09
+    pad = width * 0.105
     cell = (width - pad * 2) / (size - 1)
     x = pad + (c - 1) * cell
     y = pad + (r - 1) * cell
@@ -177,6 +177,44 @@ def run_chapter0_full(page, lang, errors):
     screenshot(page, f"{tag}-ending")
 
 
+def run_game_smoke(page, lang, errors):
+    """The guided mini-game: jump to lesson step l11 via the inlined globals,
+    play M5 (the first capture) through the real canvas hit-test, and check
+    the capture counter and the lifted stone's ghost."""
+    tag = f"game-{lang}"
+    page.goto((ROOT / "dist" / "one-breath.html").resolve().as_uri())
+    page.wait_for_timeout(300)
+    if lang == "zh":
+        page.locator('[data-act="lang"]').click()
+        page.wait_for_timeout(150)
+    page.locator('[data-vignette="shared-breath"]').click()
+    page.wait_for_timeout(350)
+
+    page.evaluate("""(() => {
+        const lesson = lessons['shared-breath'];
+        const base = newLessonWalk(lesson, boards[lesson.board], games);
+        state.lesson = initGameStep({ ...base, stepIndex: 10 });
+        const v = vignettes['shared-breath'];
+        renderLesson(state.walk, v, v.nodes['n2']);
+    })()""")
+    page.wait_for_timeout(300)
+
+    if not check_canvas(page, "#lesson-board", f"{tag}-board"):
+        errors.append(f"{tag}: game board blank")
+
+    # M5 through the real hit-test path: (2,2) captures the squeezing stone
+    board_click(page, "#lesson-board", 2, 2)
+    page.wait_for_timeout(250)
+    caps = page.evaluate("state.lesson.gs.captures.black")
+    print(f"  {tag}: captures after M5 = {caps}")
+    if caps != 1:
+        errors.append(f"{tag}: M5 did not capture (captures={caps})")
+    ghosts = page.evaluate("state.lesson.ghosts.length")
+    if ghosts != 1:
+        errors.append(f"{tag}: the lifted stone's ghost missing ({ghosts})")
+    screenshot(page, f"99-game-{lang}")
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description="browser smoke matrix")
     ap.add_argument("--quick", action="store_true",
@@ -192,7 +230,7 @@ def main() -> int:
     with sync_playwright() as p:
         b = p.chromium.launch()
         page = b.new_page(viewport={"width": 1280, "height": 900})
-        page.on("pageerror", lambda e: errors.append(f"pageerror: {e}"))
+        page.on("pageerror", lambda e: errors.append(f"pageerror: {getattr(e, 'stack', e)}"))
         page.on("console", lambda m: errors.append(f"console:{m.type}:{m.text}")
                 if m.type == "error" else None)
 
@@ -210,6 +248,12 @@ def main() -> int:
         for lang in langs:
             print(f"\n--- Chapter 0 full ({lang}) ---")
             run_chapter0_full(page, lang, errors)
+
+        # --- the guided mini-game (once per language) ---
+        for lang in langs:
+            print(f"\n--- guided game ({lang}) ---")
+            run_game_smoke(page, lang, errors)
+
 
         # --- vignette × language × words matrix ---
         for vid in VIGNETTES:

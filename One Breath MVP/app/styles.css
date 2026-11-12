@@ -157,12 +157,14 @@ button.ghost {
   border-bottom: 1px solid var(--hairline); padding-bottom: 0.18em;
 }
 
-/* stage: story on paper, board framed like a 棋墩 */
+/* stage: story on paper, board framed like a mounted scroll (装裱) */
 .stage { display: flex; gap: 2.2rem; align-items: flex-start; }
 .story { flex: 1 1 420px; max-width: 580px; }
 .mirror { flex: 0 0 300px; }
 #board, #panel, #lesson-board, #compare-board, #sit-canvas {
   border: 1px solid rgba(89, 82, 71, 0.42);
+  outline: 3px solid rgba(250, 246, 236, 0.9);
+  outline-offset: -7px;
   box-shadow: 0 9px 26px rgba(42, 38, 33, 0.10);
   background: var(--paper-wash);
 }
@@ -246,6 +248,20 @@ button.ghost {
 }
 .lesson-prompt { color: var(--ink-soft); font-size: 0.92rem; }
 .lesson-message { min-height: 1.7em; color: var(--cinnabar); font-size: 0.9rem; }
+/* the guided game's live sidebar */
+.lesson-captions {
+  color: var(--mineral); font-size: 0.82rem; letter-spacing: 0.08em;
+  margin: 0.7em 0 0.2em;
+  border-top: 1px dashed var(--hairline);
+  padding-top: 0.6em;
+}
+.lesson-result {
+  color: var(--ink); font-size: 0.95rem; line-height: 1.9;
+  border-left: 2px solid var(--gold);
+  background: linear-gradient(90deg, rgba(196, 154, 82, 0.12), transparent 70%);
+  padding: 0.55em 0.9em;
+  margin: 0.6em 0 0.4em;
+}
 .lesson-dots { display: flex; gap: 0.45rem; margin-top: 0.9rem; }
 .lesson-dot {
   width: 8px; height: 8px; border-radius: 50%;

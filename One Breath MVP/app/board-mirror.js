@@ -82,23 +82,31 @@ export function chainsAt(pos) {
 export function drawBoard(canvas, pos, opts = {}) {
   const ctx = canvas.getContext("2d");
   const size = pos.size;
-  const pad = canvas.width * 0.09;
-  const cell = (canvas.width - pad * 2) / (size - 1);
+  const W = canvas.width, H = canvas.height;
+  const pad = W * 0.105;   // room for the edge stones' domes and shadows
+  const cell = (W - pad * 2) / (size - 1);
   const px = (r, c) => [pad + (c - 1) * cell, pad + (r - 1) * cell];
 
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  // paper
-  ctx.fillStyle = PALETTE.paper;
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  // grid
-  ctx.strokeStyle = PALETTE.inkFaint;
-  ctx.lineWidth = 1;
+  ctx.clearRect(0, 0, W, H);
+  // the board is a wooden wash, not a flat fill: warm heart, cooler rim
+  const paper = ctx.createRadialGradient(W * 0.5, H * 0.42, H * 0.12, W * 0.5, H * 0.5, Math.max(W, H) * 0.72);
+  paper.addColorStop(0, "#FBF4E4");
+  paper.addColorStop(1, "#EFE3C8");
+  ctx.fillStyle = paper;
+  ctx.fillRect(0, 0, W, H);
+  // a fine double frame, like the board's own edge
+  ctx.strokeStyle = "rgba(92,84,73,0.5)";
+  ctx.lineWidth = Math.max(1, H * 0.004);
+  ctx.strokeRect(W * 0.03, H * 0.03, W * 0.94, H * 0.94);
+  // grid: hairline ink, slightly heavier on the outer lines (棋盘线)
   for (let i = 1; i <= size; i++) {
     const [x1, y1] = px(i, 1);
     const [x2, y2] = px(i, size);
-    ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
     const [x3, y3] = px(1, i);
     const [x4, y4] = px(size, i);
+    ctx.strokeStyle = (i === 1 || i === size) ? "rgba(62,56,49,0.55)" : "rgba(62,56,49,0.34)";
+    ctx.lineWidth = (i === 1 || i === size) ? Math.max(1.1, cell * 0.05) : Math.max(0.7, cell * 0.032);
+    ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(x3, y3); ctx.lineTo(x4, y4); ctx.stroke();
   }
 
@@ -123,26 +131,33 @@ export function drawBoard(canvas, pos, opts = {}) {
     }
   }
 
-  // stones with a slight ink-bleed edge (水墨语汇)
+  // stones: radial-gradient domes with a soft shadow — slate and clamshell,
+  // not flat circles
   const r = cell * 0.44;
   for (const [k, v] of pos.stones) {
     const [x, y] = px(...parse(k));
+    // the shadow beneath
     ctx.beginPath();
-    ctx.arc(x + 0.8, y + 1.1, r * 1.04, 0, Math.PI * 2);
-    ctx.fillStyle = "rgba(38,34,29,0.16)"; // bleed
+    ctx.ellipse(x + r * 0.18, y + r * 0.3, r * 1.02, r * 0.62, 0, 0, Math.PI * 2);
+    ctx.fillStyle = "rgba(58,50,38,0.2)";
     ctx.fill();
+    const g = ctx.createRadialGradient(x - r * 0.38, y - r * 0.42, r * 0.12, x, y, r * 1.12);
+    if (v === BLACK) {
+      g.addColorStop(0, "#5D564C");
+      g.addColorStop(0.5, PALETTE.blackStone);
+      g.addColorStop(1, "#29251F");
+    } else {
+      g.addColorStop(0, "#FFFDF4");
+      g.addColorStop(0.55, PALETTE.whiteStone);
+      g.addColorStop(1, "#E2D8BE");
+    }
     ctx.beginPath();
     ctx.arc(x, y, r, 0, Math.PI * 2);
-    if (v === BLACK) {
-      ctx.fillStyle = PALETTE.blackStone;
-      ctx.fill();
-    } else {
-      ctx.fillStyle = PALETTE.whiteStone;
-      ctx.fill();
-      ctx.strokeStyle = PALETTE.inkSoft;
-      ctx.lineWidth = 1.4;
-      ctx.stroke();
-    }
+    ctx.fillStyle = g;
+    ctx.fill();
+    ctx.strokeStyle = v === BLACK ? "rgba(30,26,21,0.5)" : "rgba(118,108,88,0.55)";
+    ctx.lineWidth = Math.max(0.8, r * 0.07);
+    ctx.stroke();
   }
 
 // liberty ticks: tiny breath marks on empty liberties of every chain
@@ -256,7 +271,7 @@ export function hitTest(canvas, clientX, clientY, size) {
   if (!rect.width || !rect.height) return null;
   const x = (clientX - rect.left) * (canvas.width / rect.width);
   const y = (clientY - rect.top) * (canvas.height / rect.height);
-  const pad = canvas.width * 0.09;
+  const pad = canvas.width * 0.105;  // must match drawBoard's pad exactly
   const cell = (canvas.width - pad * 2) / (size - 1);
   const c = Math.round((x - pad) / cell) + 1;
   const r = Math.round((y - pad) / cell) + 1;

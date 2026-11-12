@@ -255,6 +255,8 @@ test("game runtime: reset replays the authored opening from scratch", () => {
   let w = gameWalk();
   w = clickPoint(w, [2, 2]).walk; // play M5
   assert.equal(w.gameIdx, 6, "M5 played, M6 replied");
+  // the lifted stone stays visible even after grandpa's quiet reply
+  assert.deepEqual(w.ghosts, [key(1, 2)], "the first capture's ghost persists");
   const r = resetStep(w);
   assert.equal(r.gameIdx, 4, "back to the learner's first task");
   assert.equal(r.gs.moveCount, 4, "four opening stones replayed");

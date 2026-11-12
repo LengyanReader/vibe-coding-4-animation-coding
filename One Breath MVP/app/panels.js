@@ -27,28 +27,224 @@ export const WARM = {
 let C = { ...PALETTE };   // active palette, set per draw call (ink or warm)
 let INK = C.ink, SOFT = C.inkSoft, FAINT = C.inkFaint, RED = C.sealRed;
 
+// 五级墨色: 焦浓重淡清 — the classical ink scale every primitive draws from.
+const INK_SCALE = {
+  jiao: "#221D17",   // 焦 — driest, darkest
+  nong: "#3E3831",   // 浓 — the standard ink
+  zhong: "#5C5449",  // 重 — mid
+  dan: "#8C8477",    // 淡 — receding
+  qing: "#BDB49F",   // 清 — faintest
+};
+
 function ctxSetup(canvas, warm = false) {
   C = warm ? { ...PALETTE, ...WARM } : PALETTE;
   INK = C.ink; SOFT = C.inkSoft; FAINT = C.inkFaint; RED = C.sealRed;
   const ctx = canvas.getContext("2d");
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  ctx.fillStyle = C.paper;
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  // faint paper grain: three horizontal wash strokes
-  ctx.strokeStyle = warm ? "rgba(138,155,142,0.22)" : "rgba(183,174,161,0.25)";
-  ctx.lineWidth = canvas.height * 0.012;
-  for (const u of [0.2, 0.5, 0.8]) {
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+  // the paper itself is a wash: warm at the heart, cooler at the edges —
+  // not a flat fill. Deterministic, so the build stays reproducible.
+  const g = ctx.createRadialGradient(W * 0.5, H * 0.42, H * 0.1, W * 0.5, H * 0.5, Math.max(W, H) * 0.75);
+  g.addColorStop(0, C.paper);
+  g.addColorStop(1, warm ? "#F2E7CF" : "#EFE6D2");
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, W, H);
+  // 册页 border: a fine double frame with a heavier outer stroke
+  ctx.strokeStyle = INK_SCALE.dan;
+  ctx.lineWidth = Math.max(1.2, H * 0.004);
+  ctx.strokeRect(W * 0.028, H * 0.032, W * 0.944, H * 0.936);
+  ctx.strokeStyle = INK_SCALE.qing;
+  ctx.lineWidth = Math.max(0.8, H * 0.002);
+  ctx.strokeRect(W * 0.04, H * 0.044, W * 0.92, H * 0.912);
+  // paper grain: three horizontal wash strokes + deterministic fibre flecks
+  ctx.strokeStyle = warm ? "rgba(138,155,142,0.18)" : "rgba(183,174,161,0.2)";
+  ctx.lineWidth = H * 0.012;
+  for (const u of [0.24, 0.52, 0.78]) {
     ctx.beginPath();
-    ctx.moveTo(canvas.width * 0.06, canvas.height * u);
-    ctx.bezierCurveTo(canvas.width * 0.3, canvas.height * (u - 0.02),
-                      canvas.width * 0.7, canvas.height * (u + 0.02),
-                      canvas.width * 0.94, canvas.height * u);
+    ctx.moveTo(W * 0.07, H * u);
+    ctx.bezierCurveTo(W * 0.3, H * (u - 0.02), W * 0.7, H * (u + 0.02), W * 0.93, H * u);
     ctx.stroke();
+  }
+  ctx.fillStyle = warm ? "rgba(122,110,96,0.1)" : "rgba(90,83,72,0.12)";
+  for (let i = 0; i < 26; i++) {
+    // deterministic pseudo-scatter (no Math.random — the panels must replay)
+    const t = (i * 137.508) % 360;
+    const rr = (i * 83) % 97;
+    const fx = W * (0.08 + ((t / 360) * 0.84));
+    const fy = H * (0.1 + ((rr / 97) * 0.8));
+    ctx.fillRect(fx, fy, 1.6, 1.6);
   }
   return ctx;
 }
 
-// a person as an ink silhouette; pose changes the arms/torso lean
+// --- the brush vocabulary -------------------------------------------------------
+// Every line in a classical panel is a brush stroke: variable width, a slight
+// tremble, a tapered tail. The tremble is deterministic (index-based phase),
+// because the panels must replay byte-for-byte.
+
+function brushPath(ctx, pts, w, tone) {
+  // pts: [[x,y],...] polyline; w: base width; draws a tapered ink ribbon
+  if (pts.length < 2) return;
+  const left = [], right = [];
+  for (let i = 0; i < pts.length; i++) {
+    const [x, y] = pts[i];
+    // width profile: full in the middle, taper at both ends (a loaded brush)
+    const t = i / (pts.length - 1);
+    const taper = Math.min(1, Math.min(t, 1 - t) * 4 + 0.25);
+    // tremble: slow sine wiggle, phase locked to the segment index
+    const tr = 1 + 0.14 * Math.sin(i * 2.1) * (i % 2 ? 1 : -1);
+    const half = (w / 2) * taper * tr;
+    // local normal
+    const [nx, ny] = i === 0
+      ? [pts[1][1] - y, -(pts[1][0] - x)]
+      : i === pts.length - 1
+        ? [y - pts[i - 1][1], -(x - pts[i - 1][0])]
+        : [pts[i + 1][1] - pts[i - 1][1], -(pts[i + 1][0] - pts[i - 1][0])];
+    const len = Math.hypot(nx, ny) || 1;
+    left.push([x + (nx / len) * half, y + (ny / len) * half]);
+    right.push([x - (nx / len) * half, y - (ny / len) * half]);
+  }
+  ctx.fillStyle = tone;
+  ctx.beginPath();
+  ctx.moveTo(left[0][0], left[0][1]);
+  for (let i = 1; i < left.length; i++) {
+    const [px, py] = left[i - 1], [cx, cy] = left[i];
+    ctx.quadraticCurveTo(px, py, (px + cx) / 2, (py + cy) / 2);
+  }
+  ctx.lineTo(left[left.length - 1][0], left[left.length - 1][1]);
+  for (let i = right.length - 1; i >= 0; i--) {
+    const [cx, cy] = right[i];
+    const [px, py] = right[i + 1] ?? right[i];
+    ctx.quadraticCurveTo(px, py, (px + cx) / 2, (py + cy) / 2);
+  }
+  ctx.closePath();
+  ctx.fill();
+}
+
+function brushLine(ctx, x1, y1, x2, y2, w = 3, tone = INK) {
+  // subdivide so the tremble has room to breathe
+  const n = Math.max(4, Math.round(Math.hypot(x2 - x1, y2 - y1) / 14));
+  const pts = [];
+  for (let i = 0; i <= n; i++) {
+    const t = i / n;
+    pts.push([x1 + (x2 - x1) * t, y1 + (y2 - y1) * t]);
+  }
+  brushPath(ctx, pts, w, tone);
+}
+
+function brushArc(ctx, x, y, r, w = 3, tone = INK, a0 = 0, a1 = Math.PI * 2) {
+  const n = 14;
+  const pts = [];
+  for (let i = 0; i <= n; i++) {
+    const a = a0 + (a1 - a0) * (i / n);
+    pts.push([x + Math.cos(a) * r, y + Math.sin(a) * r]);
+  }
+  brushPath(ctx, pts, w, tone);
+}
+
+function inkWash(ctx, x, y, r, tone, alpha = 0.5) {
+  // a dropped-ink bloom: dense heart, dissolving rim
+  const g = ctx.createRadialGradient(x, y, r * 0.1, x, y, r);
+  const col = tone ?? INK;
+  g.addColorStop(0, hexA(col, alpha));
+  g.addColorStop(0.7, hexA(col, alpha * 0.45));
+  g.addColorStop(1, hexA(col, 0));
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function hexA(hex, a) {
+  // "#RRGGBB" -> "rgba(r,g,b,a)"
+  const n = parseInt(hex.slice(1), 16);
+  return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`;
+}
+
+function eave(ctx, x, y, w, h, tone = INK) {
+  // 飞檐: a roof line whose two tips sweep upward — the signature of a
+  // classical building, drawn in one tapering stroke
+  const pts = [];
+  const n = 16;
+  for (let i = 0; i <= n; i++) {
+    const t = i / n;
+    // the centre sags a touch, the tips lift
+    const lift = Math.pow(Math.abs(t - 0.5) * 2, 2.2) * h * 2.2 - h * 0.12;
+    pts.push([x + w * t, y + h * 0.5 - lift]);
+  }
+  brushPath(ctx, pts, Math.max(2.4, h * 0.24), tone);
+  // the two ridge tips
+  brushLine(ctx, x + w * 0.02, y + h * 0.34, x + w * 0.02, y - h * 0.5, Math.max(1.6, h * 0.14), tone);
+  brushLine(ctx, x + w * 0.98, y + h * 0.34, x + w * 0.98, y - h * 0.5, Math.max(1.6, h * 0.14), tone);
+}
+
+function bamboo(ctx, x, baseY, h, tone = SOFT) {
+  // 竹: stalk with joints, leaning leaves — the quietest classical accent
+  const w = Math.max(2.6, h * 0.045);
+  const nodes = Math.max(2, Math.round(h / (h * 0.3)));
+  for (let seg = 0; seg < nodes; seg++) {
+    const y1 = baseY - (h * seg) / nodes;
+    const y2 = baseY - (h * (seg + 1)) / nodes;
+    const lean = (seg % 2 ? 1 : -1) * h * 0.02;
+    brushLine(ctx, x + lean, y1, x - lean, y2, w, tone);
+    // the node ring
+    ctx.strokeStyle = tone;
+    ctx.lineWidth = w * 0.5;
+    ctx.beginPath();
+    ctx.moveTo(x - lean - w * 0.7, y2);
+    ctx.lineTo(x - lean + w * 0.7, y2);
+    ctx.stroke();
+  }
+  // leaves: three lanceolate sweeps near the top
+  const top = baseY - h;
+  for (const [dx, dy, len] of [[-1, -0.2, 0.28], [1, 0.05, 0.24], [-0.6, 0.12, 0.2]]) {
+    const lx = x + dx * h * 0.06, ly = top + dy * h;
+    const tx = lx + dx * h * len, ty = ly + (dy + 0.18) * h * len;
+    brushPath(ctx, [[lx, ly], [(lx + tx) / 2 + dx * 4, (ly + ty) / 2], [tx, ty]], w * 0.85, tone);
+  }
+}
+
+function panelStone(ctx, x, y, r, which = "black") {
+  // a Go stone with its soft shadow — gradient, rim light, the works
+  ctx.fillStyle = "rgba(60,52,40,0.18)";
+  ctx.beginPath();
+  ctx.ellipse(x + r * 0.15, y + r * 0.28, r * 1.05, r * 0.6, 0, 0, Math.PI * 2);
+  ctx.fill();
+  const base = which === "black" ? C.blackStone : C.whiteStone;
+  const g = ctx.createRadialGradient(x - r * 0.35, y - r * 0.4, r * 0.15, x, y, r * 1.15);
+  if (which === "black") {
+    g.addColorStop(0, "#5A544B");
+    g.addColorStop(0.55, base);
+    g.addColorStop(1, "#2A2620");
+  } else {
+    g.addColorStop(0, "#FFFDF6");
+    g.addColorStop(0.6, base);
+    g.addColorStop(1, "#E4DAC2");
+  }
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = which === "black" ? "rgba(34,29,23,0.55)" : "rgba(120,110,90,0.5)";
+  ctx.lineWidth = Math.max(0.8, r * 0.08);
+  ctx.stroke();
+}
+
+function sealChar(ctx, x, y, s, text = "一息") {
+  // a vermilion seal: the classical signature. Deterministic, text from the
+  // app's own identity — never a random decorative glyph.
+  ctx.fillStyle = RED;
+  ctx.fillRect(x - s * 0.5, y - s * 0.5, s, s);
+  ctx.fillStyle = C.paper;
+  ctx.font = `${Math.max(8, s * 0.62)}px "Noto Serif SC", serif`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(text.slice(0, 2), x, y + s * 0.04);
+}
+
+// a person as a robed ink silhouette; pose changes the sleeves and the lean.
+// Coordinate contract preserved from the old stick figure: feet at y=0,
+// head centre at y=-78, so every existing scene call keeps its scale.
 function figure(ctx, x, y, s, { pose = "stand", flip = false, tone = INK } = {}) {
   const f = (dx) => (flip ? -dx : dx);
   ctx.save();
@@ -57,62 +253,86 @@ function figure(ctx, x, y, s, { pose = "stand", flip = false, tone = INK } = {})
   ctx.fillStyle = tone;
   ctx.strokeStyle = tone;
   ctx.lineCap = "round";
-  // head
+
+  // head + 髻 (hair bun with its pin)
   ctx.beginPath();
   ctx.arc(f(0), -78, 13, 0, Math.PI * 2);
   ctx.fill();
-  // torso
-  ctx.lineWidth = 16;
   ctx.beginPath();
-  ctx.moveTo(f(0), -62);
-  ctx.lineTo(f(0), -18);
-  ctx.stroke();
-  // legs
-  ctx.lineWidth = 8;
+  ctx.arc(f(3), -92, 5.5, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.moveTo(f(0), -18);
-  ctx.lineTo(f(-9), 0);
-  ctx.moveTo(f(0), -18);
-  ctx.lineTo(f(9), 0);
+  ctx.moveTo(f(9), -94);
+  ctx.lineTo(f(15), -89);
   ctx.stroke();
-  // arms by pose
-  ctx.lineWidth = 7;
-  const arm = (x1, y1, x2, y2) => {
+
+  // the robe: one tapering body from shoulders to hem — the silhouette of
+  // someone at rest, not a diagram of joints
+  ctx.beginPath();
+  ctx.moveTo(f(-9), -62);            // left shoulder
+  ctx.quadraticCurveTo(f(-15), -40, f(-13), -2);   // robe falls wide
+  ctx.quadraticCurveTo(f(0), 3, f(13), -2);        // hem
+  ctx.quadraticCurveTo(f(15), -40, f(9), -62);     // right shoulder
+  ctx.closePath();
+  ctx.fill();
+  // collar: a paper-coloured V, so the robe reads as clothing
+  ctx.strokeStyle = C.paper;
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(f(-4), -60);
+  ctx.lineTo(f(0), -48);
+  ctx.lineTo(f(4), -60);
+  ctx.stroke();
+
+  // sleeves by pose: each arm is one wide brush-like sweep
+  const sleeve = (x1, y1, x2, y2, w) => {
+    ctx.strokeStyle = tone;
+    ctx.lineWidth = w;
     ctx.beginPath();
     ctx.moveTo(f(x1), y1);
-    ctx.lineTo(f(x2), y2);
+    ctx.quadraticCurveTo(f((x1 + x2) / 2), Math.min(y1, y2) - 4, f(x2), y2);
     ctx.stroke();
   };
   if (pose === "point") {          // accusing arm raised
-    arm(0, -52, 34, -84);
-    arm(0, -50, -12, -30);
+    sleeve(6, -54, 32, -82, 9);
+    sleeve(-6, -52, -12, -30, 8);
   } else if (pose === "reach") {   // open reaching arm
-    arm(0, -50, 26, -58);
-    arm(0, -50, -22, -58);
+    sleeve(6, -52, 26, -58, 9);
+    sleeve(-6, -52, -22, -58, 9);
   } else if (pose === "hold") {    // hands cupped, holding something
-    arm(0, -48, 16, -34);
-    arm(0, -48, -16, -34);
-  } else if (pose === "stand") {
-    arm(0, -52, 12, -28);
-    arm(0, -52, -12, -28);
-  } else if (pose === "sit") {     // seated: bent legs forward
+    sleeve(6, -50, 16, -34, 10);
+    sleeve(-6, -50, -16, -34, 10);
+  } else if (pose === "sit") {     // seated: robe pools over folded legs
     ctx.beginPath();
-    ctx.moveTo(f(0), -18);
-    ctx.lineTo(f(14), -14);
-    ctx.lineTo(f(16), 0);
-    ctx.stroke();
-    arm(0, -52, 14, -34);
-    arm(0, -52, -10, -34);
+    ctx.moveTo(f(-13), -14);
+    ctx.quadraticCurveTo(f(0), -4, f(15), -14);
+    ctx.quadraticCurveTo(f(16), -2, f(4), 1);
+    ctx.lineTo(f(-10), 1);
+    ctx.quadraticCurveTo(f(-16), -4, f(-13), -14);
+    ctx.closePath();
+    ctx.fill();
+    sleeve(6, -50, 14, -34, 10);
+    sleeve(-6, -50, -10, -34, 10);
+  } else {                          // stand
+    sleeve(6, -54, 12, -28, 9);
+    sleeve(-6, -54, -12, -28, 9);
+    // two feet beneath the hem
+    ctx.beginPath();
+    ctx.ellipse(f(-6), 0, 5, 2.4, 0, 0, Math.PI * 2);
+    ctx.ellipse(f(6), 0, 5, 2.4, 0, 0, Math.PI * 2);
+    ctx.fill();
   }
   ctx.restore();
 }
 
 function table(ctx, x, y, w, h) {
-  ctx.fillStyle = "rgba(38,34,29,0.07)";
+  ctx.fillStyle = "rgba(38,34,29,0.06)";
   ctx.fillRect(x, y, w, h);
-  ctx.strokeStyle = SOFT;
-  ctx.lineWidth = 2;
-  ctx.strokeRect(x, y, w, h);
+  brushLine(ctx, x, y, x + w, y, 2.6, SOFT);
+  brushLine(ctx, x, y + h, x + w, y + h, 2.2, SOFT);
+  brushLine(ctx, x, y, x, y + h, 2.2, SOFT);
+  brushLine(ctx, x + w, y, x + w, y + h, 2.6, SOFT);
 }
 
 function burst(ctx, x, y, r, tone = INK) {
@@ -141,8 +361,6 @@ function doc(ctx, x, y, w, { gap = false } = {}) {
   ctx.lineWidth = 1.6;
   ctx.fillRect(x, y, w, w * 1.35);
   ctx.strokeRect(x, y, w, w * 1.35);
-  ctx.strokeStyle = FAINT;
-  ctx.lineWidth = 1;
   const lines = 5;
   for (let i = 0; i < lines; i++) {
     if (gap && i === 2) {
@@ -150,15 +368,10 @@ function doc(ctx, x, y, w, { gap = false } = {}) {
       ctx.strokeStyle = RED;
       ctx.lineWidth = 2;
       ctx.strokeRect(x + w * 0.12, y + w * (0.18 + i * 0.16), w * 0.72, w * 0.1);
-      ctx.strokeStyle = FAINT;
-      ctx.lineWidth = 1;
       continue;
     }
     const yy = y + w * (0.2 + i * 0.16);
-    ctx.beginPath();
-    ctx.moveTo(x + w * 0.12, yy);
-    ctx.lineTo(x + w * 0.84, yy);
-    ctx.stroke();
+    brushLine(ctx, x + w * 0.12, yy, x + w * 0.84, yy, 1.6, FAINT);
   }
 }
 
@@ -199,28 +412,32 @@ function boundaryLine(ctx, x, y, w) {
 
 function watchers(ctx, x, y, n, s) {
   for (let i = 0; i < n; i++) {
+    // distant colleagues as faint ink silhouettes, not dots
     ctx.beginPath();
-    ctx.arc(x + i * 34 * s, y, 9 * s, 0, Math.PI * 2);
-    ctx.fillStyle = "rgba(38,34,29,0.35)";
+    ctx.arc(x + i * 34 * s, y - 9 * s, 7 * s, 0, Math.PI * 2);
+    ctx.fillStyle = "rgba(38,34,29,0.3)";
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(x + i * 34 * s - 8 * s, y + 9 * s);
+    ctx.quadraticCurveTo(x + i * 34 * s, y - 4 * s, x + i * 34 * s + 8 * s, y + 9 * s);
+    ctx.closePath();
     ctx.fill();
   }
 }
 
 function shopfront(ctx, x, y, w, h, { glow = false } = {}) {
-  ctx.fillStyle = "rgba(38,34,29,0.06)";
+  ctx.fillStyle = "rgba(38,34,29,0.05)";
   ctx.fillRect(x, y, w, h);
-  ctx.strokeStyle = INK;
-  ctx.lineWidth = 2;
-  ctx.strokeRect(x, y, w, h);
+  brushLine(ctx, x, y, x + w, y, 2.6, INK);
+  brushLine(ctx, x, y, x, y + h, 2.4, INK);
+  brushLine(ctx, x + w, y, x + w, y + h, 2.4, INK);
   ctx.strokeStyle = SOFT;
   ctx.lineWidth = 1.5;
   ctx.strokeRect(x + w * 0.14, y + h * 0.2, w * 0.72, h * 0.46);
-  ctx.strokeRect(x + w * 0.2, y - h * 0.14, w * 0.6, h * 0.1);
+  // the awning above the shop window: a small eave
+  eave(ctx, x + w * 0.18, y - h * 0.14, w * 0.64, h * 0.07, SOFT);
   if (glow) {
-    ctx.fillStyle = "rgba(217,168,108,0.35)";
-    ctx.beginPath();
-    ctx.arc(x + w * 0.5, y + h * 0.43, w * 0.26, 0, Math.PI * 2);
-    ctx.fill();
+    inkWash(ctx, x + w * 0.5, y + h * 0.43, w * 0.3, "#D9A86C", 0.4);
   }
 }
 
@@ -239,24 +456,24 @@ function openHandWithStone(ctx, x, y, s) {
     ctx.lineTo(x + i * 13 * s, y - 12 * s);
     ctx.stroke();
   }
-  ctx.beginPath();
-  ctx.arc(x + 52 * s, y + 4 * s, 9 * s, 0, Math.PI * 2);
-  ctx.fillStyle = PALETTE.blackStone;
-  ctx.fill();
+  panelStone(ctx, x + 52 * s, y + 4 * s, 9 * s, "black");
 }
 
 // --- the four-movement marker (visual, not verbal): one of four brush dots ---
 function movementMark(ctx, x, y, index, total = 4) {
   for (let i = 0; i < total; i++) {
-    ctx.beginPath();
+    const px = x + i * 22;
     if (i === index) {
+      inkWash(ctx, px, y, 8, RED, 0.28);
       ctx.fillStyle = RED;
-      ctx.arc(x + i * 22, y, 6, 0, Math.PI * 2);
+      ctx.beginPath();
+      ctx.arc(px, y, 5.5, 0, Math.PI * 2);
       ctx.fill();
     } else {
       ctx.strokeStyle = FAINT;
       ctx.lineWidth = 1.5;
-      ctx.arc(x + i * 22, y, 5, 0, Math.PI * 2);
+      ctx.beginPath();
+      ctx.arc(px, y, 5, 0, Math.PI * 2);
       ctx.stroke();
     }
   }
@@ -343,13 +560,22 @@ export function drawPanel(canvas, panel, { time = 0, reducedMotion = false, warm
       break;
     }
     case "grandpa-room": {
-      // warm lamp glow + two figures across a board
-      ctx.fillStyle = "rgba(217,168,108,0.3)";
-      ctx.beginPath(); ctx.arc(W * 0.5, H * 0.24, H * 0.16, 0, Math.PI * 2); ctx.fill();
+      // warm lamp glow + two figures across a board, under an eave, by bamboo
+      inkWash(ctx, W * 0.5, H * 0.24, H * 0.2, "#D9A86C", 0.35);
       ctx.strokeStyle = C.amber; ctx.lineWidth = 2;
       ctx.beginPath(); ctx.arc(W * 0.5, H * 0.24, H * 0.05, 0, Math.PI * 2); ctx.stroke();
-      ctx.strokeStyle = C.inkSoft; ctx.lineWidth = 1.5;
-      ctx.strokeRect(W * 0.4, H * 0.52, W * 0.2, W * 0.2);
+      eave(ctx, W * 0.16, H * 0.12, W * 0.68, H * 0.05, SOFT);
+      bamboo(ctx, W * 0.9, H * 0.88, H * 0.6, C.sage);
+      // the board between them: a fine grid, two stones
+      ctx.strokeStyle = INK_SCALE.dan; ctx.lineWidth = 1.1;
+      for (let i = 0; i <= 3; i++) {
+        const u = W * (0.41 + i * 0.06);
+        const v = H * 0.52 + i * (W * 0.06);
+        ctx.beginPath(); ctx.moveTo(u, H * 0.52); ctx.lineTo(u, H * 0.7); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(W * 0.41, v); ctx.lineTo(W * 0.59, v); ctx.stroke();
+      }
+      panelStone(ctx, W * 0.47, H * 0.58, W * 0.014, "black");
+      panelStone(ctx, W * 0.53, H * 0.64, W * 0.014, "white");
       figure(ctx, W * 0.3, H * 0.84, H / 480, { pose: "sit" });
       figure(ctx, W * 0.7, H * 0.84, H / 480, { pose: "sit", flip: true });
       break;
@@ -370,6 +596,10 @@ export function drawPanel(canvas, panel, { time = 0, reducedMotion = false, warm
     case "study-night": {
       ctx.fillStyle = C.ink;
       ctx.fillRect(W * 0.42, H * 0.26, W * 0.28, H * 0.2);
+      ctx.globalAlpha = 0.5;
+      ctx.fillStyle = C.dusk;
+      ctx.fillRect(W * 0.435, H * 0.275, W * 0.25, H * 0.17);
+      ctx.globalAlpha = 1;
       ctx.strokeStyle = C.sage; ctx.lineWidth = 2.5;
       ctx.beginPath(); ctx.moveTo(W * 0.44, H * 0.44); ctx.lineTo(W * 0.5, H * 0.36);
       ctx.lineTo(W * 0.56, H * 0.42); ctx.lineTo(W * 0.64, H * 0.34); ctx.stroke();
@@ -377,17 +607,26 @@ export function drawPanel(canvas, panel, { time = 0, reducedMotion = false, warm
       break;
     }
     case "two-figures": {
-      ctx.strokeStyle = C.inkSoft; ctx.lineWidth = 2;
-      ctx.strokeRect(W * 0.42, H * 0.5, W * 0.16, W * 0.16);
+      bamboo(ctx, W * 0.88, H * 0.9, H * 0.55, C.sage);
+      ctx.strokeStyle = INK_SCALE.dan; ctx.lineWidth = 1.1;
+      for (let i = 0; i <= 3; i++) {
+        const u = W * (0.43 + i * 0.047);
+        const v = H * 0.5 + i * (W * 0.047);
+        ctx.beginPath(); ctx.moveTo(u, H * 0.5); ctx.lineTo(u, H * 0.64); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(W * 0.43, v); ctx.lineTo(W * 0.57, v); ctx.stroke();
+      }
+      panelStone(ctx, W * 0.475, H * 0.547, W * 0.011, "black");
+      panelStone(ctx, W * 0.522, H * 0.547, W * 0.011, "white");
       figure(ctx, W * 0.3, H * 0.82, H / 470, { pose: "sit" });
       figure(ctx, W * 0.7, H * 0.82, H / 470, { pose: "sit", flip: true });
       break;
     }
     case "teaching": {
+      inkWash(ctx, W * 0.62, H * 0.4, H * 0.24, C.sage, 0.16);
+      bamboo(ctx, W * 0.12, H * 0.9, H * 0.62, C.sage);
       figure(ctx, W * 0.62, H * 0.78, H / 440, { pose: "hold" });
       figure(ctx, W * 0.34, H * 0.88, H / 560, { pose: "stand" });
-      ctx.beginPath(); ctx.arc(W * 0.34, H * 0.7, H * 0.028, 0, Math.PI * 2);
-      ctx.fillStyle = C.ink; ctx.fill();
+      panelStone(ctx, W * 0.34, H * 0.7, H * 0.028, "black");
       break;
     }
     case "on-the-shelf": {
@@ -468,10 +707,7 @@ export function drawPanel(canvas, panel, { time = 0, reducedMotion = false, warm
     case "still-holding": {
       // the stone still gripped in the fist
       figure(ctx, W * 0.5, H * 0.9, H / 500, { pose: "hold" });
-      ctx.beginPath();
-      ctx.arc(W * 0.5 + H * 0.05, H * 0.62, H * 0.022, 0, Math.PI * 2);
-      ctx.fillStyle = PALETTE.blackStone;
-      ctx.fill();
+      panelStone(ctx, W * 0.5 + H * 0.05, H * 0.62, H * 0.024, "black");
       break;
     }
     case "meeting-return": {
@@ -488,10 +724,20 @@ export function drawPanel(canvas, panel, { time = 0, reducedMotion = false, warm
       break;
     }
     case "mirror-hub": {
-      // the board itself as the protagonist: an outlined frame and two hands
+      // the board itself as the protagonist: a framed board under an eave
+      eave(ctx, W * 0.28, H * 0.14, W * 0.44, H * 0.045, SOFT);
       ctx.strokeStyle = INK;
       ctx.lineWidth = 2;
-      ctx.strokeRect(W * 0.3, H * 0.16, W * 0.4, W * 0.4);
+      ctx.strokeRect(W * 0.3, H * 0.2, W * 0.4, W * 0.4);
+      ctx.strokeStyle = INK_SCALE.dan; ctx.lineWidth = 0.9;
+      for (let i = 1; i < 4; i++) {
+        const u = W * (0.3 + i * 0.1);
+        const v = H * 0.2 + i * (W * 0.1);
+        ctx.beginPath(); ctx.moveTo(u, H * 0.2); ctx.lineTo(u, H * 0.2 + W * 0.4); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(W * 0.3, v); ctx.lineTo(W * 0.7, v); ctx.stroke();
+      }
+      panelStone(ctx, W * 0.44, H * 0.28, W * 0.02, "black");
+      panelStone(ctx, W * 0.56, H * 0.44, W * 0.02, "white");
       figure(ctx, W * 0.5, H * 0.86, H / 500, { pose: "reach" });
       break;
     }
@@ -534,23 +780,18 @@ export function drawPanel(canvas, panel, { time = 0, reducedMotion = false, warm
     case "corridor-dawn": {
       shopfront(ctx, W * 0.03, H * 0.28, W * 0.3, H * 0.58, { glow: true });
       shopfront(ctx, W * 0.67, H * 0.28, W * 0.3, H * 0.58, { glow: true });
-      ctx.fillStyle = "rgba(217,168,108,0.28)";
-      ctx.beginPath(); ctx.arc(W * 0.5, H * 0.2, H * 0.14, 0, Math.PI * 2); ctx.fill();
-      ctx.strokeStyle = C.amber ?? C.sealRed;
-      ctx.lineWidth = 1.5;
-      ctx.beginPath(); ctx.arc(W * 0.5, H * 0.2, H * 0.05, 0, Math.PI * 2); ctx.stroke();
+      // dawn: a rising amber sun with its wash, between the two roofs
+      inkWash(ctx, W * 0.5, H * 0.2, H * 0.16, "#D9A86C", 0.4);
+      brushArc(ctx, W * 0.5, H * 0.2, H * 0.05, 2.2, C.amber ?? C.sealRed);
       figure(ctx, W * 0.42, H * 0.86, H / 500, { pose: "stand" });
       figure(ctx, W * 0.58, H * 0.86, H / 500, { pose: "stand", flip: true });
       break;
     }
     case "breath":
     default: {
-      // fall back to a single breath circle
-      ctx.strokeStyle = FAINT;
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.arc(W / 2, H / 2, H * 0.2, 0, Math.PI * 2);
-      ctx.stroke();
+      // fall back to a single breath circle — now a brush ring over its wash
+      inkWash(ctx, W / 2, H / 2, H * 0.24, C.sage, 0.2);
+      brushArc(ctx, W / 2, H / 2, H * 0.2, 3.2, FAINT);
     }
   }
 }
