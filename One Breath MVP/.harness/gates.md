@@ -1,7 +1,7 @@
 # Gates — Definition of Done
 
 > Gate strictness: **standard** (verifiability=high, stakes=medium)
-> **Last full run:** 2026-11-11 — evidence in `tasks/PROGRESS.md`.
+> **Last full run:** 2026-11-12 — evidence in `tasks/PROGRESS.md`.
 > Every criterion starts `false`. It may be set `true` only after the required evidence is attached (M0.3).
 > A gate nobody has seen fail is not a gate: every hard gate below has a named red example.
 
@@ -10,9 +10,9 @@
 ### Inherited from the existing MVP (must stay green)
 
 - [x] **Build reproducible** — `python tools/build.py` twice; `dist/build-manifest.json` sha256 identical. Red: a timestamp enters the artifact.
-- [x] **Node suite green** — `node --test`; 24 existing tests plus the new ones; 0 fail. Red: any existing gate regresses.
+- [x] **Node suite green** — `node --test`; 67 tests (24 original + Chapter 0 + game/fuzz/zugzwang/panels), 0 fail. Red: any existing gate regresses.
 - [x] **Bilingual completeness** — every key in `zh` and `en`, non-empty, placeholders identical. Red: one missing `en` line.
-- [x] **No scoring** — static scan of `app/*.js` and `specs/*` for score/points/rating variables or keys. Red: `score` appears in `teaching.js`.
+- [x] **No scoring of the player** — no score/points/rating attached to a response, an ending, or the player's character; no Harmony Index; the five endings stay unranked. The guided game's Go area count is a **land count (地)**, not a player score. **Decided A:** `tests/vignette.test.js` rejects a score/result on a respond/ending and a winner/loser count note. Red: a score/result field on a respond or ending node.
 - [x] **No AI / no telemetry / no network** — static scan + the single-file build opens offline. Red: a fetch call in `app/`.
 - [x] **Graph reachability** — every ending reachable, no orphan nodes, no dead branches. Red: a choice points at an unknown node.
 
@@ -29,7 +29,12 @@
 - [x] **G12 Determinism** — a scripted click sequence yields the same position hash every run. Red: inject `Math.random`.
 - [x] **G15 Harness self-check** — `python .harness/check.py .` and `PYTHONPATH=<HF>/src python -m harness_factory check --dir "One Breath MVP"`. Red: a listed file missing, or a double-brace template marker left in a document.
 
-- [x] **G16 Browser smoke** — `python tools/smoke.py` (Playwright, dev-only): title → lesson → compare → sit → ending → existing case; canvases non-empty; 0 page errors. Red: any page error, a blank canvas, or a missing ending seal.
+- [x] **G16 Browser smoke matrix** — `python tools/smoke.py` (Playwright, dev-only): 3 vignettes × 2 languages × 2 word modes + full Chapter 0 + 4 sit views + 5 endings; canvases non-empty; 0 page errors. Red: any page error, a blank canvas, or a missing ending seal.
+- [x] **G17 Guided game is board-true** — `specs/game-record.yaml` replays 21 moves; every `expect` (captures, liberties, eyes, final area) is asserted by `tests/game.test.js` and re-derived by `tools/verify.py`. Red: one authored move illegal, or one teach claim false.
+- [x] **G18 Differential fuzz is exact** — `tools/fuzz_reference.py` + `tests/differential-fuzz.test.js` require **100%** agreement on ok/reason/captured and a canonical hash. The 10 seeds × 25 moves are clean; a one-step mutation was observed red. Red: inject one deliberate divergence — the suite must fail.
+- [x] **G19 Visual vocabulary** — `tests/panels.test.js`: every scene and icon draws; the brush vocabulary replays byte-for-byte on the mock context; pixel-level smoke is in G16. Red: a scene throws, or the call sequence changes.
+- [x] **G20 Score boundary** — no numeric score/result on a respond or ending node; the only count is the guided game's land count, labelled 地. Red: a `score` field in an ending, or a ranked response. **Decided A; enforced by `tests/vignette.test.js`.**
+- [x] **G21 Core/deep path** — `lesson_step_skip` skips a `core:false` step without completing it; a core step cannot be skipped; the last optional step opens the guided game. Red: skipping a core step, or losing the game record. Enforced by `tests/teaching.test.js`.
 
 ## Soft gates · 软门 (human judgment)
 
@@ -50,6 +55,7 @@
 
 ```
 python tools/build.py
+python tools/fuzz_reference.py
 node --test
 python tools/verify.py
 python tools/smoke.py
@@ -58,4 +64,4 @@ python .harness/check.py .
 PYTHONPATH=C:/DA_Practice/research_foodie/research_foodie/harness_factory/src python -m harness_factory check --dir "One Breath MVP"
 ```
 
-All seven must pass, and G1's two sha256 values must match, before any "done" is stated.
+G1's two sha256 values must match, and **all** gates must pass before any "done" is stated. `python tools/shoot_game.py` is an optional visual capture; it is not a claim of correctness by itself.

@@ -83,6 +83,7 @@ ui:
     reset: {zh: 重来, en: Reset}
     pass: {zh: 虚着, en: Pass}
     skip: {zh: 跳过教学, en: Skip the lesson}
+    step_skip: {zh: 跳过这一步, en: Skip this step}
     board_caption: {zh: 教学棋盘 · 点交叉点落子, en: "Teaching board · click an intersection"}
     msg:
       not_liberty: {zh: 空着、并且挨着这块棋的点,才是它的气。, en: "A liberty is an empty point next to the chain."}

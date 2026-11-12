@@ -55,3 +55,41 @@
 - **Blocked:** nothing. Human gates and the native-reader pass are pending by design.
 - **Next:** S4 — three first-time players (comprehension, non-moralization, duration), then a mentor walkthrough; optionally refine the ink pictograms if the human look asks for it.
 - **Sources:** `docs/MVP-BUILD-PLAN.md`; `docs/_extract_mvp.md`; `docs/corroboration-record.md`; `app/rules.js`; `app/teaching.js`; `tools/verify.py`; `tools/build.py`; observed command output 2026-11-11.
+## Round 2 · review (2026-11-12)
+
+- **Observed state:** HEAD `5b9e4c4`; four commits after the Round 1 plan (`e9e5e43`, `f1a3b3c`, `741083c`, `5b9e4c4`); working tree clean except the untracked `dist/` build.
+- **Gates observed:** `node --test` 63/63; `verify.py` 11 beats + 2 lesson checks + 21 game moves (final 12-4); `fuzz_reference.py` 10 sequences / 250 moves / 9 refusals / 47 captured; `smoke.py` 3 vignettes × 2 languages × 2 word modes + full chapter + 4 sit views + 5 endings, 0 errors; `shoot_game.py` 9 screenshots; `build.py` twice, same sha256 `5fd98610…`; `.harness/check.py` OK.
+- **Added by the round:** guided 21-move game with dual verification, three tactical steps (ko / capture-before-suicide / atari escape), differential fuzz, panels structure gate, smoke matrix, brush visual overhaul (robed figures, gradient stones); `.harness/decisions.md` #12–#13.
+- **Findings:** P0-1 `tests/zugzwang.test.js` overclaims (empty branches, a tautology at `:117`, no capture assertion; the real proof is `firstMoverLoses`); P0-2 `tests/differential-fuzz.test.js` allows 95% and logs divergences while titled "every step"; P0-3 the no-score gate does not cover the game's area count, and the wording "决定胜负" contradicts "不数输赢"; P0-4 "七手"/6-min text vs 11 steps + game, optional steps not skippable; P0-5 stale PLAN/AGENTS/PROGRESS and a fused decisions row.
+- **P1:** `rules.js` header says "NOT a Go engine" but holds `GameState`/`score()`/`teachingReply`; `teachingReply` is unused in the product; the game → corridor transition has no bridge line.
+- **P2:** 11 step dots clutter; stones read as digital marbles; hint/corridor marks are low contrast; the "Start here" seal reads slightly digital. S1–S3 and the native-reader pass remain open.
+- **No product code was changed by the review itself.** The A–D implementation follows below.
+
+## Round 2 · implementation (2026-11-12)
+
+- **Decisions A–D confirmed:** land-only, per-step skip + core path, 100% differential fuzz, brush stones + compact progress + hint contrast.
+- **P0-1 fixed** — `tests/zugzwang.test.js` now enumerates 24 branches (4 first × 3 replies × 2 second attacks), asserts the first mover's chain is captured, checks exact set identity, keeps the 8-branch `firstMoverLoses` policy, and includes a **mutation-red** (a private liberty makes it `ok:false`).
+- **P0-2 fixed** — `tests/differential-fuzz.test.js` now fails on any divergence or hash mismatch; 10 seeds × 25 moves are clean; a one-step mutation was observed red and restored.
+- **P0-3 fixed** — the game's count is land only; `count_note` no longer says "决定胜负"; `tests/vignette.test.js` rejects a score/result on respond/ending and winner/loser wording.
+- **P0-4 fixed** — `skipStep` + `lesson_step_skip` let the player skip any `core:false` step; the game is core; the 11 dots became a compact progress rule; the card says core 8–10 min; n2's "十手" is the 10 rule moves plus the game.
+- **D fixed** — deterministic ink-wash stone texture, stronger hint/corridor marks, paper rule strip; the screenshot review confirms the hint ring and the land-count framing.
+- **Product bug found and fixed** — after a concurrent edit, `app/main.js` had lost the `games` binding; the lesson/game screen would have thrown in the browser. Restored the committed HEAD file and re-applied the A–D changes.
+- **Concurrent-edit note** — four files (`app/main.js`, `app/teaching.js`, `app/board-mirror.js`, `tests/teaching.test.js`) were reverted mid-round. I restored the committed HEAD versions and re-applied the uncommitted changes. If another session is still editing, reconcile before the next commit.
+- **Evidence:** `node --test` 67/67; `verify.py` 11 beats + 2 lesson checks + 21 game moves; `fuzz_reference.py` 10 × 25 moves, 0 divergence; `smoke.py` matrix 0 errors; `shoot_game.py` 9 screenshots (hint included); `build.py` twice identical sha256 `d70481136e8bf164a63c8f28f24043aeb681eab802ba703003350e291ba3dd3d` (final, after the mobile/visual fix); `.harness/check.py` OK.
+
+## Round 2 · simulated-persona walkthrough (2026-11-12)
+
+- **Method:** `tools/human_sim.py` drives six scripted personas through the real UI — not human subjects. beginner zh (core, deliberate wrong clicks), beginner en (words), Go-literate zh (full 11 steps), mentor (skips the lesson), mobile 390×844, reduced motion. **0 page errors** in all six; 5 seals; land count; hint ring; corridor 2 → 4; 0 overflow.
+- **Found and fixed:** the mobile lesson overflowed (`scrollWidth 444` vs `innerWidth 390`; offenders `lesson-stage`, `lesson-board`, `lesson-side`). CSS at 860/520 now yields **390/390, 0 offenders**; top navigation targets 30 → 44 px; the ending seal strip is 56 px; prompt/caption/footer contrast raised.
+- **Open (P1):** keyboard accessibility — `#lesson-board` and `#compare-board` are `<canvas>` with `tabIndex -1` and no `tabindex` attribute, so a keyboard-only player cannot complete Chapter 0. This needs an arrow-key grid / point-list fallback, not a CSS patch.
+- **Timing model (heuristic, not a stopwatch):** core ~5.9–6.8 min zh / 4.8–5.4 en; full ~7.7–8.9 / 6.4–7.3; mentor ~2.6–3.1 / 2.0–2.3. The card's 8–10 min is conservative for the core path.
+- **Not proven:** S1 comprehension, S2 non-moralization, S3 real duration, the native-reader pass.
+- **Artifacts:** `outputs/human-sim/REPORT.md`, `results.json`, and per-persona screenshots.
+
+## Handoff (latest)
+
+- **Goal:** Chapter 0 — 学 → 照 → 觉 → 行, carried by 同气 / The Shared Corridor; bilingual, deterministic, no score of the player, no AI.
+- **Done:** full chapter + guided game; A–D implemented; 67 tests; independent verifier; strict fuzz; smoke matrix; classical visual pass; six simulated personas; mobile overflow fixed; reproducible build.
+- **Blocked:** keyboard accessibility (P1), S1–S3, and the native-reader pass.
+- **Next:** keyboard grid for the lesson/compare boards; then real S4 (three first-time players + mentor + native reader); then P1 (`GameState`/`teachingReply` out of `rules.js`, use/remove `teachingReply`, game → corridor bridge).
+- **Sources:** observed command output 2026-11-12; `tasks/PLAN.md` Round 2; `.harness/decisions.md` #14–#17; `outputs/human-sim/REPORT.md`.

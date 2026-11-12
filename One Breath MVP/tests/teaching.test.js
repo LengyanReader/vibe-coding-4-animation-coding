@@ -9,7 +9,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
 import {
-  newLessonWalk, currentStep, clickPoint, pressPass, resetStep, advanceStep,
+  newLessonWalk, currentStep, clickPoint, pressPass, resetStep, advanceStep, skipStep,
   firstMoverLoses, sameAsCheck, rolesCheck, positionForStep, sharedCorridor,
   buildPosition,
 } from "../app/teaching.js";
@@ -59,7 +59,7 @@ function solveCurrent(w) {
 }
 
 function walkTo(index) {
-  let w = newLessonWalk(lesson, board);
+  let w = newLessonWalk(lesson, board, content.games);
   for (let i = 0; i < index; i++) w = advanceStep(solveCurrent(w)).walk;
   return w;
 }
@@ -190,6 +190,29 @@ test("虚着: the pass step completes without touching the position", () => {
   assert.equal(r.event, "pass");
   assert.equal(r.walk.done, true);
   assert.equal(hashPosition(r.walk.pos), hash0);
+});
+
+test("core/deep path: an optional step can be skipped without completion", () => {
+  const w = walkTo(1);              // l2_chain, core:false
+  assert.equal(currentStep(w).id, "l2_chain");
+  const h0 = hashPosition(w.pos);
+  const r = skipStep(w);
+  assert.equal(r.event, "step");
+  assert.equal(currentStep(r.walk).id, "l3_capture");
+  assert.notEqual(hashPosition(r.walk.pos), h0);
+  assert.ok(r.walk.trail.some((t) => t.action === "skip"), "the skip is recorded");
+});
+
+test("core/deep path: a core step cannot be skipped, and the last optional step opens the game", () => {
+  const core = skipStep(walkTo(0)); // l1_breath, core:true
+  assert.equal(core.event, "not-optional");
+  assert.equal(currentStep(core.walk).id, "l1_breath");
+  const last = skipStep(walkTo(9)); // l10_escape → the guided game
+  assert.equal(last.event, "step");
+  assert.equal(currentStep(last.walk).kind, "game");
+  assert.equal(last.walk.gameIdx, 4, "the four opening moves replayed");
+  const game = skipStep(walkTo(10)); // the game itself is core
+  assert.equal(game.event, "not-optional");
 });
 
 test("determinism: the same click script yields the same final hash and trail", () => {

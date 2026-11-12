@@ -1,8 +1,10 @@
 # 第零章 · 一口一口气 — the teaching ladder (bilingual meaning-unit pairs)
 #
 # Every step is a task over a real 5x5 position. The engine confirms or refuses;
-# there is no score and no "correct path" variable. Core path = breath, capture,
-# mutual, pass; chain / suicide / eyes are optional depth.
+# there is no score of the player and no "correct path" variable. Core = breath,
+# capture, mutual, pass, and the guided game; chain / suicide / eyes / ko / save /
+# escape are optional depth. The guided game's Go area count (地) is a Go result,
+# not a player score; the five responses stay unranked.
 id: shared-breath
 title:
   zh: 一口一口气

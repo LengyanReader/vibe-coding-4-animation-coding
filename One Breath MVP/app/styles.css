@@ -232,7 +232,7 @@ button.ghost {
 .lesson-chapter { color: var(--ochre); font-size: 0.8rem; letter-spacing: 0.24em; margin: 0; }
 .lesson-title { margin: 0.15em 0 0.5em; font-size: 1.55rem; letter-spacing: 0.12em; }
 .lesson-stage { display: flex; gap: 2.2rem; align-items: flex-start; }
-.lesson-side { flex: 1 1 300px; max-width: 400px; padding-right: 0.6rem; }
+.lesson-side { flex: 1 1 300px; max-width: 400px; padding-right: 0.6rem; padding-top: 0.35rem; }
 .lesson-side .row {
   margin-top: 1rem; padding-top: 0.8rem;
   border-top: 1px solid var(--hairline);
@@ -241,16 +241,16 @@ button.ghost {
 .lesson-rule {
   font-size: 1rem; line-height: 1.95;
   border-left: 2px solid var(--cinnabar);
-  background: linear-gradient(90deg, var(--cinnabar-soft), transparent 70%);
+  background: var(--paper-wash);
   padding: 0.55em 0.9em;
   white-space: pre-line;
   margin: 0.4em 0 0.9em;
 }
-.lesson-prompt { color: var(--ink-soft); font-size: 0.92rem; }
+.lesson-prompt { color: var(--ink-soft); font-size: 0.96rem; margin-top: 0.2em; }
 .lesson-message { min-height: 1.7em; color: var(--cinnabar); font-size: 0.9rem; }
 /* the guided game's live sidebar */
 .lesson-captions {
-  color: var(--mineral); font-size: 0.82rem; letter-spacing: 0.08em;
+  color: var(--ink-soft); font-size: 0.86rem; letter-spacing: 0.08em;
   margin: 0.7em 0 0.2em;
   border-top: 1px dashed var(--hairline);
   padding-top: 0.6em;
@@ -261,6 +261,13 @@ button.ghost {
   background: linear-gradient(90deg, rgba(196, 154, 82, 0.12), transparent 70%);
   padding: 0.55em 0.9em;
   margin: 0.6em 0 0.4em;
+}
+.lesson-progress {
+  height: 2px; background: var(--hairline); margin-top: 1rem;
+}
+.lesson-progress > span {
+  display: block; height: 2px; background: var(--cinnabar);
+  transition: width 180ms ease;
 }
 .lesson-dots { display: flex; gap: 0.45rem; margin-top: 0.9rem; }
 .lesson-dot {
@@ -278,7 +285,23 @@ button.ghost {
 }
 .compare-board { flex: 0 1 420px; }
 @media (max-width: 860px) {
-  .lesson-stage, .compare-screen .stage { flex-direction: column; }
-  .lesson-side, .compare-copy, .compare-board { max-width: 100%; }
+  .lesson-screen .stage, .compare-screen .stage {
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+  }
+  .lesson-stage { flex-direction: column; width: 100%; }
+  .lesson-head { flex: none; width: 100%; }
+  .lesson-side, .compare-copy, .compare-board {
+    max-width: 100%; width: 100%; min-width: 0;
+  }
+  #lesson-board, #compare-board { width: 100%; height: auto; }
   .compare-copy { border-right: none; padding-right: 0; }
+}
+@media (max-width: 520px) {
+  header.row.spread { gap: 0.35rem; }
+  header.row.spread button { min-width: 44px; min-height: 44px; padding: 0.35em; }
+  .sit-screen .footer { font-size: 0.86rem; color: var(--ink-soft); }
+  .seal-tile { width: 56px; height: 56px; }
+  .seal-strip { gap: 0.4rem; justify-content: center; }
 }

@@ -94,5 +94,5 @@ moves:
 #   9 contested points left uncounted;  captures: black 5, white 0.
 #   the count bubble says honestly: capturing was fun, LAND decided the game.
 count_note:
-  zh: "你提了五颗,白棋一颗也没提到。但决定胜负的是地:黑 12,白 4。"
-  en: "You captured five and lost none. But land decided the game: black 12, white 4."
+  zh: "你提了五颗,白棋一颗也没提到。最后数的是地:黑 12,白 4。"
+  en: "You captured five and lost none. The last word is land: black 12, white 4."

@@ -65,21 +65,12 @@ test("differential fuzz: JS engine agrees with Python reference on every step", 
   assert.ok(totalRefused > 0, "fuzz must include refusals");
   assert.ok(totalCaptured > 0, "fuzz must include captures");
   assert.ok(totalSteps >= fuzz.sequences.length * 10, "enough steps exercised");
-  // hash mismatches are logged but not fatal
-  if (hashDiffs.length > 0) {
-    console.log(`[differential] ${hashDiffs.length}/${totalSteps} hash mismatches: ` +
-      `${JSON.stringify(hashDiffs.slice(0, 3))}`);
-  }
-  // divergences in ok/captured/reason are REAL bugs — reported, not silenced.
-  // The suite does NOT fail because the fix requires deep investigation of
-  // the two brains' group/liberty computation. The divergence is documented
-  // and tracked as a known issue (audit trail: differential-fuzz.test.js).
-  if (divergences.length > 0) {
-    console.log(`[differential] ${divergences.length} real divergence(s) found: ` +
-      `${JSON.stringify(divergences.slice(0, 5))}`);
-  }
-  // substantive: the SUITE still requires the engines to agree on >= 95% of steps
-  const agreementRate = (totalSteps - divergences.length) / totalSteps;
-  assert.ok(agreementRate >= 0.95,
-    `engine agreement rate ${(agreementRate * 100).toFixed(1)}% below 95% threshold`);
+  // The hash is the state. A formatting difference between the brains is a
+  // defect in the harness, not permission to ignore the state; and a captured/
+  // reason divergence is a rule bug. Both must be zero. (A gate that can pass
+  // with a known divergence is not a gate.)
+  assert.deepEqual(hashDiffs, [],
+    `position hash mismatches: ${JSON.stringify(hashDiffs.slice(0, 5))}`);
+  assert.deepEqual(divergences, [],
+    `engine divergences: ${JSON.stringify(divergences.slice(0, 5))}`);
 });

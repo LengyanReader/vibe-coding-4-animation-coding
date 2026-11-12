@@ -89,7 +89,7 @@ test("determinism: the same choice sequence always reaches the same ending", () 
   }
 });
 
-test("NO moral scoring: no score/points/rating variables or keys anywhere in the engine or specs", () => {
+test("NO player scoring in the engine: no score/points/rating state; the guided game's land count is the only numeric result", () => {
   const engine = readFileSync(new URL("../app/vignette.js", import.meta.url), "utf-8")
     + readFileSync(new URL("../app/main.js", import.meta.url), "utf-8")
     + readFileSync(new URL("../app/teaching.js", import.meta.url), "utf-8");
@@ -109,6 +109,26 @@ test("NO moral scoring: no score/points/rating variables or keys anywhere in the
         assert.equal(sets.length, 0, `${nid}: respond choices must not carry flags`);
       }
     }
+  }
+});
+
+test("no player scoring on responses or endings; the guided game's count is land", () => {
+  for (const v of Object.values(vignettes)) {
+    for (const [nid, node] of Object.entries(v.nodes)) {
+      if (node.movement === "respond" || node.movement === "ending") {
+        assert.equal(/\b(score|points|rating|result)\b/i.test(JSON.stringify(node)), false,
+          `${v.id}/${nid}: a response/ending must not carry a numeric score`);
+      }
+    }
+  }
+  const games = content.games ?? {};
+  assert.ok(Object.keys(games).length > 0, "the guided game record is in the build");
+  for (const [gid, game] of Object.entries(games)) {
+    assert.ok(game.count_note?.zh?.trim() && game.count_note?.en?.trim(),
+      `${gid}: the count note must be bilingual`);
+    const text = `${game.count_note.zh} ${game.count_note.en}`;
+    assert.equal(/胜负|winner|loser|you win|you lose/i.test(text), false,
+      `${gid}: the land count must not declare a winner or loser`);
   }
 });
 

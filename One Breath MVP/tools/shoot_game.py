@@ -60,6 +60,11 @@ def main() -> int:
         page.wait_for_timeout(300)
         page.screenshot(path=str(OUT / "v2-game-start.png"), full_page=True)
 
+        # an off-script legal click: grandpa's gentle redirect + hint ring
+        board_click(page, 3, 3)
+        page.wait_for_timeout(250)
+        page.screenshot(path=str(OUT / "v2-game-hint.png"), full_page=True)
+
         # play M5 (the first capture) through the real UI
         board_click(page, 2, 2)
         page.wait_for_timeout(250)

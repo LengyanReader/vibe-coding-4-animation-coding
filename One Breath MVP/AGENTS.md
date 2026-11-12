@@ -31,16 +31,16 @@
 - Mirror boards are 5×5 with a deliberately small rules subset: placement, capture, suicide refusal, simple ko, chain/liberty queries (`app/rules.js:1-11`).
 - Every asserted board property is re-derived by an independent Python implementation (`tools/verify.py:1-12`).
 - One self-contained HTML, deterministic build with recorded sha256 (`tools/build.py:1-9`).
-- **Baseline observed 2026-11-11:** `node --test` 24/24 pass; `python tools/verify.py` all 7 beats hold.
+- **Baseline observed 2026-11-12:** `node --test` 67/67 pass; `python tools/verify.py` covers 11 mirror beats, 2 lesson checks and 21 game moves.
 
 ## Hard constraints · 硬约束
 
-1. **No score, no moral ranking, no "right path"** — guarded by a static scan, not by a promise.
+1. **No score of the player, no moral ranking, no "right path"** — guarded by a static scan **and** a response/ending test; the guided game's Go area count is **land (地)**, not a player score (decision A).
 2. **No AI / no LLM / no telemetry / no network** in the product.
 3. **Legal Go rules.** Do not bend a rule to force a philosophical moral; 提子 stays a good move, 虚着 is not surrender (`docs/_extract_mvp.md:108`).
 4. **Bilingual by meaning unit.** Every content node is a `{zh, en}` pair authored together; culture-bound terms are carried verbatim + glossed (`specs/glossary.md`).
 5. **Deterministic single file.** Same sources → same bytes → same sha256; no timestamps in the artifact.
-6. **6–10 minutes** for the mentor path.
+6. **6–10 minutes** for the mentor path; the core path is designed for about 8–10 (S3 is still a human timing).
 7. **§11 language boundary.** Never claim the experience produces enlightenment or heals; "觉悟人生" is a stage name, always beside the boundary caption (`docs/_extract_mvp.md:208-220`).
 8. **Do not reuse The Two Sides as the teaching case.** It is the independent transfer proof (`docs/MVP-BUILD-PLAN.md:16-17`).
 
@@ -64,7 +64,7 @@
 | M0 | Meta-principles | truth/traceability first; never invent lesson content; irreversible acts gated |
 | M1 | Context engineering | route-first reading; 9 active capabilities, 14 evicted with receipts |
 | M2 | Long-running agents | file memory: `PLAN` → `PROGRESS` → `ledger`; resume from the handoff |
-| M3 | Verification & gates | 15 hard + 4 soft gates; every hard gate has a seen-red mutation |
+| M3 | Verification & gates | 21 hard + 4 soft gates (see `.harness/gates.md`); every hard gate has a seen-red mutation |
 | M4 | Provenance & integrity | file:line citations; external sources stay in `docs/_extract_mvp.md` |
 | M5 | Self-evolution | at close only: two distillation candidates, proposal-only |
 | M6 | Tools & skills | fixed surface; no new renderer without a gate |
@@ -95,6 +95,7 @@ This task makes no formal-proof claim. The instruments are:
 - **Mutation-red gate:** each gate must be observed failing once (move a coordinate, add a liberty, inject randomness). A gate that never fails is not a gate.
 - **Replay, not self-report:** a scripted click sequence and a position hash decide determinism; the agent's summary does not.
 - **Human comprehension probe (soft):** three first-time players answer open questions. Machine gates can prove legality, never understanding.
+- **Simulated personas are not evidence:** `tools/human_sim.py` scripts six players through the real UI to find layout/flow/accessibility defects; it cannot satisfy S1–S3. Record its results as findings, never as comprehension or timing evidence.
 
 ## Gates · 完成门禁
 
@@ -116,7 +117,9 @@ The two build sha256 values must match. No gate is set true on intention.
 
 **Arc:** 学 (Encounter + Interrelate) → 照 (Interrelate) → 觉 (Release) → **行 (Respond, mandatory)**.
 
-**学 — the ladder** (core path in bold): **气** → 连接 → **提子** → 禁入点 → 两眼 → **双活** → **虚着**. Each step: show → the player tries → the engine confirms or refuses → one bilingual rule line.
+**学 — the ladder** (core path in bold): **气** → 连接 → **提子** → 禁入点 → 两眼 → **双活** → **虚着** → 打劫 → 提子优先 → 叫吃延长 → **跟爷爷学棋 (a 21-move curated game)**. The first seven are the rule ladder; the next three are tactical depth (`core:false`); the game is the payoff with eight learner-found points. **Decided B:** optional steps are individually skippable (`lesson_step_skip`); the game is core; the chapter card says core 8–10 min. S3 still needs a first-time timing.
+
+> **Score boundary (decided A — 2026-11-12):** the guided game shows a Go area count (12-4) as 地/land. That is a Go result, not a score of the player's responses. The five endings stay unranked. `tests/vignette.test.js` rejects a score/result on a respond/ending and a winner/loser count note; the game's area count is the only numeric result.
 
 **照 — the comparison, computed:** the shared corridor is the four points where `libs(you) == libs(them) == corridor`; the player clicks one of them in the case pane and on the board; `same_as` ties the board to the case beat; role anchors are declared and tested. The zugzwang is the claim: every first move loses the mover's chain (8 enumerated branches).
 

@@ -404,6 +404,36 @@ export function advanceStep(walk) {
   };
 }
 
+// core/deep path: an optional step can be stepped over without completing it.
+// The skipped step is recorded in the trail (determinism), and the next step
+// (including the guided game) is initialised exactly as advanceStep would.
+export function skipStep(walk) {
+  const step = currentStep(walk);
+  if (step.core) return { walk, event: "not-optional" };
+  const trail = [...walk.trail, { step: step.id, action: "skip" }];
+  const nextIndex = walk.stepIndex + 1;
+  if (nextIndex >= walk.lesson.steps.length) {
+    return { walk: { ...walk, done: true, trail }, event: "lesson-done" };
+  }
+  const next = walk.lesson.steps[nextIndex];
+  const w = {
+    ...walk,
+    stepIndex: nextIndex,
+    phase: 0,
+    clicked: [],
+    refused: [],
+    ghosts: [],
+    lastMove: null,
+    done: false,
+    message: null,
+    trail,
+  };
+  return {
+    walk: next.kind === "game" ? initGameStep(w) : { ...w, pos: positionForStep(next, walk.boardSpec) },
+    event: "step",
+  };
+}
+
 // --- checks reused by the tests and verify.py --------------------------------
 
 // The corridor is a four-point zugzwang: fill one and the reply takes the

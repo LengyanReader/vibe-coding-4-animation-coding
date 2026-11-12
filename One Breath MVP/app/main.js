@@ -14,7 +14,7 @@ import { emptyPosition, play, key, groupAt, BLACK, WHITE } from "./rules.js";
 import { positionFromSpec, drawBoard, chainsAt, hitTest } from "./board-mirror.js";
 import { drawPanel, drawIcon } from "./panels.js";
 import { drawDharmadhatuView, VIEW_COUNT } from "./dharmadhatu.js";
-import { newLessonWalk, currentStep, clickPoint, pressPass, resetStep, advanceStep, isDone, roleAnchor, positionForStep } from "./teaching.js";
+import { newLessonWalk, currentStep, clickPoint, pressPass, resetStep, advanceStep, skipStep, isDone, roleAnchor, positionForStep } from "./teaching.js";
 
 const CONTENT = window.__ONE_BREATH__;         // embedded by tools/build.py
 const { strings, vignettes, boards, lessons, games } = CONTENT;
@@ -60,7 +60,7 @@ function renderTitle() {
     const tg = (v.tagline?.[state.lang]) ?? "";
     const chapter = v.chapter === 0;
     const min = chapter
-      ? (state.lang === "zh" ? "第零章 · 约 6 分钟" : "Chapter 0 · about 6 min")
+      ? (state.lang === "zh" ? "第零章 · 主线约 8–10 分钟" : "Chapter 0 · core about 8–10 min")
       : (state.lang === "zh" ? "约 3 分钟" : "about 3 minutes");
     return `<button class="card ${chapter ? "card-chapter" : ""}" data-vignette="${v.id}" aria-label="${escapeHtml(ti)}">
       ${chapter ? `<span class="card-badge">${state.lang === "zh" ? "先学一手" : "Start here"}</span>` : ""}
@@ -253,8 +253,7 @@ function renderLesson(walk, v, node) {
   const step = currentStep(lw);
   const total = lesson.steps.length;
   const done = isDone(lw);
-  const dots = lesson.steps.map((s, i) =>
-    `<span class="lesson-dot ${i === lw.stepIndex ? "on" : ""} ${s.core ? "core" : ""}"></span>`).join("");
+  const pct = Math.round(((lw.stepIndex + 1) / total) * 100);
   // the guided game's live sidebar: move counter, phase, grandpa's bubble,
   // captures — plus the final count once both sides have rested
   const isGame = step.kind === "game";
@@ -301,9 +300,10 @@ function renderLesson(walk, v, node) {
               ${done ? `<button data-act="lesson_next">${t("lesson.continue")}</button>` : ""}
               <button data-act="lesson_reset">${t("lesson.reset")}</button>
               ${(step.kind === "pass" || step.kind === "mutual" || (isGame && lw.awaitingPass)) ? `<button data-act="lesson_pass">${t("lesson.pass")}</button>` : ""}
+              ${!step.core && !isGame ? `<button class="ghost" data-act="lesson_step_skip">${t("lesson.step_skip")}</button>` : ""}
               <button class="ghost" data-act="lesson_skip">${t("lesson.skip")}</button>
             </div>
-            <div class="lesson-dots">${dots}</div>
+            <div class="lesson-progress" role="progressbar" aria-valuemin="1" aria-valuemax="${total}" aria-valuenow="${lw.stepIndex + 1}"><span style="width:${pct}%"></span></div>
           </div>
         </div>`)}
     </section>`;
@@ -617,6 +617,16 @@ document.addEventListener("click", (e) => {
       state.lesson = pressPass(state.lesson).walk;
       render();
       break;
+    case "lesson_step_skip": {
+      const r = skipStep(state.lesson);
+      state.lesson = r.walk;
+      if (r.event === "lesson-done") {
+        state.lesson = null;
+        state.walk = choose(state.walk, 0);
+      }
+      render();
+      break;
+    }
     case "lesson_skip":
       state.lesson = null;
       state.walk = choose(state.walk, 0);

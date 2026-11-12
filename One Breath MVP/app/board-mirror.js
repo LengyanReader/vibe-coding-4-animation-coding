@@ -116,11 +116,11 @@ export function drawBoard(canvas, pos, opts = {}) {
   // highlight pulse (only when motion allowed): a breath ring around atari chains
   if (opts.highlightPulse && !opts.reducedMotion) {
     const t = opts.time ?? 0;
-    const a = 0.35 + 0.25 * Math.sin(t / 500);
+    const a = 0.5 + 0.3 * Math.sin(t / 500);
     for (const c of atariChains) {
       ctx.strokeStyle = PALETTE.sealRed;
       ctx.globalAlpha = a;
-      ctx.lineWidth = 2;
+      ctx.lineWidth = 2.2;
       for (const s of c.stones) {
         const [x, y] = px(...parse(s));
         ctx.beginPath();
@@ -158,6 +158,28 @@ export function drawBoard(canvas, pos, opts = {}) {
     ctx.strokeStyle = v === BLACK ? "rgba(30,26,21,0.5)" : "rgba(118,108,88,0.55)";
     ctx.lineWidth = Math.max(0.8, r * 0.07);
     ctx.stroke();
+    // a faint ink wash inside the dome: a brush-loaded edge, not a flat UI
+    // gradient. Deterministic — the phase is derived from the board coordinate.
+    const [stoneR, stoneC] = parse(k);
+    const phase = (stoneR * 7 + stoneC * 3) % 5;
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(x, y, r * 0.96, 0, Math.PI * 2);
+    ctx.clip();
+    ctx.globalAlpha = v === BLACK ? 0.16 : 0.12;
+    ctx.strokeStyle = v === BLACK ? "#8C8377" : "#B9AE99";
+    ctx.lineWidth = Math.max(1, r * 0.075);
+    ctx.beginPath();
+    ctx.arc(x - r * 0.16 + phase * r * 0.05, y - r * 0.1,
+            r * 0.72, 0.3 + phase * 0.22, 1.9 + phase * 0.22);
+    ctx.stroke();
+    ctx.globalAlpha = v === BLACK ? 0.1 : 0.08;
+    ctx.beginPath();
+    ctx.arc(x + r * 0.12, y + r * 0.14, r * 0.5,
+            2.1 + phase * 0.18, 3.4 + phase * 0.18);
+    ctx.stroke();
+    ctx.restore();
+    ctx.globalAlpha = 1;
   }
 
 // liberty ticks: tiny breath marks on empty liberties of every chain
@@ -197,11 +219,11 @@ export function drawBoard(canvas, pos, opts = {}) {
     if (m.kind === "corridor") {
       // a quiet breath mark, not a dashed UI ring
       ctx.strokeStyle = PALETTE.sage;
-      ctx.globalAlpha = 0.55;
-      ctx.lineWidth = 1.1;
+      ctx.globalAlpha = 0.72;
+      ctx.lineWidth = 1.4;
       ctx.beginPath(); ctx.arc(x, y, cell * 0.17, 0, Math.PI * 2); ctx.stroke();
       ctx.fillStyle = PALETTE.sage;
-      ctx.globalAlpha = 0.22;
+      ctx.globalAlpha = 0.3;
       ctx.beginPath(); ctx.arc(x, y, cell * 0.06, 0, Math.PI * 2); ctx.fill();
       ctx.globalAlpha = 1;
     } else if (m.kind === "refused") {
@@ -224,10 +246,10 @@ export function drawBoard(canvas, pos, opts = {}) {
     } else if (m.kind === "hint") {
       // the guided game's gentle nudge: a soft ring on the point grandpa means
       ctx.strokeStyle = PALETTE.sage;
-      ctx.globalAlpha = 0.8;
-      ctx.lineWidth = 2;
+      ctx.globalAlpha = 0.95;
+      ctx.lineWidth = 2.4;
       ctx.beginPath(); ctx.arc(x, y, cell * 0.3, 0, Math.PI * 2); ctx.stroke();
-      ctx.globalAlpha = 0.2;
+      ctx.globalAlpha = 0.28;
       ctx.fillStyle = PALETTE.sage;
       ctx.beginPath(); ctx.arc(x, y, cell * 0.3, 0, Math.PI * 2); ctx.fill();
       ctx.globalAlpha = 1;
