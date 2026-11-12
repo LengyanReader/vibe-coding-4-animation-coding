@@ -18,11 +18,10 @@
 // Everything is pure rendering of (finalPos, initialPos, viewIndex): no
 // randomness, so the contemplation is as reproducible as the game.
 
-import { PALETTE } from "./board-mirror.js";
-import { DHARMA as DHARMA_T, WARM as WARM_T, STONE as STONE_T, PAPER as PAPER_T } from "./tokens.js";
+import { DHARMA, STONE, PAPER } from "./tokens.js";
 import { key, parse, groupAt } from "./rules.js";
 
-const DHARMA = { ...WARM_T, ...DHARMA_T };  // warm reading; tokens override where defined
+// DHARMA comes from tokens.js — the views draw from the same palette as everything else.
 
 // square canvas: the contemplation canvas is drawn square (S x S)
 function pt(r, c, size, pad, cell) {
@@ -55,15 +54,15 @@ function stoneAt(ctx, x, y, r, color, C, alpha = 1) {
   // the dome: radial gradient — slate heart for black, shell sheen for white
   const g = ctx.createRadialGradient(x - r * 0.36, y - r * 0.4, r * 0.14, x, y, r * 1.1);
   if (color === 1) {
-    g.addColorStop(0, STONE_T.blackHi);
+    g.addColorStop(0, STONE.blackHi);
     g.addColorStop(0.55, C.stone);
-    g.addColorStop(1, STONE_T.blackLo);
+    g.addColorStop(1, STONE.blackLo);
     ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2);
     ctx.fillStyle = g; ctx.fill();
   } else {
-    g.addColorStop(0, STONE_T.whiteHi);
+    g.addColorStop(0, STONE.whiteHi);
     g.addColorStop(0.55, C.whiteStone);
-    g.addColorStop(1, STONE_T.whiteLo);
+    g.addColorStop(1, STONE.whiteLo);
     ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2);
     ctx.fillStyle = g; ctx.fill();
     ctx.strokeStyle = C.inkSoft; ctx.lineWidth = 1.2; ctx.stroke();
@@ -79,7 +78,7 @@ export function drawDharmadhatuView(canvas, viewIndex, finalPos, initialPos,
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   const paper = ctx.createRadialGradient(S * 0.5, S * 0.42, S * 0.12, S * 0.5, S * 0.5, S * 0.72);
   paper.addColorStop(0, C.paper);
-  paper.addColorStop(1, PAPER_T.deep);
+  paper.addColorStop(1, PAPER.deep);
   ctx.fillStyle = paper;
   ctx.fillRect(0, 0, S, canvas.height);
 
@@ -178,8 +177,9 @@ export function drawDharmadhatuView(canvas, viewIndex, finalPos, initialPos,
 
   if (viewIndex === 3) {
     // 观四 事事无碍: Indra's net — every stone to every stone, and inside each
-    // stone a tiny reflected board (one contains the whole)
-    ctx.strokeStyle = C.amber;
+    // stone a tiny reflected board (one contains the whole). The one place
+    // 觉光金 appears (docs/art-bible.md §2.3): light revealed by understanding.
+    ctx.strokeStyle = C.gold;
     ctx.lineWidth = 0.8;
     ctx.globalAlpha = 0.35 + 0.25 * breathe;
     const all = [...finalPos.stones.keys()].map(parse);

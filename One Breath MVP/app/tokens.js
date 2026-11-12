@@ -98,6 +98,7 @@ export const WARM = {
 // --- the dharmadhatu views' palette -------------------------------------------
 export const DHARMA = {
   paper: "#F8F3E6",
+  amber: AMBER,
   inkSoft: INK.zhong,
   inkFaint: INK.qing,
   stone: STONE.black,

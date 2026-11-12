@@ -9,8 +9,8 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
-import { drawPanel, drawIcon, ICONS, WARM } from "../app/panels.js";
-import { PALETTE } from "../app/board-mirror.js";
+import { drawPanel, drawIcon, ICONS } from "../app/panels.js";
+import { PALETTE, WARM } from "../app/tokens.js";
 
 // a mock 2D context: every method records, every property assigns
 function mockCtx() {

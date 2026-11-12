@@ -22,14 +22,22 @@ html, body { margin: 0; padding: 0; }
 body {
   font-family: "Noto Serif SC", "Source Han Serif SC", "Songti SC", "SimSun", serif;
   background:
-    radial-gradient(ellipse at 50% -8%, rgba(196, 154, 82, 0.10), transparent 58%),
-    repeating-linear-gradient(90deg, rgba(89, 82, 71, 0.022) 0 1px, transparent 1px 4px),
+    radial-gradient(ellipse at 50% -8%, rgba(196, 154, 82, 0.07), transparent 58%),
+    repeating-linear-gradient(90deg, rgba(89, 82, 71, 0.018) 0 1px, transparent 1px 4px),
     var(--paper);
   color: var(--ink);
   line-height: 1.9;
   letter-spacing: 0.015em;
   min-height: 100vh;
+  transition: background 900ms ease;
 }
+/* the act color script (docs/art-bible.md §4): the world warms as understanding
+   grows — 遇见 mist → 气 plain → 对局 lamp → 照见 warm → 觉 lucid */
+body[data-act="meet"]   { --paper: #F6F4EE; }
+body[data-act="air"]    { --paper: #F8F5ED; }
+body[data-act="game"]   { --paper: #FAF4E6; }
+body[data-act="mirror"] { --paper: #FAF1E0; }
+body[data-act="lucid"]  { --paper: #FBF3E2; }
 #screen { max-width: 1040px; margin: 0 auto; padding: 2.4rem 1.4rem 4rem; }
 
 h1.brush {
@@ -105,12 +113,14 @@ button {
 }
 button:hover { background: rgba(89, 82, 71, 0.06); border-color: var(--ochre); }
 button:disabled { opacity: 0.4; cursor: default; }
+/* primary: a seal-red phrase inside an ink line — quiet, not a slab */
 button[data-act="lesson_next"], button[data-act="compare_continue"] {
-  background: var(--cinnabar); color: var(--paper-wash);
-  border-color: var(--cinnabar);
+  background: transparent; color: var(--cinnabar);
+  border: 1px solid rgba(163, 59, 43, 0.55);
+  letter-spacing: 0.12em;
 }
 button[data-act="lesson_next"]:hover, button[data-act="compare_continue"]:hover {
-  background: #8C3124; border-color: #8C3124;
+  background: rgba(163, 59, 43, 0.08); border-color: var(--cinnabar);
 }
 button.ghost {
   background: none; border: none; color: var(--ink-soft);
@@ -147,9 +157,10 @@ button.ghost {
 .card-badge {
   position: absolute; top: 0.9rem; right: 0.9rem;
   writing-mode: vertical-rl; text-orientation: upright;
-  font-size: 0.62rem; letter-spacing: 0.18em; line-height: 1.1;
-  color: var(--paper-wash); background: var(--cinnabar);
-  border-radius: 1px; padding: 0.3rem 0.18rem;
+  font-size: 0.58rem; letter-spacing: 0.2em; line-height: 1.1;
+  color: var(--cinnabar); background: transparent;
+  border: 1px solid rgba(163, 59, 43, 0.5);
+  border-radius: 1px; padding: 0.28rem 0.14rem;
 }
 
 .movement {
@@ -231,7 +242,14 @@ button.ghost {
 .lesson-head .masthead::after { display: none; }
 .lesson-chapter { color: var(--ochre); font-size: 0.8rem; letter-spacing: 0.24em; margin: 0; }
 .lesson-title { margin: 0.15em 0 0.5em; font-size: 1.55rem; letter-spacing: 0.12em; }
-.lesson-stage { display: flex; gap: 2.2rem; align-items: flex-start; }
+.lesson-screen .stage { flex-wrap: wrap; }   /* the head takes its own row */
+.lesson-stage { display: flex; gap: 2.2rem; align-items: flex-start; position: relative; width: 100%; }
+#lesson-scene {
+  position: absolute; inset: -1.5rem -1rem auto; height: 300px; width: calc(100% + 2rem);
+  z-index: 0; opacity: 0.9; pointer-events: none;
+}
+.lesson-stage > * { position: relative; z-index: 1; }
+#lesson-scene { z-index: 0; }
 .lesson-side { flex: 1 1 300px; max-width: 400px; padding-right: 0.6rem; padding-top: 0.35rem; }
 .lesson-side .row {
   margin-top: 1rem; padding-top: 0.8rem;

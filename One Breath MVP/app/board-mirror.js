@@ -7,11 +7,10 @@
 // no scores anywhere.
 
 import { emptyPosition, play, BLACK, WHITE, groupAt, key, parse, hashPosition, bestCaptureMove } from "./rules.js";
-import { PALETTE as TONES_PALETTE, INK, PAPER, STONE, SEAL, MOSS } from "./tokens.js";
+import { PALETTE, INK, PAPER, STONE, SEAL, MOSS } from "./tokens.js";
 
-// PALETTE keeps its public name for every importer; the values live in
-// app/tokens.js (the visual single source — docs/art-bible.md §2).
-export const PALETTE = TONES_PALETTE;
+// every importer takes PALETTE from app/tokens.js directly — the visual
+// single source (docs/art-bible.md §2). This module only consumes it.
 export const TONES = { INK, PAPER, STONE, SEAL, MOSS };
 
 export function positionFromSpec(boardSpec, beatName) {

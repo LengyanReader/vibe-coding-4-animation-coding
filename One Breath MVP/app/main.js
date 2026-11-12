@@ -12,7 +12,8 @@ import { makeT, loadLang, saveLang, resolveText } from "./i18n.js";
 import { newWalk, choose, renderNode, isEnding } from "./vignette.js";
 import { emptyPosition, play, key, groupAt, BLACK, WHITE } from "./rules.js";
 import { positionFromSpec, drawBoard, chainsAt, hitTest } from "./board-mirror.js";
-import { drawPanel, drawIcon } from "./panels.js";
+import { drawPanel, drawIcon, drawAmbient } from "./panels.js";
+import { ACTS } from "./tokens.js";
 import { drawDharmadhatuView, VIEW_COUNT } from "./dharmadhatu.js";
 import { newLessonWalk, currentStep, clickPoint, pressPass, resetStep, advanceStep, skipStep, isDone, roleAnchor, positionForStep } from "./teaching.js";
 
@@ -35,6 +36,33 @@ const state = {
   compare: null,           // {nodeId, step, foundYou, messageKey, vars}
 };
 
+// --- the act color script (docs/art-bible.md §4) -------------------------------
+// The page shifts tone as the player moves through the arc: 遇见(0) → 气(1) →
+// 对局(2) → 照见(3) → 觉(4). The canvases read the act from drawPanel/drawAmbient;
+// the chrome reads it from body[data-act].
+
+function currentAct() {
+  if (!state.walk) return 0;
+  const v = vignettes[state.vignetteId];
+  const node = v?.nodes[state.walk.node];
+  if (node?.lesson) {
+    const step = state.lesson ? currentStep(state.lesson) : null;
+    if (step?.kind === "game") return 2;
+    if (step?.id === "l1_breath") return 0;
+    return 1;
+  }
+  if (node?.compare) return 3;
+  if (node?.sit || node?.movement === "release" || node?.movement === "respond") return 4;
+  if (isEnding(state.walk)) return 4;
+  return node?.movement === "encounter" ? 0 : 1;
+}
+
+function applyAct() {
+  const act = currentAct();
+  document.body.dataset.act = ACTS[act].id;
+  return act;
+}
+
 const $ = (sel) => document.querySelector(sel);
 
 function t(key, vars) {
@@ -52,6 +80,7 @@ function langText(pair, vars) {
 // --- title screen ------------------------------------------------------------
 
 function renderTitle() {
+  applyAct();
   const root = $("#screen");
   const ordered = Object.values(vignettes)
     .sort((a, b) => (a.chapter ?? 9) - (b.chapter ?? 9) || a.id.localeCompare(b.id));
@@ -199,7 +228,7 @@ function renderScreen(walk) {
           <p class="mirror-caption" id="mirror-caption">${t("mirror_caption")}</p>
         </div>`)}
     </section>`;
-  drawPanel($("#panel"), panel, { reducedMotion: state.reducedMotion, warm });
+  drawPanel($("#panel"), panel, { reducedMotion: state.reducedMotion, warm, act: currentAct() });
   for (const cv of root.querySelectorAll("canvas[data-icon]")) {
     drawIcon(cv, cv.dataset.icon);
   }
@@ -288,6 +317,7 @@ function renderLesson(walk, v, node) {
           <div class="story-text">${escapeHtml(resolveText(node.text, state.lang, walk.flags)).replaceAll("\n\n", "</p><p class='story-text'>")}</div>
         </div>
         <div class="lesson-stage">
+          <canvas id="lesson-scene" width="640" height="420" aria-hidden="true"></canvas>
           <canvas id="lesson-board" width="420" height="420"
             aria-label="${t("lesson.board_caption")}"></canvas>
           <div class="lesson-side">
@@ -308,6 +338,19 @@ function renderLesson(walk, v, node) {
         </div>`)}
     </section>`;
   drawLessonBoard();
+  const sceneByAct = ["room", "corridor", "room", "", ""];
+  const sc = $("#lesson-scene");
+  if (sc) {
+    // draw at the laid-out pixel size so the atmosphere never stretches
+    sc.width = Math.max(320, Math.round(sc.getBoundingClientRect().width));
+    sc.height = 300;
+    drawAmbient(sc, {
+      act: currentAct(),
+      scene: sceneByAct[currentAct()],
+      time: performance.now(),
+      reducedMotion: state.reducedMotion,
+    });
+  }
 }
 
 // --- Chapter 0 · the comparison screen ------------------------------------------
@@ -488,7 +531,7 @@ function renderEnding(walk) {
           <p class="mirror-caption">${t("afterimage_caption")}</p>
         </div>`)}
     </section>`;
-  drawPanel($("#panel"), panel, { reducedMotion: state.reducedMotion, warm });
+  drawPanel($("#panel"), panel, { reducedMotion: state.reducedMotion, warm, act: currentAct() });
   for (const cv of root.querySelectorAll("canvas[data-icon]")) {
     drawIcon(cv, cv.dataset.icon);
   }
@@ -686,6 +729,7 @@ document.addEventListener("click", (e) => {
 });
 
 function render() {
+  applyAct();
   if (!state.walk) return renderTitle();
   if (isEnding(state.walk)) return renderEnding(state.walk);
   return renderScreen(state.walk);

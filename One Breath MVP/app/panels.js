@@ -7,39 +7,40 @@
 // meaning; the picture does. All shapes are vector primitives so the panels
 // are deterministic and zoom-clean.
 
-import { PALETTE } from "./board-mirror.js";
-import { WARM as WARM_TOKENS, INK as INK_TONES, PAPER as PAPER_T, STONE as STONE_T, AMBER as AMBER_T } from "./tokens.js";
+import { PALETTE, WARM, INK, PAPER, STONE, AMBER, ACTS, DAI, MOSS, GOLD } from "./tokens.js";
 
 // 清雅温馨 palette for the warm panels (case two): cream paper, soft brown
 // ink, sage and amber accents — 治愈系 shape language instead of stark ink.
-export const WARM = WARM_TOKENS;
+// WARM (the warm case variant) comes from tokens.js — no local redeclaration.
 
 let C = { ...PALETTE };   // active palette, set per draw call (ink or warm)
-let INK = C.ink, SOFT = C.inkSoft, FAINT = C.inkFaint, RED = C.sealRed;
+let INK_CUR = C.ink, SOFT = C.inkSoft, FAINT = C.inkFaint, RED = C.sealRed;
 
 // 五级墨色: 焦浓重淡清 — the classical ink scale every primitive draws from.
-const INK_SCALE = INK_TONES;
+const INK_SCALE = INK;
 
-function ctxSetup(canvas, warm = false) {
+function ctxSetup(canvas, warm = false, act = -1) {
   C = warm ? { ...PALETTE, ...WARM } : PALETTE;
-  INK = C.ink; SOFT = C.inkSoft; FAINT = C.inkFaint; RED = C.sealRed;
+  INK_CUR = C.ink; SOFT = C.inkSoft; FAINT = C.inkFaint; RED = C.sealRed;
   const ctx = canvas.getContext("2d");
   const W = canvas.width, H = canvas.height;
   ctx.clearRect(0, 0, W, H);
   // the paper itself is a wash: warm at the heart, cooler at the edges —
-  // not a flat fill. Deterministic, so the build stays reproducible.
+  // and, when an act is given, the heart takes the act's paper from the
+  // color script (docs/art-bible.md §4: the world shifts as understanding grows)
+  const heart = (act >= 0 && act < ACTS.length && !warm)
+    ? ACTS[act].paper : C.paper;
   const g = ctx.createRadialGradient(W * 0.5, H * 0.42, H * 0.1, W * 0.5, H * 0.5, Math.max(W, H) * 0.75);
-  g.addColorStop(0, C.paper);
-  g.addColorStop(1, warm ? PAPER_T.warmRim : PAPER_T.deep);
+  g.addColorStop(0, heart);
+  g.addColorStop(1, warm ? PAPER.warmRim : PAPER.deep);
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, W, H);
-  // 册页 border: a fine double frame with a heavier outer stroke
-  ctx.strokeStyle = INK_SCALE.dan;
-  ctx.lineWidth = Math.max(1.2, H * 0.004);
-  ctx.strokeRect(W * 0.028, H * 0.032, W * 0.944, H * 0.936);
+  // one hairline frame: the panel breathes, it is not mounted
   ctx.strokeStyle = INK_SCALE.qing;
+  ctx.globalAlpha = 0.7;
   ctx.lineWidth = Math.max(0.8, H * 0.002);
-  ctx.strokeRect(W * 0.04, H * 0.044, W * 0.92, H * 0.912);
+  ctx.strokeRect(W * 0.032, H * 0.036, W * 0.936, H * 0.928);
+  ctx.globalAlpha = 1;
   // paper grain: three horizontal wash strokes + deterministic fibre flecks
   ctx.strokeStyle = warm ? "rgba(138,155,142,0.18)" : "rgba(183,174,161,0.2)";
   ctx.lineWidth = H * 0.012;
@@ -105,7 +106,7 @@ function brushPath(ctx, pts, w, tone) {
   ctx.fill();
 }
 
-function brushLine(ctx, x1, y1, x2, y2, w = 3, tone = INK) {
+function brushLine(ctx, x1, y1, x2, y2, w = 3, tone = INK_CUR) {
   // subdivide so the tremble has room to breathe
   const n = Math.max(4, Math.round(Math.hypot(x2 - x1, y2 - y1) / 14));
   const pts = [];
@@ -116,7 +117,7 @@ function brushLine(ctx, x1, y1, x2, y2, w = 3, tone = INK) {
   brushPath(ctx, pts, w, tone);
 }
 
-function brushArc(ctx, x, y, r, w = 3, tone = INK, a0 = 0, a1 = Math.PI * 2) {
+function brushArc(ctx, x, y, r, w = 3, tone = INK_CUR, a0 = 0, a1 = Math.PI * 2) {
   const n = 14;
   const pts = [];
   for (let i = 0; i <= n; i++) {
@@ -129,7 +130,7 @@ function brushArc(ctx, x, y, r, w = 3, tone = INK, a0 = 0, a1 = Math.PI * 2) {
 function inkWash(ctx, x, y, r, tone, alpha = 0.5) {
   // a dropped-ink bloom: dense heart, dissolving rim
   const g = ctx.createRadialGradient(x, y, r * 0.1, x, y, r);
-  const col = tone ?? INK;
+  const col = tone ?? INK_CUR;
   g.addColorStop(0, hexA(col, alpha));
   g.addColorStop(0.7, hexA(col, alpha * 0.45));
   g.addColorStop(1, hexA(col, 0));
@@ -145,7 +146,7 @@ function hexA(hex, a) {
   return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`;
 }
 
-function eave(ctx, x, y, w, h, tone = INK) {
+function eave(ctx, x, y, w, h, tone = INK_CUR) {
   // 飞檐: a roof line whose two tips sweep upward — the signature of a
   // classical building, drawn in one tapering stroke
   const pts = [];
@@ -197,13 +198,13 @@ function panelStone(ctx, x, y, r, which = "black") {
   const base = which === "black" ? C.blackStone : C.whiteStone;
   const g = ctx.createRadialGradient(x - r * 0.35, y - r * 0.4, r * 0.15, x, y, r * 1.15);
   if (which === "black") {
-    g.addColorStop(0, STONE_T.blackHi);
+    g.addColorStop(0, STONE.blackHi);
     g.addColorStop(0.55, base);
-    g.addColorStop(1, STONE_T.blackLo);
+    g.addColorStop(1, STONE.blackLo);
   } else {
-    g.addColorStop(0, STONE_T.whiteHi);
+    g.addColorStop(0, STONE.whiteHi);
     g.addColorStop(0.6, base);
-    g.addColorStop(1, STONE_T.whiteLo);
+    g.addColorStop(1, STONE.whiteLo);
   }
   ctx.fillStyle = g;
   ctx.beginPath();
@@ -229,7 +230,7 @@ function sealChar(ctx, x, y, s, text = "一息") {
 // a person as a robed ink silhouette; pose changes the sleeves and the lean.
 // Coordinate contract preserved from the old stick figure: feet at y=0,
 // head centre at y=-78, so every existing scene call keeps its scale.
-function figure(ctx, x, y, s, { pose = "stand", flip = false, tone = INK } = {}) {
+function figure(ctx, x, y, s, { pose = "stand", flip = false, tone = INK_CUR } = {}) {
   const f = (dx) => (flip ? -dx : dx);
   ctx.save();
   ctx.translate(x, y);
@@ -319,7 +320,7 @@ function table(ctx, x, y, w, h) {
   brushLine(ctx, x + w, y, x + w, y + h, 2.6, SOFT);
 }
 
-function burst(ctx, x, y, r, tone = INK) {
+function burst(ctx, x, y, r, tone = INK_CUR) {
   // jagged speech-burst: the shape of words said too loud
   ctx.strokeStyle = tone;
   ctx.fillStyle = "rgba(176,58,46,0.08)";
@@ -412,22 +413,22 @@ function watchers(ctx, x, y, n, s) {
 function shopfront(ctx, x, y, w, h, { glow = false } = {}) {
   ctx.fillStyle = "rgba(38,34,29,0.05)";
   ctx.fillRect(x, y, w, h);
-  brushLine(ctx, x, y, x + w, y, 2.6, INK);
-  brushLine(ctx, x, y, x, y + h, 2.4, INK);
-  brushLine(ctx, x + w, y, x + w, y + h, 2.4, INK);
+  brushLine(ctx, x, y, x + w, y, 2.6, INK_CUR);
+  brushLine(ctx, x, y, x, y + h, 2.4, INK_CUR);
+  brushLine(ctx, x + w, y, x + w, y + h, 2.4, INK_CUR);
   ctx.strokeStyle = SOFT;
   ctx.lineWidth = 1.5;
   ctx.strokeRect(x + w * 0.14, y + h * 0.2, w * 0.72, h * 0.46);
   // the awning above the shop window: a small eave
   eave(ctx, x + w * 0.18, y - h * 0.14, w * 0.64, h * 0.07, SOFT);
   if (glow) {
-    inkWash(ctx, x + w * 0.5, y + h * 0.43, w * 0.3, AMBER_T, 0.4);
+    inkWash(ctx, x + w * 0.5, y + h * 0.43, w * 0.3, AMBER, 0.4);
   }
 }
 
 function openHandWithStone(ctx, x, y, s) {
   // 放下: an open palm, and the stone resting BESIDE it — not in it
-  ctx.strokeStyle = INK;
+  ctx.strokeStyle = INK_CUR;
   ctx.lineWidth = 4;
   ctx.lineCap = "round";
   ctx.beginPath();
@@ -463,12 +464,123 @@ function movementMark(ctx, x, y, index, total = 4) {
   }
 }
 
+// --- the atmosphere system (留白 · 气韵 · 觉光) ---------------------------------
+// The world the panels float in: act paper, far hills, drifting mist, and the
+// breath motes — Journey's sand translated into ink. Every phase is seeded by
+// coordinate or index, never Math.random; reducedMotion freezes the drift.
+
+function farHills(ctx, W, H, horizon, tone, alpha) {
+  // one undulating silhouette across the frame — a mountain range breathing out
+  const ridge = [];
+  const n = 14;
+  for (let i = 0; i <= n; i++) {
+    const u = i / n;
+    const y = horizon
+      - Math.sin(u * Math.PI * 1.7 + 0.6) * H * 0.055
+      - Math.sin(u * Math.PI * 3.1) * H * 0.02;
+    ridge.push([W * (u * 1.04 - 0.02), y]);
+  }
+  ctx.globalAlpha = alpha;
+  ctx.fillStyle = tone;
+  ctx.beginPath();
+  ctx.moveTo(ridge[0][0], ridge[0][1]);
+  for (let i = 1; i < ridge.length; i++) {
+    const [px, py] = ridge[i - 1], [cx, cy] = ridge[i];
+    ctx.quadraticCurveTo(px, py, (px + cx) / 2, (py + cy) / 2);
+  }
+  ctx.lineTo(W * 1.02, H * 1.02);
+  ctx.lineTo(-W * 0.02, H * 1.02);
+  ctx.closePath();
+  ctx.fill();
+  ctx.globalAlpha = 1;
+}
+
+function mistBand(ctx, W, H, y, h, drift, alpha) {
+  // a slow horizontal band of paper-coloured haze
+  const g = ctx.createLinearGradient(0, y - h, 0, y + h);
+  g.addColorStop(0, "rgba(250,247,238,0)");
+  g.addColorStop(0.5, `rgba(250,247,238,${alpha})`);
+  g.addColorStop(1, "rgba(250,247,238,0)");
+  ctx.save();
+  ctx.translate(drift, 0);
+  ctx.fillStyle = g;
+  ctx.fillRect(-W * 0.1, y - h, W * 1.2, h * 2);
+  ctx.restore();
+}
+
+function breathMotes(ctx, W, H, time, tone, reducedMotion) {
+  // ≤9 motes, sine drift, coordinate-seeded — the visible breath of the room
+  for (let i = 0; i < 7; i++) {
+    const seedX = ((i * 137.508) % 100) / 100;
+    const seedY = ((i * 61.803) % 100) / 100;
+    const phase = i * 1.7;
+    const drift = reducedMotion ? 0 : Math.sin(time / 7000 + phase) * W * 0.012;
+    const lift = reducedMotion ? 0 : Math.cos(time / 9000 + phase) * H * 0.015;
+    const x = W * (0.12 + seedX * 0.76) + drift;
+    const y = H * (0.22 + seedY * 0.5) + lift;
+    ctx.globalAlpha = 0.14 + 0.08 * Math.sin(time / 5200 + phase * 2);
+    ctx.fillStyle = tone;
+    ctx.beginPath();
+    ctx.arc(x, y, 1.1 + (i % 3) * 0.5, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+}
+
+export function drawAmbient(canvas, { act = 0, scene = "", time = 0, reducedMotion = false, warm = false } = {}) {
+  const ctx = ctxSetup(canvas, warm, act);
+  const W = canvas.width, H = canvas.height;
+  const script = ACTS[act] ?? ACTS[0];
+  // far hills: two ranges, the nearer one fainter (the vale opens as you act)
+  farHills(ctx, W, H, H * 0.78, DAI, act === 0 ? 0.10 : 0.07);
+  farHills(ctx, W, H, H * 0.86, INK_SCALE.qing, 0.20);
+  // mist: two slow bands hugging the hill bases
+  const drift = reducedMotion ? 0 : (time / 900) % (W * 0.14) - W * 0.07;
+  mistBand(ctx, W, H, H * 0.80, H * 0.075, drift * 0.6, 0.5);
+  mistBand(ctx, W, H, H * 0.90, H * 0.09, -drift, 0.42);
+  // scene motifs — quiet furniture of the act, drawn into the atmosphere
+  if (scene === "room") {
+    // the window: light enters from the upper RIGHT (the board owns the left)
+    ctx.strokeStyle = INK_SCALE.dan;
+    ctx.globalAlpha = 0.5;
+    ctx.lineWidth = Math.max(1, H * 0.004);
+    ctx.strokeRect(W * 0.72, H * 0.1, W * 0.19, H * 0.32);
+    ctx.lineWidth = Math.max(0.7, H * 0.002);
+    ctx.beginPath();
+    ctx.moveTo(W * 0.815, H * 0.1); ctx.lineTo(W * 0.815, H * 0.42);
+    ctx.moveTo(W * 0.72, H * 0.26); ctx.lineTo(W * 0.91, H * 0.26);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+    inkWash(ctx, W * 0.815, H * 0.26, W * 0.15, script.accent, 0.10);
+  } else if (scene === "corridor") {
+    // the two shopfronts, far away: two faint verticals at the frame edges
+    ctx.strokeStyle = INK_SCALE.dan;
+    ctx.globalAlpha = 0.4;
+    ctx.lineWidth = Math.max(1, H * 0.003);
+    ctx.beginPath();
+    ctx.moveTo(W * 0.36, H * 0.3); ctx.lineTo(W * 0.36, H * 0.72);
+    ctx.moveTo(W * 0.97, H * 0.3); ctx.lineTo(W * 0.97, H * 0.72);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+  if (act >= 2) inkWash(ctx, W * 0.82, H * 0.2, W * 0.12, AMBER, act >= 4 ? 0.16 : 0.10);
+  // the motes: gold belongs to 觉 alone
+  breathMotes(ctx, W, H, time, act === 4 ? GOLD : MOSS, reducedMotion);
+  // dissolve the band's bottom edge into the page — no hard cut
+  const fade = ctx.createLinearGradient(0, H * 0.72, 0, H);
+  fade.addColorStop(0, "rgba(255,255,255,0)");
+  fade.addColorStop(1, hexA(script.paper, 0.9));
+  ctx.fillStyle = fade;
+  ctx.fillRect(0, H * 0.72, W, H * 0.28);
+  return ctx;
+}
+
 const MOVEMENT_INDEX = { encounter: 0, interrelate: 1, release: 2, respond: 3, ending: 3 };
 
 // --- scene templates ----------------------------------------------------------
 
-export function drawPanel(canvas, panel, { time = 0, reducedMotion = false, warm = false } = {}) {
-  const ctx = ctxSetup(canvas, warm);
+export function drawPanel(canvas, panel, { time = 0, reducedMotion = false, warm = false, act = -1 } = {}) {
+  const ctx = ctxSetup(canvas, warm, act);
   const W = canvas.width, H = canvas.height;
   const idx = MOVEMENT_INDEX[panel.movement] ?? 0;
   movementMark(ctx, W * 0.42, H * 0.07, idx);
@@ -543,9 +655,53 @@ export function drawPanel(canvas, panel, { time = 0, reducedMotion = false, warm
       figure(ctx, W * 0.5, H * 0.86, H / 490, { pose: "stand" });
       break;
     }
+    case "encounter-room": {
+      // Act 1 遇见: the teaching room at dawn — window light, a low table,
+      // the board waiting between two people. Cool, quiet, not yet awake.
+      farHills(ctx, W, H, H * 0.72, DAI, 0.08);
+      // window light from the upper left
+      ctx.strokeStyle = INK_SCALE.dan;
+      ctx.globalAlpha = 0.55;
+      ctx.lineWidth = Math.max(1, H * 0.004);
+      ctx.strokeRect(W * 0.08, H * 0.12, W * 0.17, H * 0.3);
+      ctx.lineWidth = Math.max(0.7, H * 0.002);
+      ctx.beginPath();
+      ctx.moveTo(W * 0.165, H * 0.12); ctx.lineTo(W * 0.165, H * 0.42);
+      ctx.moveTo(W * 0.08, H * 0.27); ctx.lineTo(W * 0.25, H * 0.27);
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+      inkWash(ctx, W * 0.165, H * 0.27, W * 0.15, DAI, 0.12);
+      // the low table
+      brushLine(ctx, W * 0.18, H * 0.66, W * 0.82, H * 0.66, 3.2, SOFT);
+      brushLine(ctx, W * 0.22, H * 0.66, W * 0.2, H * 0.84, 2.6, SOFT);
+      brushLine(ctx, W * 0.78, H * 0.66, W * 0.8, H * 0.84, 2.6, SOFT);
+      // the board on the table: a small grid, empty, waiting
+      const bx = W * 0.42, by = H * 0.5, bw = W * 0.2;
+      ctx.strokeStyle = INK_SCALE.zhong;
+      ctx.globalAlpha = 0.75;
+      ctx.lineWidth = Math.max(0.9, H * 0.003);
+      ctx.strokeRect(bx - bw * 0.08, by - bw * 0.08, bw * 1.16, bw * 1.16);
+      for (let i = 1; i < 4; i++) {
+        const u = bx + (i * bw) / 4;
+        const v = by + (i * bw) / 4;
+        ctx.beginPath(); ctx.moveTo(u, by); ctx.lineTo(u, by + bw); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(bx, v); ctx.lineTo(bx + bw, v); ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+      // grandpa, seated opposite — a quiet presence in 淡 ink
+      figure(ctx, W * 0.32, H * 0.62, H / 560, { pose: "sit", tone: INK_SCALE.dan });
+      // a cup of tea, still
+      ctx.strokeStyle = INK_SCALE.zhong;
+      ctx.lineWidth = Math.max(1.2, H * 0.003);
+      ctx.beginPath();
+      ctx.arc(W * 0.68, H * 0.615, H * 0.022, 0, Math.PI);
+      ctx.stroke();
+      brushLine(ctx, W * 0.655, H * 0.615, W * 0.705, H * 0.615, 1.6, INK_SCALE.zhong);
+      break;
+    }
     case "grandpa-room": {
       // warm lamp glow + two figures across a board, under an eave, by bamboo
-      inkWash(ctx, W * 0.5, H * 0.24, H * 0.2, AMBER_T, 0.35);
+      inkWash(ctx, W * 0.5, H * 0.24, H * 0.2, AMBER, 0.35);
       ctx.strokeStyle = C.amber; ctx.lineWidth = 2;
       ctx.beginPath(); ctx.arc(W * 0.5, H * 0.24, H * 0.05, 0, Math.PI * 2); ctx.stroke();
       eave(ctx, W * 0.16, H * 0.12, W * 0.68, H * 0.05, SOFT);
@@ -636,13 +792,13 @@ export function drawPanel(canvas, panel, { time = 0, reducedMotion = false, warm
       watchers(ctx, W * 0.42, H * 0.52, 3, H / 500);
       burst(ctx, W * 0.62, H * 0.24, H * 0.13, RED);
       // the mind-frame, drawn as a split bar: 我对你错, picture not words
-      ctx.strokeStyle = INK;
+      ctx.strokeStyle = INK_CUR;
       ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.moveTo(W * 0.44, H * 0.26);
       ctx.lineTo(W * 0.56, H * 0.26);
       ctx.stroke();
-      ctx.fillStyle = INK;
+      ctx.fillStyle = INK_CUR;
       ctx.beginPath();
       ctx.arc(W * 0.44, H * 0.26, 4, 0, Math.PI * 2);
       ctx.fill();
@@ -710,7 +866,7 @@ export function drawPanel(canvas, panel, { time = 0, reducedMotion = false, warm
     case "mirror-hub": {
       // the board itself as the protagonist: a framed board under an eave
       eave(ctx, W * 0.28, H * 0.14, W * 0.44, H * 0.045, SOFT);
-      ctx.strokeStyle = INK;
+      ctx.strokeStyle = INK_CUR;
       ctx.lineWidth = 2;
       ctx.strokeRect(W * 0.3, H * 0.2, W * 0.4, W * 0.4);
       ctx.strokeStyle = INK_SCALE.dan; ctx.lineWidth = 0.9;
@@ -738,7 +894,7 @@ export function drawPanel(canvas, panel, { time = 0, reducedMotion = false, warm
       ctx.fillRect(W * 0.36, H * 0.66, W * 0.12, H * 0.14);
       ctx.fillRect(W * 0.37, H * 0.55, W * 0.1, H * 0.1);
       // shelf
-      ctx.strokeStyle = INK;
+      ctx.strokeStyle = INK_CUR;
       ctx.lineWidth = 2.5;
       ctx.strokeRect(W * 0.58, H * 0.5, W * 0.05, H * 0.3);
       ctx.beginPath();
@@ -765,7 +921,7 @@ export function drawPanel(canvas, panel, { time = 0, reducedMotion = false, warm
       shopfront(ctx, W * 0.03, H * 0.28, W * 0.3, H * 0.58, { glow: true });
       shopfront(ctx, W * 0.67, H * 0.28, W * 0.3, H * 0.58, { glow: true });
       // dawn: a rising amber sun with its wash, between the two roofs
-      inkWash(ctx, W * 0.5, H * 0.2, H * 0.16, AMBER_T, 0.4);
+      inkWash(ctx, W * 0.5, H * 0.2, H * 0.16, AMBER, 0.4);
       brushArc(ctx, W * 0.5, H * 0.2, H * 0.05, 2.2, C.amber ?? C.sealRed);
       figure(ctx, W * 0.42, H * 0.86, H / 500, { pose: "stand" });
       figure(ctx, W * 0.58, H * 0.86, H / 500, { pose: "stand", flip: true });
@@ -785,7 +941,7 @@ export function drawPanel(canvas, panel, { time = 0, reducedMotion = false, warm
 export const ICONS = {
   lid: (ctx, s) => {
     // closing the lid: a laptop closing, the screen line folding down
-    ctx.strokeStyle = INK; ctx.lineWidth = 3.5;
+    ctx.strokeStyle = INK_CUR; ctx.lineWidth = 3.5;
     ctx.beginPath(); ctx.moveTo(-s * 0.3, -s * 0.18); ctx.lineTo(s * 0.3, -s * 0.18);
     ctx.lineTo(s * 0.3, s * 0.12); ctx.lineTo(-s * 0.3, s * 0.12); ctx.closePath(); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(-s * 0.34, s * 0.28); ctx.lineTo(s * 0.34, s * 0.28); ctx.stroke();
@@ -806,12 +962,12 @@ export const ICONS = {
     ctx.beginPath(); ctx.arc(0, -s * 0.05, s * 0.3, 0, Math.PI * 2); ctx.fill();
     ctx.strokeStyle = C.amber; ctx.lineWidth = 3;
     ctx.beginPath(); ctx.arc(0, -s * 0.05, s * 0.12, 0, Math.PI * 2); ctx.stroke();
-    ctx.strokeStyle = INK; ctx.lineWidth = 2;
+    ctx.strokeStyle = INK_CUR; ctx.lineWidth = 2;
     ctx.beginPath(); ctx.moveTo(-s * 0.26, s * 0.3); ctx.lineTo(s * 0.26, s * 0.3); ctx.stroke();
   },
   third_road: (ctx, s) => {
     // a third road: a curve rising past two fixed points
-    ctx.strokeStyle = INK; ctx.lineWidth = 3;
+    ctx.strokeStyle = INK_CUR; ctx.lineWidth = 3;
     ctx.beginPath(); ctx.moveTo(-s * 0.34, s * 0.26);
     ctx.bezierCurveTo(-s * 0.1, -s * 0.1, s * 0.1, -s * 0.34, s * 0.36, -s * 0.3);
     ctx.stroke();
@@ -821,7 +977,7 @@ export const ICONS = {
   },
   study: (ctx, s) => {
     // studying with the engine: a screen with an opening shape on it
-    ctx.strokeStyle = INK; ctx.lineWidth = 3;
+    ctx.strokeStyle = INK_CUR; ctx.lineWidth = 3;
     ctx.strokeRect(-s * 0.3, -s * 0.26, s * 0.6, s * 0.46);
     ctx.strokeStyle = C.dusk; ctx.lineWidth = 2.5;
     ctx.beginPath(); ctx.moveTo(-s * 0.18, s * 0.06); ctx.lineTo(-s * 0.04, -s * 0.12);
@@ -831,12 +987,12 @@ export const ICONS = {
     // only play people: two figures across a small board
     figure(ctx, -s * 0.26, s * 0.3, s / 150, { pose: "sit" });
     figure(ctx, s * 0.26, s * 0.3, s / 150, { pose: "sit", flip: true });
-    ctx.strokeStyle = INK; ctx.lineWidth = 2;
+    ctx.strokeStyle = INK_CUR; ctx.lineWidth = 2;
     ctx.strokeRect(-s * 0.1, s * 0.08, s * 0.2, s * 0.14);
   },
   teach: (ctx, s) => {
     // teaching a child: a large hand and a small hand, one stone between
-    ctx.strokeStyle = INK; ctx.lineWidth = 3.5;
+    ctx.strokeStyle = INK_CUR; ctx.lineWidth = 3.5;
     ctx.beginPath(); ctx.arc(-s * 0.14, s * 0.05, s * 0.14, 0, Math.PI * 2); ctx.stroke();
     ctx.beginPath(); ctx.arc(s * 0.2, s * 0.14, s * 0.09, 0, Math.PI * 2); ctx.stroke();
     ctx.beginPath(); ctx.arc(s * 0.02, -s * 0.06, s * 0.05, 0, Math.PI * 2);
@@ -844,7 +1000,7 @@ export const ICONS = {
   },
   shelve: (ctx, s) => {
     // the board on the shelf, waiting
-    ctx.strokeStyle = INK; ctx.lineWidth = 3;
+    ctx.strokeStyle = INK_CUR; ctx.lineWidth = 3;
     ctx.beginPath(); ctx.moveTo(-s * 0.34, -s * 0.14); ctx.lineTo(s * 0.34, -s * 0.14); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(-s * 0.34, s * 0.3); ctx.lineTo(s * 0.34, s * 0.3); ctx.stroke();
     ctx.strokeRect(-s * 0.18, -s * 0.02, s * 0.36, s * 0.14);
@@ -873,10 +1029,10 @@ export const ICONS = {
     ctx.fill();
   },
   remember: (ctx, s) => {
-    ctx.strokeStyle = INK; ctx.lineWidth = 3;
+    ctx.strokeStyle = INK_CUR; ctx.lineWidth = 3;
     ctx.beginPath(); ctx.arc(0, 0, s * 0.32, 0, Math.PI * 2); ctx.stroke();
     ctx.beginPath(); ctx.arc(0, 0, s * 0.06, 0, Math.PI * 2);
-    ctx.fillStyle = INK; ctx.fill();
+    ctx.fillStyle = INK_CUR; ctx.fill();
   },
   eye_his: (ctx, s) => {
     figure(ctx, 0, s * 0.34, s / 130, { pose: "hold" });
@@ -890,7 +1046,7 @@ export const ICONS = {
   },
   seen_all: (ctx, s) => {
     for (const u of [-0.3, 0, 0.3]) {
-      ctx.strokeStyle = INK; ctx.lineWidth = 2;
+      ctx.strokeStyle = INK_CUR; ctx.lineWidth = 2;
       ctx.beginPath(); ctx.arc(u * s, 0, s * 0.1, 0, Math.PI * 2); ctx.stroke();
     }
     ctx.strokeStyle = FAINT; ctx.lineWidth = 1.5;
@@ -911,7 +1067,7 @@ export const ICONS = {
     ctx.fillStyle = PALETTE.blackStone; ctx.fill();
   },
   solidify: (ctx, s) => {
-    ctx.strokeStyle = INK; ctx.lineWidth = 3;
+    ctx.strokeStyle = INK_CUR; ctx.lineWidth = 3;
     for (const [dx, dy] of [[-0.18, 0.08], [0, 0.08], [0.18, 0.08]]) {
       ctx.beginPath(); ctx.arc(dx * s, dy * s, s * 0.11, 0, Math.PI * 2); ctx.stroke();
     }
@@ -922,7 +1078,7 @@ export const ICONS = {
     ctx.beginPath(); ctx.arc(0, 0, s * 0.3, 0, Math.PI * 2); ctx.stroke();
   },
   back_room: (ctx, s) => {
-    ctx.strokeStyle = INK; ctx.lineWidth = 3;
+    ctx.strokeStyle = INK_CUR; ctx.lineWidth = 3;
     ctx.beginPath(); ctx.moveTo(-s * 0.26, -s * 0.24); ctx.lineTo(-s * 0.26, s * 0.3);
     ctx.lineTo(s * 0.26, s * 0.3); ctx.lineTo(s * 0.26, -s * 0.24); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(-s * 0.34, -s * 0.24); ctx.lineTo(0, -s * 0.42);
@@ -931,23 +1087,23 @@ export const ICONS = {
   ack: (ctx, s) => {
     // the gap, and the mend: a broken stroke completed in seal red
     doc(ctx, -s * 0.16, -s * 0.44, s * 0.32, { gap: true });
-    ctx.strokeStyle = INK; ctx.lineWidth = 2.5;
+    ctx.strokeStyle = INK_CUR; ctx.lineWidth = 2.5;
     ctx.beginPath(); ctx.arc(s * 0.3, s * 0.26, s * 0.16, 0, Math.PI * 2); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(s * 0.22, s * 0.26); ctx.lineTo(s * 0.38, s * 0.26); ctx.stroke();
   },
   evidence: (ctx, s) => {
-    ctx.strokeStyle = INK; ctx.lineWidth = 3.5;
+    ctx.strokeStyle = INK_CUR; ctx.lineWidth = 3.5;
     ctx.beginPath(); ctx.arc(-s * 0.06, -s * 0.08, s * 0.24, 0, Math.PI * 2); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(s * 0.12, s * 0.16); ctx.lineTo(s * 0.36, s * 0.4); ctx.stroke();
   },
   boundary: (ctx, s) => {
     boundaryLine(ctx, -s * 0.36, 0, s * 0.72);
-    ctx.strokeStyle = INK; ctx.lineWidth = 3;
+    ctx.strokeStyle = INK_CUR; ctx.lineWidth = 3;
     ctx.beginPath(); ctx.arc(0, -s * 0.02, s * 0.12, 0, Math.PI * 2);
     ctx.fillStyle = PALETTE.blackStone; ctx.fill();
   },
   disagree: (ctx, s) => {
-    ctx.strokeStyle = INK; ctx.lineWidth = 3.5;
+    ctx.strokeStyle = INK_CUR; ctx.lineWidth = 3.5;
     ctx.beginPath(); ctx.moveTo(-s * 0.36, 0); ctx.lineTo(s * 0.36, 0); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(-s * 0.12, -s * 0.14); ctx.lineTo(-s * 0.36, 0);
     ctx.lineTo(-s * 0.12, s * 0.14); ctx.stroke();
@@ -955,7 +1111,7 @@ export const ICONS = {
     ctx.lineTo(s * 0.12, s * 0.14); ctx.stroke();
   },
   pause: (ctx, s) => {
-    ctx.strokeStyle = INK; ctx.lineWidth = 3;
+    ctx.strokeStyle = INK_CUR; ctx.lineWidth = 3;
     ctx.beginPath(); ctx.arc(0, 0, s * 0.3, 0, Math.PI * 2); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(-s * 0.08, -s * 0.14); ctx.lineTo(-s * 0.08, s * 0.14);
     ctx.moveTo(s * 0.08, -s * 0.14); ctx.lineTo(s * 0.08, s * 0.14); ctx.stroke();
@@ -967,7 +1123,7 @@ export const ICONS = {
     ctx.beginPath(); ctx.arc(0, -s * 0.28, s * 0.18, 0, Math.PI * 2); ctx.stroke();
   },
   replay: (ctx, s) => {
-    ctx.strokeStyle = INK; ctx.lineWidth = 3;
+    ctx.strokeStyle = INK_CUR; ctx.lineWidth = 3;
     ctx.beginPath(); ctx.arc(0, 0, s * 0.28, -0.6, Math.PI * 1.5); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(s * 0.1, -s * 0.38); ctx.lineTo(s * 0.3, -s * 0.24);
     ctx.lineTo(s * 0.06, -s * 0.14); ctx.stroke();

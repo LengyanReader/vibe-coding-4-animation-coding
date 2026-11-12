@@ -12,7 +12,6 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
 import { INK, PAPER, GOLD, SEAL, DAI, MOSS, AMBER, OCHRE, STONE, ACTS, PALETTE, WARM, DHARMA } from "../app/tokens.js";
-import { PALETTE as BOARD_PALETTE } from "../app/board-mirror.js";
 
 const ROOT = new URL("..", import.meta.url);
 const read = (p) => readFileSync(new URL(p, ROOT), "utf-8");
@@ -71,10 +70,9 @@ test("the token surfaces are complete and cross-referenced", () => {
     assert.ok(STONE[key], `STONE.${key} (哑光墨面)`);
   }
   // the board's public PALETTE is token-fed, not a second palette
-  assert.equal(BOARD_PALETTE.ink, INK.nong);
-  assert.equal(BOARD_PALETTE.sealRed, SEAL);
-  assert.equal(BOARD_PALETTE.sage, MOSS);
-  assert.equal(PALETTE.paper, BOARD_PALETTE.paper);
+  assert.equal(PALETTE.ink, INK.nong);
+  assert.equal(PALETTE.sealRed, SEAL);
+  assert.equal(PALETTE.sage, MOSS);
   // case variants stay distinct from the base
   assert.notEqual(WARM.paper, PALETTE.paper);
   assert.ok(DHARMA.gold === GOLD, "the fourth view's gold is THE 觉光金");
