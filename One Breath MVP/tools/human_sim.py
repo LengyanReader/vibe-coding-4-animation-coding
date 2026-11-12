@@ -205,12 +205,23 @@ def play_lesson(page, persona, errors, checks):
 
 
 def compare(page, persona, errors, checks):
-    board_click(page, "#compare-board", 1, 1)      # which chain is you
-    wait(page, 180)
-    board_click(page, "#compare-board", 3, 2)      # a shared corridor point
-    wait(page, 180)
-    msg = text(page, ".lesson-prompt")
-    checks["compare_shared"] = "4" in msg or "shared" in msg.lower() or "共用" in msg
+    # the mirror now plays on the player's OWN final board (mode own-position):
+    # light the two doors of their living group, then read the land + ghosts
+    own = page.evaluate("!!state.mirror && state.compare?.mode === 'own'")
+    if own:
+        for (r, c) in [(3, 1), (5, 1)]:
+            board_click(page, "#compare-board", r, c)
+            wait(page, 180)
+        msg = text(page, ".lesson-prompt") + " " + text(page, ".lesson-result")
+        checks["compare_shared"] = "12" in msg and "land" in msg.lower() or "地" in msg
+        checks["compare_own_mode"] = True
+    else:
+        board_click(page, "#compare-board", 1, 1)      # which chain is you
+        wait(page, 180)
+        board_click(page, "#compare-board", 3, 2)      # a shared corridor point
+        wait(page, 180)
+        msg = text(page, ".lesson-prompt")
+        checks["compare_shared"] = "4" in msg or "shared" in msg.lower() or "共用" in msg
     shot(page, persona, "compare")
     page.locator('[data-act="compare_continue"]').click()
     wait(page, 220)

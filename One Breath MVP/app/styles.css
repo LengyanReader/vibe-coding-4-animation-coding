@@ -180,6 +180,11 @@ button.ghost {
   background: var(--paper-wash);
 }
 .mirror-caption { color: var(--ochre); font-size: 0.78rem; letter-spacing: 0.06em; }
+/* keyboard play: the board shows where the hand is */
+#lesson-board:focus-visible, #compare-board:focus-visible {
+  outline: 2px solid rgba(163, 59, 43, 0.45);
+  outline-offset: 2px;
+}
 @media (max-width: 760px) {
   .stage { flex-direction: column-reverse; }
   .mirror { flex: none; align-self: center; }

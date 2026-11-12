@@ -111,7 +111,13 @@ ui:
       game_move: {zh: "第 {n} 手 · {phase}", en: "Move {n} · {phase}"}
 
   compare:
-    title: {zh: "照见 · 同一个形状,两种读法", en: "Mirror · one shape, two readings"}
+    title: {zh: "照见 · 你自己的棋", en: "Mirror · your own board"}
+    own_find_eyes: {zh: "棋下完了。先回到你自己的棋上——把你留下的两扇门,一扇一扇点亮。", en: "The game is over. Return to your own board — light the two doors you kept, one by one."}
+    own_one_door: {zh: "一扇门找到了。还有一扇。", en: "One door found. One remains."}
+    own_not_eye: {zh: "那不是门。门,是你围出来的空点。", en: "That is not a door. A door is a point you surrounded."}
+    own_ghosts: {zh: "你提过的 {n} 颗子,也仍在棋局里。它们让这块地,成了你的地。", en: "The {n} stones you captured are still in the game. They are why this land became yours."}
+    own_count: {zh: "最后数的是地:黑 {b} · 白 {w}。中间还有九点,谁也没围住——余地,留给以后的手。", en: "The last word is land: black {b} · white {w}. Nine points belong to neither — room left for the moves to come."}
+    own_bridge: {zh: "可还有一盘棋,在走廊里。", en: "But one more game waits, in the corridor."}
     find_you: {zh: "先找你自己:哪一块棋,和你一样只有一条走廊?", en: "First find yourself: which chain has only this corridor, like you?"}
     found_you: {zh: 这块。它和你一样,只有一条走廊。, en: "This one. It has only this corridor, like you."}
     find_corridor: {zh: "再找你们共用的气:点一个走廊上的空点。", en: "Now find the breath you share: click an empty point in the corridor."}

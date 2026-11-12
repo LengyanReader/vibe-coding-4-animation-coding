@@ -71,7 +71,7 @@ export function newLessonWalk(lesson, boardSpec, games = {}) {
 export function initGameStep(walk) {
   const record = walk.games[walk.lesson.steps[walk.stepIndex].game];
   if (!record) throw new Error(`game "${walk.lesson.steps[walk.stepIndex].game}" is not in the build`);
-  const w = {
+  let w = {
     ...walk,
     record,
     gs: new GameState(record.size, null),
@@ -80,10 +80,14 @@ export function initGameStep(walk) {
     gameResult: null,
     hint: false,
     awaitingPass: false,
+    captureLog: [],            // every lifted stone, in order (the personal mirror's ghosts)
+    openingPos: null,          // the board after the authored opening (the mirror's "before")
   };
   // replay the authored opening instantly; grandpa's replies (and the white
   // pass) fire from autoReplies as each learner move lands
-  return autoReplies(w).walk;
+  w = autoReplies(w).walk;
+  w.openingPos = w.gs.pos;
+  return w;
 }
 
 function autoReplies(w) {
@@ -101,7 +105,10 @@ function autoReplies(w) {
       w.lastMove = key(...m.at);
       // grandpa's own captures replace the ghosts; a quiet reply keeps the
       // learner's just-lifted stones visible (the capture's proof)
-      if (res.capturedPoints?.length) w.ghosts = res.capturedPoints;
+      if (res.capturedPoints?.length) {
+        w.ghosts = res.capturedPoints;
+        w.captureLog = [...w.captureLog, ...res.capturedPoints];
+      }
     }
     w.gameBubble = { main: m.teach, prev: w.gameBubble?.main ?? null, captures: { ...w.gs.captures } };
     w.gameIdx += 1;
@@ -139,6 +146,7 @@ function gameClick(w, k) {
   w.hint = false;
   w.lastMove = k;
   w.ghosts = res.capturedPoints ?? [];
+  if (res.capturedCount) w.captureLog = [...w.captureLog, ...(res.capturedPoints ?? [])];
   w.gameBubble = { main: m.teach, prev: null, captures: { ...w.gs.captures } };
   w.gameIdx += 1;
   return autoReplies(w);
@@ -431,6 +439,19 @@ export function skipStep(walk) {
   return {
     walk: next.kind === "game" ? initGameStep(w) : { ...w, pos: positionForStep(next, walk.boardSpec) },
     event: "step",
+  };
+}
+
+
+// --- keyboard access (docs/gdd.md §6) -----------------------------------------
+// Arrow keys walk a cursor across the board grid; Enter/Space commits the
+// point. The movement is a pure function so the gate can test it without a DOM.
+export function moveCursor(cur, keyName, size) {
+  const step = { ArrowUp: [-1, 0], ArrowDown: [1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1] }[keyName];
+  if (!step) return cur;
+  return {
+    r: Math.min(size, Math.max(1, cur.r + step[0])),
+    c: Math.min(size, Math.max(1, cur.c + step[1])),
   };
 }
 

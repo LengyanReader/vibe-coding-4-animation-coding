@@ -236,6 +236,15 @@ export function drawBoard(canvas, pos, opts = {}) {
     } else if (m.kind === "last") {
       ctx.fillStyle = PALETTE.sealRed;
       ctx.beginPath(); ctx.arc(x, y, cell * 0.09, 0, Math.PI * 2); ctx.fill();
+    } else if (m.kind === "cursor") {
+      // the keyboard player's hand: a dashed sage ring, clearly not a hint
+      ctx.strokeStyle = PALETTE.sage;
+      ctx.setLineDash([3, 3]);
+      ctx.globalAlpha = 0.9;
+      ctx.lineWidth = 1.8;
+      ctx.beginPath(); ctx.arc(x, y, cell * 0.34, 0, Math.PI * 2); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.globalAlpha = 1;
     } else if (m.kind === "hint") {
       // the guided game's gentle nudge: a soft ring on the point grandpa means
       ctx.strokeStyle = PALETTE.sage;

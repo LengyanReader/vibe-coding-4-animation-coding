@@ -10,12 +10,12 @@
 
 import { makeT, loadLang, saveLang, resolveText } from "./i18n.js";
 import { newWalk, choose, renderNode, isEnding } from "./vignette.js";
-import { emptyPosition, play, key, groupAt, BLACK, WHITE } from "./rules.js";
+import { emptyPosition, play, key, groupAt, eyesFor, BLACK, WHITE } from "./rules.js";
 import { positionFromSpec, drawBoard, chainsAt, hitTest } from "./board-mirror.js";
 import { drawPanel, drawIcon, drawAmbient } from "./panels.js";
 import { ACTS } from "./tokens.js";
 import { drawDharmadhatuView, VIEW_COUNT } from "./dharmadhatu.js";
-import { newLessonWalk, currentStep, clickPoint, pressPass, resetStep, advanceStep, skipStep, isDone, roleAnchor, positionForStep } from "./teaching.js";
+import { newLessonWalk, currentStep, clickPoint, pressPass, resetStep, advanceStep, skipStep, isDone, roleAnchor, positionForStep, moveCursor } from "./teaching.js";
 
 const CONTENT = window.__ONE_BREATH__;         // embedded by tools/build.py
 const { strings, vignettes, boards, lessons, games } = CONTENT;
@@ -29,6 +29,8 @@ const state = {
   sitView: 0,              // which of the four widening views is on screen
   sitExit: "ending",       // "ending" (after a case) or "graph" (Chapter 0)
   sitPositions: null,      // {finalPos, initialPos} for the current sit act
+  mirror: null,            // the player's own game: {position, opening, captures, result}
+  keyCursor: null,         // keyboard grid cursor {r,c} while a board canvas has focus
   sitConfig: null,         // Chapter 0's sit config, reused by its ending tile
   vignetteId: null,
   walk: null,
@@ -80,6 +82,7 @@ function langText(pair, vars) {
 // --- title screen ------------------------------------------------------------
 
 function renderTitle() {
+  state.keyCursor = null;
   applyAct();
   const root = $("#screen");
   const ordered = Object.values(vignettes)
@@ -260,6 +263,9 @@ function drawLessonBoard() {
     const tgt = lw.record.moves[lw.gameIdx]?.at;
     if (tgt) markers.push({ at: key(...tgt), kind: "hint" });
   }
+  if (document.activeElement?.id === "lesson-board" && state.keyCursor) {
+    markers.push({ at: key(state.keyCursor.r, state.keyCursor.c), kind: "cursor" });
+  }
   if (lw.lastMove) markers.push({ at: lw.lastMove, kind: "last" });
   drawBoard(canvas, lw.pos, {
     reducedMotion: state.reducedMotion,
@@ -318,7 +324,7 @@ function renderLesson(walk, v, node) {
         </div>
         <div class="lesson-stage">
           <canvas id="lesson-scene" width="640" height="420" aria-hidden="true"></canvas>
-          <canvas id="lesson-board" width="420" height="420"
+          <canvas id="lesson-board" width="420" height="420" tabindex="0" role="application"
             aria-label="${t("lesson.board_caption")}"></canvas>
           <div class="lesson-side">
             ${isGame ? gameSide : `
@@ -359,9 +365,33 @@ function compareMessage(st) {
   return st.messageKey ? t(st.messageKey, st.vars) : "";
 }
 
+function compareOwnFooter(st) {
+  if (st.mode !== "own" || !state.mirror) return "";
+  if (st.foundEyes.length < 2) return "";
+  const r = state.mirror.result;
+  return `<p class="lesson-result">${escapeHtml(t("compare.own_count", { b: r.black, w: r.white }))}</p>
+    <p class="story-text">${escapeHtml(t("compare.own_bridge"))}</p>`;
+}
+
 function drawCompareBoard(cfg, st) {
   const canvas = $("#compare-board");
   if (!canvas) return;
+  if (st.mode === "own" && state.mirror) {
+    // act 4 照见: the board the PLAYER made — doors found, lifted stones,
+    // and the land, all read from their own game
+    const markers = (st.foundEyes ?? []).map((k) => ({ at: k, kind: "clicked" }));
+    if (document.activeElement?.id === "compare-board" && state.keyCursor) {
+      markers.push({ at: key(state.keyCursor.r, state.keyCursor.c), kind: "cursor" });
+    }
+    drawBoard(canvas, state.mirror.position, {
+      reducedMotion: state.reducedMotion,
+      time: performance.now(),
+      highlightPulse: false,
+      markers,
+      ghostPoints: st.step >= 1 ? state.mirror.captures : [],
+    });
+    return;
+  }
   const boardSpec = boards[cfg.board];
   const pos = positionFromSpec(boardSpec, cfg.beat);
   const markers = [];
@@ -381,16 +411,28 @@ function drawCompareBoard(cfg, st) {
   });
 }
 
+function playerEyes() {
+  if (!state.mirror) return [];
+  const pos = state.mirror.position;
+  const seen = new Set();
+  for (const [k, v] of pos.stones) {
+    if (v !== BLACK || seen.has(k)) continue;
+    const g = groupAt(pos, k);
+    for (const s of g.stones) seen.add(s);
+    const eyes = eyesFor(pos, k);
+    if (eyes.length === 2) return eyes;   // the group that made two doors
+  }
+  return [];
+}
+
 function renderCompare(walk, v, node) {
   const cfg = node.compare;
   if (!state.compare || state.compare.nodeId !== walk.node) {
-    state.compare = {
-      nodeId: walk.node,
-      step: 0,
-      foundCorridor: false,
-      messageKey: "compare.find_you",
-      vars: null,
-    };
+    state.compare = cfg.mode === "own-position" && state.mirror
+      ? { nodeId: walk.node, mode: "own", step: 0, foundEyes: [],
+          eyes: playerEyes(), messageKey: "compare.own_find_eyes", vars: null }
+      : { nodeId: walk.node, step: 0, foundCorridor: false,
+          messageKey: "compare.find_you", vars: null };
   }
   const st = state.compare;
   const root = $("#screen");
@@ -404,12 +446,15 @@ function renderCompare(walk, v, node) {
           </div>
           <div class="story-text">${escapeHtml(resolveText(node.text, state.lang, walk.flags)).replaceAll("\n\n", "</p><p class='story-text'>")}</div>
           <p class="lesson-prompt" role="status">${escapeHtml(compareMessage(st))}</p>
+          ${compareOwnFooter(st)}
           <div class="row">
-            <button data-act="compare_continue" ${st.step > 1 ? "" : "disabled"}>${t("compare.continue")}</button>
+            <button data-act="compare_continue" ${st.mode === "own"
+              ? (st.foundEyes.length >= 2 ? "" : "disabled")
+              : (st.step > 1 ? "" : "disabled")}>${t("compare.continue")}</button>
           </div>
         </div>
         <div class="compare-board">
-          <canvas id="compare-board" width="420" height="420"
+          <canvas id="compare-board" width="420" height="420" tabindex="0" role="application"
             aria-label="${t("mirror_caption")}"></canvas>
         </div>`)}
     </section>`;
@@ -446,16 +491,22 @@ function renderSitAct(walk, v, node) {
   state.sitting = true;
   state.sitView = 0;
   state.sitExit = "sit_graph_exit";
-  state.sitPositions = sitPositionsFrom(node.sit);
+  state.sitPositions = state.mirror
+    ? { finalPos: state.mirror.position, initialPos: state.mirror.opening }
+    : sitPositionsFrom(node.sit);
+  applyAct();
   renderSitScreen();
 }
 
 function renderSit() {
   state.sitting = true;
   state.sitExit = "sit_exit";
-  state.sitPositions = state.sitConfig
-    ? sitPositionsFrom(state.sitConfig)
-    : finalAndInitialPositions();
+  state.sitPositions = state.mirror
+    ? { finalPos: state.mirror.position, initialPos: state.mirror.opening }
+    : state.sitConfig
+      ? sitPositionsFrom(state.sitConfig)
+      : finalAndInitialPositions();
+  applyAct();
   renderSitScreen();
 }
 
@@ -572,12 +623,38 @@ document.addEventListener("click", (e) => {
     return;
   }
   if (e.target.id === "compare-board" && state.compare) {
-    const st = state.compare;
-    const node = vignettes[state.vignetteId].nodes[state.walk.node];
+    const pt = hitTest(e.target, e.clientX, e.clientY, 5);
+    if (!pt) return;
+    runComparePoint(pt);
+    return;
+  }
+});
+
+
+
+// --- keyboard access (docs/gdd.md §6) -------------------------------------------
+// The teaching and mirror boards are canvases; a keyboard-only player walks a
+// cursor with the arrow keys and commits with Enter/Space. The cursor ring is
+// drawn by drawBoard's "cursor" marker.
+
+const BOARD_KEYS = new Set(["lesson-board", "compare-board"]);
+
+function runComparePoint(pt) {
+  const st = state.compare;
+  const node = vignettes[state.vignetteId].nodes[state.walk.node];
+  if (st.mode === "own" && state.mirror) {
+    const k = key(...pt);
+    if (!st.eyes.includes(k)) {
+      st.messageKey = "compare.own_not_eye";
+    } else if (!st.foundEyes.includes(k)) {
+      st.foundEyes = [...st.foundEyes, k];
+      st.messageKey = st.foundEyes.length === 1 ? "compare.own_one_door" : "compare.own_ghosts";
+      st.step = 1;
+      st.vars = { n: state.mirror.captures.length };
+    }
+  } else {
     const cfg = node.compare;
     const boardSpec = boards[cfg.board];
-    const pt = hitTest(e.target, e.clientX, e.clientY, boardSpec.size);
-    if (!pt) return;
     const k = key(...pt);
     const pos = positionFromSpec(boardSpec, cfg.beat);
     if (st.step === 0) {
@@ -599,11 +676,56 @@ document.addEventListener("click", (e) => {
         st.messageKey = "compare.try_again";
       }
     }
-    renderCompare(state.walk, vignettes[state.vignetteId], node);
-    return;
+  }
+  renderCompare(state.walk, vignettes[state.vignetteId], node);
+}
+
+function cursorPointFor(canvasId) {
+  if (canvasId === "lesson-board") return state.lesson ? state.lesson.pos.size : 0;
+  if (canvasId === "compare-board") {
+    if (state.compare?.mode === "own" && state.mirror) return state.mirror.position.size;
+    const node = vignettes[state.vignetteId]?.nodes[state.walk?.node];
+    return node?.compare ? boards[node.compare.board].size : 0;
+  }
+  return 0;
+}
+
+function commitCursor(canvasId) {
+  const pt = [state.keyCursor.r, state.keyCursor.c];
+  if (canvasId === "lesson-board") {
+    if (!state.lesson) return;
+    state.lesson = clickPoint(state.lesson, pt).walk;
+    const v = vignettes[state.vignetteId];
+    const remembered = v.nodes[state.lesson.storyNode ?? state.walk.node];
+    const node = remembered?.lesson === state.lesson.lesson.id
+      ? remembered
+      : Object.values(v.nodes).find((n) => n.lesson === state.lesson.lesson.id);
+    renderLesson(state.walk, v, node);
+  } else {
+    runComparePoint(pt);
+  }
+}
+
+document.addEventListener("keydown", (e) => {
+  const t = document.activeElement;
+  if (!t || !BOARD_KEYS.has(t.id)) return;
+  const size = cursorPointFor(t.id);
+  if (!size) return;
+  if (e.key.startsWith("Arrow")) {
+    e.preventDefault();
+    state.keyCursor = moveCursor(state.keyCursor ?? { r: 3, c: 3 }, e.key, size);
+    render();
+    // the render rebuilds the canvas — put the hand back on the board
+    document.getElementById(t.id)?.focus();
+  } else if (e.key === "Enter" || e.key === " ") {
+    e.preventDefault();
+    if (!state.keyCursor) state.keyCursor = { r: 3, c: 3 };
+    commitCursor(t.id);
+    document.getElementById(t.id)?.focus();
+  } else if (e.key === "Escape") {
+    t.blur();
   }
 });
-
 
 // --- event wiring ---------------------------------------------------------------
 
@@ -615,6 +737,7 @@ document.addEventListener("click", (e) => {
     state.walk = newWalk(vignettes[state.vignetteId]);
     state.lesson = null;
     state.compare = null;
+    state.mirror = null;
     state.sitting = false;
     const v = vignettes[state.vignetteId];
     const sitNode = Object.values(v.nodes).find((n) => n.sit);
@@ -644,6 +767,16 @@ document.addEventListener("click", (e) => {
     case "audio": toggleAudio(); state.sitting ? renderSitScreen() : render(); break;
     case "lesson_next": {
       const r = advanceStep(state.lesson);
+      // the guided game's final board becomes the personal mirror (act 4):
+      // 照见 and 坐观 play on the position the PLAYER made, not a canned one
+      if (r.event === "lesson-done" && state.lesson?.gameResult) {
+        state.mirror = {
+          position: state.lesson.gs.pos,
+          opening: state.lesson.openingPos,
+          captures: state.lesson.captureLog ?? [],
+          result: state.lesson.gameResult,
+        };
+      }
       state.lesson = r.walk;
       if (r.event === "lesson-done") {
         state.lesson = null;
@@ -709,6 +842,7 @@ document.addEventListener("click", (e) => {
       state.sitting = false;
       state.lesson = null;
       state.compare = null;
+      state.mirror = null;
       state.sitConfig = null;
       state.sitPositions = null;
       state.walk = null;
@@ -717,6 +851,7 @@ document.addEventListener("click", (e) => {
     case "replay":
       state.lesson = null;
       state.compare = null;
+      state.mirror = null;
       state.walk = newWalk(vignettes[state.vignetteId]);
       renderScreen(state.walk);
       break;

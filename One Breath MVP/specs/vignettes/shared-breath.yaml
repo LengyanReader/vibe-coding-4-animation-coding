@@ -59,23 +59,25 @@ nodes:
     board: capture_done
     panel: {scene: corridor-narrow}
     compare:
+      mode: own-position        # 照见 plays on the player's own final board
       board: board-shared-breath
       beat: mutual
       roles: {you: "black@1,1", them: "white@4,1"}
     text:
       zh: >-
-        现在,把棋盘上的两块棋,和走廊里的两个人,对上看。
-        先找你自己——再找你们共用的那几口气。
-        {rushed, y: 你急过一次。急的时候,看不见共享的气。}
-        {rushed, n: 你慢慢走过来,现在慢下来看。}
+        你回到了桌边。桌上是你刚下完的那盘棋——每一颗子都是你亲手放的。
+        先在你自己的棋上,看清你留下的东西,再回到走廊。
+        {rushed, y: 你急过一次。急的时候,看不见自己留下的门。}
+        {rushed, n: 你慢慢下完了这盘棋,现在慢下来看。}
       en: >-
-        Now set the two chains on the board beside the two people in the
-        corridor. First find yourself — then find the breath you share.
-        {rushed, y: You rushed once. In a rush, the shared breath is invisible.}
-        {rushed, n: You walked here slowly; now slow down and look.}
+        You are back at the table. On it lies the game you just played — every
+        stone placed by your own hand. See what you left on your own board
+        first; then return to the corridor.
+        {rushed, y: You rushed once. In a rush, the doors you left are invisible.}
+        {rushed, n: You played the game slowly; now slow down and look.}
     choices:
-      - {label: {zh: 这个棋形就是我们的处境, en: This shape IS our situation}, to: n4, icon: eye_mine}
-      - {label: {zh: 棋盘帮不了我——回到故事, en: The board cannot help — back to the story}, to: n4, icon: back_room}
+      - {label: {zh: 两扇门都在——回到走廊, en: Both doors are here — back to the corridor}, to: n4, icon: eye_mine}
+      - {label: {zh: 再看一遍我的棋, en: Look at my board once more}, to: n4, icon: back_room}
 
   n4:
     movement: release

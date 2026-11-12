@@ -14,7 +14,7 @@ import {
   GameState, teachingReply, eyesFor, allLegalMoves, play, key, groupAt,
   hashPosition, BLACK, WHITE, emptyPosition,
 } from "../app/rules.js";
-import { newLessonWalk, currentStep, clickPoint, pressPass, resetStep, advanceStep } from "../app/teaching.js";
+import { newLessonWalk, currentStep, clickPoint, pressPass, resetStep, advanceStep, moveCursor } from "../app/teaching.js";
 
 const content = JSON.parse(
   readFileSync(new URL("../dist/content.json", import.meta.url), "utf-8"));
@@ -294,6 +294,44 @@ test("teachingReply: across a long game the deterministic opponent never picks a
     const [r, c] = k.split(",").map(Number);
     assert.ok(r >= 1 && r <= 5 && c >= 1 && c <= 5, `stone off board: ${k}`);
   }
+});
+
+
+test("the personal mirror: the walk records what 照见 and 坐观 will play on", () => {
+  // the player's own game becomes act 4's board: opening snapshot, the five
+  // lifted stones in order, and the final position with its two doors
+  let w = gameWalk();
+  let guard = 0;
+  while (!w.done && guard++ < 30) {
+    if (w.awaitingPass) { w = pressPass(w).walk; break; }
+    const m = w.record.moves[w.gameIdx];
+    w = clickPoint(w, m.at).walk;
+  }
+  assert.ok(w.openingPos, "the opening snapshot exists");
+  assert.equal(w.openingPos.stones.size, 4, "the authored opening, four stones");
+  assert.equal(w.captureLog[0], key(1, 2),
+    "the squeeze stone came off first");
+  assert.deepEqual([...w.captureLog].sort(),
+    [key(1, 2), key(2, 1), key(3, 1), key(4, 1), key(5, 1)].sort(),
+    "the log holds exactly the chase's five lifted stones");
+  // the doors ARE former capture points: the land exists because of the lifts
+  const eyes = eyesFor(w.gs.pos, key(2, 2)).map((k) => k.split(",").map(Number));
+  assert.deepEqual(eyes, [[3, 1], [5, 1]]);
+  for (const [r, c] of eyes) {
+    assert.ok(w.captureLog.includes(key(r, c)),
+      `the door (${r},${c}) was a capture point — 提过的子仍在棋局里`);
+  }
+});
+
+test("keyboard access: the grid cursor clamps at the board edge", () => {
+  const size = 5;
+  let cur = { r: 3, c: 3 };
+  for (let i = 0; i < 10; i++) cur = moveCursor(cur, "ArrowUp", size);
+  assert.deepEqual(cur, { r: 1, c: 3 }, "the cursor never leaves the board");
+  for (let i = 0; i < 10; i++) cur = moveCursor(cur, "ArrowRight", size);
+  assert.deepEqual(cur, { r: 1, c: 5 });
+  assert.deepEqual(moveCursor(cur, "Enter", size), cur,
+    "non-arrow keys do not move the hand");
 });
 
 test("no engine randomness: the golden walk is reproducible byte for byte", () => {

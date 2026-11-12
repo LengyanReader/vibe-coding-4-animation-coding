@@ -93,3 +93,26 @@
 - **Blocked:** keyboard accessibility (P1), S1–S3, and the native-reader pass.
 - **Next:** keyboard grid for the lesson/compare boards; then real S4 (three first-time players + mentor + native reader); then P1 (`GameState`/`teachingReply` out of `rules.js`, use/remove `teachingReply`, game → corridor bridge).
 - **Sources:** observed command output 2026-11-12; `tasks/PLAN.md` Round 2; `.harness/decisions.md` #14–#17; `outputs/human-sim/REPORT.md`.
+## Round 3 · Chapter 0 v3 (2026-11-13)
+
+- **Formal process adopted:** M1 design docs (docs/gdd.md, art-bible.md,
+  narrative-design.md) → M2 tokens single source with gates → M3 vertical slice
+  (user-review gate) → M4 production → M5 personal mirror → M6 QA → M7
+  keyboard + S4 protocol (docs/playtest-s4.md).
+- **Visual:** 留白·气韵·觉光 — five-act color script (body background + canvas
+  paper warm monotonically toward 觉), atmosphere system (far hills, drifting
+  mist, breath motes, all coordinate-seeded), matte-ink stones, hairline
+  frames, ink-outline primary buttons. 55 scattered hexes → app/tokens.js
+  (gate: zero bare hex in render modules; CSS sync; gold only at 觉).
+- **Narrative:** acts map one concept each; lesson screen became the act stage
+  (ambient scene per act); 照见 now plays on the player's OWN final board
+  (doors = former capture points, ghosts of the five lifts, the 12-4 count)
+  with the corridor bridge line; 坐观 renders the player's position (Indra's
+  net in 觉光金).
+- **Accessibility (P1 closed):** arrow-key grid cursor + Enter commits on both
+  boards, focus-restored after re-render, dashed sage cursor ring, focus rings.
+- **Evidence:** 74/74 node tests; verify.py full; smoke matrix 0 errors;
+  human_sim six personas 0 errors (compare flow updated for own-position);
+  build twice-identical sha256 d0a1e7c2…; harness check OK.
+- **Open:** S1–S3 real-person gates (protocol ready); visual polish pass on the
+  two case vignettes' own scenes (they inherit the tokens already).
